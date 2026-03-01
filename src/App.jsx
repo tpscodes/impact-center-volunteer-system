@@ -6,6 +6,7 @@ import VolunteerIdEntry from './pages/VolunteerIdEntry'
 import TaskPool from './pages/TaskPool'
 import MyTasks from './pages/MyTasks'
 import TaskDetail from './pages/TaskDetail'
+import NewVolunteerTasks from './pages/NewVolunteerTasks'
 
 // ── Placeholder page factory ──────────────────────────────────────────────────
 function Placeholder({ emoji, title, color }) {
@@ -174,7 +175,7 @@ export default function App() {
           <Route path="/experienced/task/:taskId" element={<TaskDetail />} />
 
           {/* Placeholders */}
-          <Route path="/new"                    element={<Placeholder emoji="🆕" title="New Volunteer"  color="#34C759" />} />
+          <Route path="/new"                    element={<NewVolunteerTasks />} />
           <Route path="/board"                  element={<Placeholder emoji="📋" title="Digital Board"  color="#2563EB" />} />
         </Routes>
       </VolunteerProvider>

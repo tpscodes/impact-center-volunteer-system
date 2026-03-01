@@ -42,7 +42,7 @@ function DetailRow({ label, value, highlight }) {
 export default function TaskDetail() {
   const { taskId } = useParams()
   const navigate = useNavigate()
-  const { availableTasks, activeTask, hasActiveTask, claimTask, completeTask } = useVolunteer()
+  const { availableTasks, activeTask, hasActiveTask, claimTask, completeTask, logout } = useVolunteer()
   const [completing, setCompleting] = useState(false)
   const [claiming, setClaiming] = useState(false)
 
@@ -97,13 +97,22 @@ export default function TaskDetail() {
 
       {/* ── Header ── */}
       <header className="px-4 pt-6 pb-5" style={{ backgroundColor: '#FF9500' }}>
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-white text-sm font-bold mb-3 opacity-90"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          ← Back
-        </button>
+        <div className="flex items-start justify-between mb-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-white text-sm font-bold opacity-90"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            ← Back
+          </button>
+          <button
+            onClick={() => { logout(); navigate('/') }}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl"
+            style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}
+          >
+            Exit
+          </button>
+        </div>
         <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
           Task Details
         </p>

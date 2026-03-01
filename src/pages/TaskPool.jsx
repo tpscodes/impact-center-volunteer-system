@@ -4,7 +4,7 @@ import { useVolunteer, PRIORITY_COLORS, PRIORITY_LABELS } from '../context/Volun
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { volunteerId, availableTasks, activeTask, hasActiveTask, claimedTasks } = useVolunteer()
+  const { volunteerId, availableTasks, activeTask, hasActiveTask, claimedTasks, logout } = useVolunteer()
   const [search, setSearch] = useState('')
 
   const filtered = availableTasks.filter(
@@ -17,13 +17,22 @@ export default function TaskPool() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
 
       {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5" style={{ backgroundColor: '#FF9500' }}>
-        <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
-          Experienced Volunteer
-        </p>
-        <h1 className="text-xl font-extrabold text-white mt-0.5">
-          Welcome, Volunteer #{volunteerId ?? '----'}
-        </h1>
+      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#FF9500' }}>
+        <div>
+          <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
+            Experienced Volunteer
+          </p>
+          <h1 className="text-xl font-extrabold text-white mt-0.5">
+            Welcome, Volunteer #{volunteerId ?? '----'}
+          </h1>
+        </div>
+        <button
+          onClick={() => { logout(); navigate('/') }}
+          className="text-xs font-bold px-3 py-1.5 rounded-xl mt-1"
+          style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}
+        >
+          Exit
+        </button>
       </header>
 
       {/* ── In-progress warning banner ── */}

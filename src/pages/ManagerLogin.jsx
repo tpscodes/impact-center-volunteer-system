@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const VALID_USERNAME = 'jason'
-const VALID_PASSWORD = 'impact123'
+const VALID_USERNAME = 'admin'
+const VALID_PASSWORD = 'admin'
 
 export default function ManagerLogin() {
   const navigate = useNavigate()

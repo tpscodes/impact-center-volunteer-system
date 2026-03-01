@@ -87,6 +87,12 @@ export function VolunteerProvider({ children }) {
     setActiveTask(null)
   }
 
+  function logout() {
+    setVolunteerId(null)
+    setAvailableTasks(INITIAL_TASKS)
+    setActiveTask(null)
+  }
+
   return (
     <VolunteerContext.Provider
       value={{
@@ -99,6 +105,7 @@ export function VolunteerProvider({ children }) {
         hasActiveTask,
         claimTask,
         completeTask,
+        logout,
       }}
     >
       {children}
