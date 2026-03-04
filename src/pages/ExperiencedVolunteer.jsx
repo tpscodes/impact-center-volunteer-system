@@ -1,0 +1,275 @@
+// ExperiencedVolunteer flows: ID entry → Task Pool → My Task → Complete
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
+
+// ── ID Entry Screen ──────────────────────────────────────────────────────────
+export function VolunteerIdEntry() {
+  const [id, setId] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  function handleSubmit() {
+    if (id.length < 4) { setError("Enter your 4-digit volunteer ID"); return; }
+    sessionStorage.setItem("volunteerId", id);
+    sessionStorage.setItem("volunteerName", `Vol #${id}`);
+    navigate("/experienced/tasks");
+  }
+
+  return (
+    <div style={{ background: GRAY.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Sign In</div>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 32px 60px" }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>Enter your volunteer ID</div>
+        <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 24 }}>Your 4-digit ID from your volunteer card</div>
+
+        <input
+          value={id}
+          onChange={e => { setId(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(""); }}
+          placeholder="1234"
+          maxLength={4}
+          type="tel"
+          style={{ width: "100%", padding: "18px 16px", border: `2px solid ${error ? "#EF4444" : GRAY.border}`, borderRadius: 12, fontSize: 32, fontWeight: 800, color: GRAY.dark, textAlign: "center", letterSpacing: "0.3em", background: "white", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+          onFocus={e => e.target.style.borderColor = GRAY.soft}
+          onBlur={e => e.target.style.borderColor = error ? "#EF4444" : GRAY.border}
+          onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
+        />
+
+        {error && <div style={{ color: "#EF4444", fontSize: 13, marginTop: 8, textAlign: "center" }}>{error}</div>}
+
+        <button onClick={handleSubmit}
+          style={{ width: "100%", marginTop: 20, padding: 15, background: id.length >= 4 ? GRAY.dark : "#D1D5DB", color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: id.length >= 4 ? "pointer" : "not-allowed" }}>
+          → View My Tasks
+        </button>
+
+        <button onClick={() => navigate("/")}
+          style={{ marginTop: 12, background: "none", border: "none", color: GRAY.soft, fontSize: 13, cursor: "pointer", textDecoration: "underline" }}>
+          ← Back to home
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Task Pool ────────────────────────────────────────────────────────────────
+export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+
+  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const volunteerName = sessionStorage.getItem("volunteerName") || `Vol #${volunteerId}`;
+
+  // Show: available tasks + tasks assigned to me
+  const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
+  const available = tasks.filter(t =>
+    t.status === "available" &&
+    (!t.assignedTo || t.assignedTo === "experienced" || t.assignedTo === volunteerId) &&
+    (!search || t.name?.toLowerCase().includes(search.toLowerCase()) || t.item?.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  async function handleClaim(task) {
+    await onClaimTask(task.id, volunteerId, volunteerName);
+    navigate("/experienced/mytask");
+  }
+
+  return (
+    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
+
+      {/* Header */}
+      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome, {volunteerName}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D", animation: "pulse 2s infinite" }} />
+          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+        </div>
+      </div>
+
+      {/* My active task banner */}
+      {myTask && (
+        <div style={{ background: GRAY.dark, margin: "16px 16px 0", borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>You're working on</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "white", marginTop: 2 }}>{myTask.name}</div>
+          </div>
+          <button onClick={() => navigate("/experienced/mytask")}
+            style={{ background: "white", color: GRAY.dark, border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            View →
+          </button>
+        </div>
+      )}
+
+      <div style={{ padding: "16px 16px 0" }}>
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+            style={{ width: "100%", padding: "10px 12px 10px 32px", border: `1.5px solid ${GRAY.border}`, borderRadius: 8, fontSize: 14, color: GRAY.dark, background: "white", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+          Available Tasks ({available.length})
+        </div>
+
+        {available.length === 0 && (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: GRAY.light, fontSize: 14 }}>
+            {myTask ? "You have an active task — complete it first!" : "No tasks available right now"}
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {available.map(t => (
+            <div key={t.id} style={{ background: "white", borderRadius: 12, border: `1.5px solid ${GRAY.border}`, overflow: "hidden" }}>
+              <div style={{ padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: GRAY.dark, flex: 1 }}>{t.name}</div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: t.priority === "Urgent" ? "#374151" : t.priority === "High" ? "#6B7280" : "#9CA3AF", background: t.priority === "Urgent" ? "#E5E7EB" : "#F3F4F6", borderRadius: 20, padding: "2px 8px", marginLeft: 8 }}>
+                    {t.priority}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: GRAY.soft, marginBottom: 4 }}>
+                  {t.source} → {t.destination}
+                </div>
+                <div style={{ fontSize: 11, color: GRAY.light }}>{t.estimatedTime}</div>
+                {t.comments && <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 6, fontStyle: "italic" }}>📌 {t.comments}</div>}
+              </div>
+              <button
+                onClick={() => !myTask && handleClaim(t)}
+                disabled={!!myTask}
+                style={{ width: "100%", padding: "12px 0", background: myTask ? "#F3F4F6" : GRAY.dark, color: myTask ? GRAY.light : "white", border: "none", fontSize: 13, fontWeight: 700, cursor: myTask ? "not-allowed" : "pointer" }}>
+                {myTask ? "Complete your current task first" : "CLAIM TASK"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, display: "flex" }}>
+        <button style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: "pointer", borderBottom: `2px solid ${GRAY.dark}` }}>
+          📋 Available ({available.length})
+        </button>
+        <button onClick={() => navigate("/experienced/mytask")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: "pointer" }}>
+          ✅ My Task {myTask ? "(1)" : ""}
+        </button>
+      </div>
+
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+    </div>
+  );
+}
+
+// ── My Task Screen ───────────────────────────────────────────────────────────
+export function MyTask({ tasks, onCompleteTask, synced }) {
+  const navigate = useNavigate();
+  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const [completing, setCompleting] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+
+  const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
+
+  // Timer
+  useState(() => {
+    if (!myTask) return;
+    const start = myTask.claimedAt || Date.now();
+    const interval = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(interval);
+  });
+
+  async function handleComplete() {
+    if (!myTask) return;
+    setCompleting(true);
+    await onCompleteTask(myTask.id);
+    setTimeout(() => navigate("/experienced/tasks"), 1200);
+  }
+
+  const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
+  const secs = (elapsed % 60).toString().padStart(2, "0");
+
+  return (
+    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
+
+      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>My Task</div>
+        </div>
+        <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+      </div>
+
+      <div style={{ padding: "20px 16px" }}>
+        {!myTask ? (
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>No active task</div>
+            <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 20 }}>Head back to pick a new one!</div>
+            <button onClick={() => navigate("/experienced/tasks")}
+              style={{ padding: "12px 24px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              ← Back to Tasks
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Task card */}
+            <div style={{ background: "white", borderRadius: 14, border: `2px solid ${GRAY.dark}`, overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ background: GRAY.dark, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>In Progress</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "white" }}>{myTask.name}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Elapsed</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "white", fontVariantNumeric: "tabular-nums" }}>{mins}:{secs}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: "16px 18px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: myTask.comments ? 14 : 0 }}>
+                  {[["ACTION", myTask.action], ["ITEM", myTask.item], ["FROM", myTask.source], ["TO", myTask.destination], ["EST. TIME", myTask.estimatedTime]].filter(([, v]) => v).map(([label, val]) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+                      <div style={{ fontSize: 14, color: GRAY.dark, fontWeight: 600, marginTop: 2 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                {myTask.comments && (
+                  <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "10px 12px", borderLeft: `3px solid ${GRAY.light}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Special Instructions</div>
+                    <div style={{ fontSize: 13, color: GRAY.soft }}>{myTask.comments}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button onClick={handleComplete} disabled={completing}
+              style={{ width: "100%", padding: "16px 0", background: completing ? "#D1D5DB" : GRAY.dark, color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
+              {completing ? "Marking complete…" : "✓ MARK COMPLETE"}
+            </button>
+
+            <button onClick={() => navigate("/experienced/tasks")}
+              style={{ width: "100%", marginTop: 10, padding: "12px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              ← Back to Task Pool
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, display: "flex" }}>
+        <button onClick={() => navigate("/experienced/tasks")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: "pointer" }}>
+          📋 Available Tasks
+        </button>
+        <button style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: "pointer", borderBottom: `2px solid ${GRAY.dark}` }}>
+          ✅ My Task
+        </button>
+      </div>
+    </div>
+  );
+}

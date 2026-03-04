@@ -12,7 +12,7 @@ function TaskTimer({ claimedAt }) {
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const secs = String(elapsed % 60).padStart(2, '0')
   return (
-    <span className="font-mono font-bold" style={{ color: '#FF9500' }}>
+    <span className="font-mono font-bold" style={{ color: '#6B7280' }}>
       ⏱ {mins}:{secs}
     </span>
   )
@@ -23,14 +23,14 @@ function DetailRow({ label, value, highlight }) {
   return (
     <div
       className="flex flex-col gap-1 p-3 rounded-xl"
-      style={{ backgroundColor: highlight ? '#FFF7ED' : '#F8FAFC' }}
+      style={{ backgroundColor: '#F8FAFC' }}
     >
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
         {label}
       </span>
       <span
         className="text-sm font-semibold leading-snug"
-        style={{ color: highlight ? '#FF9500' : '#1E293B' }}
+        style={{ color: '#1E293B' }}
       >
         {value}
       </span>
@@ -61,7 +61,7 @@ export default function TaskDetail() {
         <button
           onClick={() => navigate('/experienced/tasks')}
           className="px-6 py-2.5 rounded-xl font-bold text-white text-sm"
-          style={{ backgroundColor: '#FF9500', border: 'none', cursor: 'pointer' }}
+          style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
         >
           ← Back to Tasks
         </button>
@@ -96,7 +96,7 @@ export default function TaskDetail() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
 
       {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5" style={{ backgroundColor: '#FF9500' }}>
+      <header className="px-4 pt-6 pb-5" style={{ backgroundColor: '#4B5563' }}>
         <div className="flex items-start justify-between mb-3">
           <button
             onClick={() => navigate(-1)}
@@ -125,9 +125,9 @@ export default function TaskDetail() {
           <>
             <span
               className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full"
-              style={{ backgroundColor: '#FFF7ED', color: '#FF9500' }}
+              style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
             >
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#FF9500' }} />
+              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#6B7280' }} />
               🟠 In Progress
             </span>
             <TaskTimer claimedAt={activeTask.claimedAt} />
@@ -135,9 +135,9 @@ export default function TaskDetail() {
         ) : (
           <span
             className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: '#F0FDF4', color: '#34C759' }}
+            style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
           >
-            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#34C759' }} />
+            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#9CA3AF' }} />
             ⬜ Available
           </span>
         )}
@@ -176,12 +176,12 @@ export default function TaskDetail() {
         {/* Comments — highlighted */}
         <div
           className="flex flex-col gap-1.5 p-4 rounded-xl"
-          style={{ backgroundColor: '#FFF7ED', border: '1px solid #FDDCAA' }}
+          style={{ backgroundColor: '#F3F4F6', border: '1px solid #E2E8F0' }}
         >
-          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#FF9500' }}>
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6B7280' }}>
             📝 Special Instructions
           </span>
-          <p className="text-sm leading-relaxed" style={{ color: '#92400E' }}>
+          <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
             {task.comments}
           </p>
         </div>
@@ -199,7 +199,7 @@ export default function TaskDetail() {
             <button
               onClick={() => navigate(`/experienced/task/${activeTask.id}`)}
               className="mt-1 w-full py-2 rounded-lg text-sm font-bold text-white"
-              style={{ backgroundColor: '#FF9500', border: 'none', cursor: 'pointer' }}
+              style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
             >
               View My Current Task →
             </button>
@@ -219,7 +219,7 @@ export default function TaskDetail() {
             disabled={completing}
             className="w-full py-4 rounded-2xl font-bold text-white text-base tracking-wide transition-all active:scale-95"
             style={{
-              backgroundColor: completing ? '#86EFAC' : '#34C759',
+              backgroundColor: completing ? '#9CA3AF' : '#374151',
               border: 'none',
               cursor: completing ? 'not-allowed' : 'pointer',
             }}

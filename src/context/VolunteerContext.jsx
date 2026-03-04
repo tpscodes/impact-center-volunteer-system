@@ -1,9 +1,9 @@
 import { createContext, useContext, useState } from 'react'
 
 export const PRIORITY_COLORS = {
-  green:  '#34C759',
-  blue:   '#2563EB',
-  orange: '#FF9500',
+  green:  '#6B7280',
+  blue:   '#9CA3AF',
+  orange: '#6B7280',
 }
 
 export const PRIORITY_LABELS = {

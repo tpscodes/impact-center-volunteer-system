@@ -1,184 +1,99 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { VolunteerProvider } from './context/VolunteerContext'
-import ManagerLogin from './pages/ManagerLogin'
-import ManagerDashboard from './pages/ManagerDashboard'
-import VolunteerIdEntry from './pages/VolunteerIdEntry'
-import TaskPool from './pages/TaskPool'
-import MyTasks from './pages/MyTasks'
-import TaskDetail from './pages/TaskDetail'
-import NewVolunteerTasks from './pages/NewVolunteerTasks'
+// App.jsx — Complete routing with shared real-time sync
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useSharedTasks } from "./hooks/useSharedTasks";
 
-// ── Placeholder page factory ──────────────────────────────────────────────────
-function Placeholder({ emoji, title, color }) {
-  const navigate = useNavigate()
-  return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center gap-4 px-4"
-      style={{ backgroundColor: '#F8F8FA' }}
-    >
-      <span className="text-6xl">{emoji}</span>
-      <h1 className="text-2xl font-extrabold" style={{ color: color || '#1F497D' }}>
-        {title}
-      </h1>
-      <p className="text-sm text-gray-400">Coming soon</p>
-      <button
-        onClick={() => navigate('/')}
-        className="mt-4 px-6 py-2 rounded-xl text-sm font-bold text-white"
-        style={{ backgroundColor: color || '#1F497D', border: 'none', cursor: 'pointer' }}
-      >
-        ← Back to home
-      </button>
-    </div>
-  )
+// Pages
+import LandingPage from "./components/LandingPage";
+import ManagerLogin from "./pages/ManagerLogin";
+import ManagerDashboard from "./pages/ManagerDashboard";
+import { ManagerTasksScreen, CreateTaskScreen } from "./pages/ManagerTasks";
+import DigitalBoard from "./pages/DigitalBoard";
+import { VolunteerIdEntry, ExperiencedTaskPool, MyTask } from "./pages/ExperiencedVolunteer";
+import NewVolunteerTasks from "./pages/NewVolunteerTasks";
+
+// ── Wrapper components that inject shared state ──────────────────────────────
+
+function ManagerDashboardWrapper() {
+  const navigate = useNavigate();
+  const { tasks, synced, error, deleteTask, resetTasks } = useSharedTasks();
+  return <ManagerDashboard tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onResetTasks={resetTasks} />;
 }
 
-// ── Landing page ──────────────────────────────────────────────────────────────
-function LandingPage() {
-  const navigate = useNavigate()
-
-  const buttons = [
-    {
-      label: 'Operations Manager',
-      emoji: '🔒',
-      bg: '#DC2626',
-      hover: '#B91C1C',
-      to: '/manager/login',
-    },
-    {
-      label: 'Experienced Volunteer',
-      emoji: '👤',
-      bg: '#FF9500',
-      hover: '#E07B00',
-      to: '/experienced',
-    },
-    {
-      label: 'New Volunteer',
-      emoji: '🆕',
-      bg: '#34C759',
-      hover: '#28A745',
-      to: '/new',
-    },
-  ]
-
-  return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-      style={{ backgroundColor: '#F8F8FA' }}
-    >
-      {/* Header */}
-      <div className="text-center mb-10">
-        <h1
-          className="text-5xl font-extrabold tracking-widest uppercase"
-          style={{ color: '#1F497D' }}
-        >
-          IMPACT CENTER
-        </h1>
-        <p
-          className="mt-2 text-lg font-semibold tracking-wide uppercase"
-          style={{ color: '#1F497D', opacity: 0.7 }}
-        >
-          Volunteer Task Management
-        </p>
-        <div
-          className="mt-4 mx-auto h-1 w-24 rounded-full"
-          style={{ backgroundColor: '#1F497D', opacity: 0.3 }}
-        />
-      </div>
-
-      {/* Role Buttons */}
-      <div className="w-full flex flex-col gap-4" style={{ maxWidth: '400px' }}>
-        {buttons.map(({ label, emoji, bg, hover, to }) => (
-          <button
-            key={label}
-            onClick={() => navigate(to)}
-            className="w-full flex flex-col items-center justify-center rounded-2xl shadow-lg font-bold text-white transition-transform active:scale-95 cursor-pointer"
-            style={{
-              backgroundColor: bg,
-              minHeight: '100px',
-              fontSize: '1.25rem',
-              border: 'none',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = hover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = bg)}
-          >
-            <span className="text-3xl mb-1">{emoji}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* QR Code Placeholder */}
-      <div className="mt-12 flex flex-col items-center gap-3">
-        <div
-          className="w-24 h-24 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: '#E2E8F0', border: '2px dashed #94A3B8' }}
-        >
-          <svg
-            width="56"
-            height="56"
-            viewBox="0 0 56 56"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="QR code placeholder"
-          >
-            <rect x="0"  y="0"  width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="4"  y="4"  width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="7"  y="7"  width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="0"  width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="38" y="4"  width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="41" y="7"  width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="0"  y="34" width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="4"  y="38" width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="7"  y="41" width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="2"  width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="10" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="18" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="50" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="34" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="42" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="34" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="50" y="42" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="50" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="50" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="2"  y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="10" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="18" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-          </svg>
-        </div>
-        <p className="text-sm font-medium" style={{ color: '#64748B' }}>
-          Scan to access on mobile
-        </p>
-      </div>
-    </div>
-  )
+function ManagerTasksWrapper() {
+  const { tasks, synced, error, deleteTask } = useSharedTasks();
+  return <ManagerTasksScreen tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} />;
 }
 
-// ── App with router + providers ───────────────────────────────────────────────
+function CreateTaskScreenWrapper() {
+  const navigate = useNavigate();
+  const { createTask } = useSharedTasks();
+  return (
+    <CreateTaskScreen
+      onBack={() => navigate("/manager/tasks")}
+      onPublishAll={async (rows) => {
+        await Promise.all(rows.map(row => createTask({
+          item: row.item,
+          action: row.action,
+          source: row.source,
+          destination: row.destination,
+          comments: row.comments,
+          priority: row.priority,
+          estimatedTime: row.estimatedTime,
+          assignedTo: row.assignTo,
+        })));
+      }}
+    />
+  );
+}
+
+function DigitalBoardWrapper() {
+  const { tasks, synced, error } = useSharedTasks();
+  return <DigitalBoard tasks={tasks} synced={synced} error={error} />;
+}
+
+function ExperiencedTaskPoolWrapper() {
+  const { tasks, synced, error, claimTask } = useSharedTasks();
+  return <ExperiencedTaskPool tasks={tasks} synced={synced} error={error} onClaimTask={claimTask} />;
+}
+
+function MyTaskWrapper() {
+  const { tasks, synced, completeTask } = useSharedTasks();
+  return <MyTask tasks={tasks} synced={synced} onCompleteTask={completeTask} />;
+}
+
+function NewVolunteerWrapper() {
+  const { tasks, synced, error, claimTask, completeTask } = useSharedTasks();
+  return <NewVolunteerTasks tasks={tasks} synced={synced} error={error} onClaimTask={claimTask} onCompleteTask={completeTask} />;
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <BrowserRouter>
-      <VolunteerProvider>
-        <Routes>
-          {/* Landing */}
-          <Route path="/"                       element={<LandingPage />} />
+      <Routes>
+        {/* Landing */}
+        <Route path="/" element={<LandingPage />} />
 
-          {/* Manager flow */}
-          <Route path="/manager/login"          element={<ManagerLogin />} />
-          <Route path="/manager/dashboard"      element={<ManagerDashboard />} />
+        {/* Manager flow */}
+        <Route path="/manager/login" element={<ManagerLogin />} />
+        <Route path="/manager/dashboard" element={<ManagerDashboardWrapper />} />
+        <Route path="/manager/tasks" element={<ManagerTasksWrapper />} />
+        <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
 
-          {/* Experienced Volunteer flow */}
-          <Route path="/experienced"            element={<VolunteerIdEntry />} />
-          <Route path="/experienced/tasks"      element={<TaskPool />} />
-          <Route path="/experienced/mytasks"      element={<MyTasks />} />
-          <Route path="/experienced/task/:taskId" element={<TaskDetail />} />
+        {/* Digital board (Prof. Amy's screen) */}
+        <Route path="/board" element={<DigitalBoardWrapper />} />
 
-          {/* Placeholders */}
-          <Route path="/new"                    element={<NewVolunteerTasks />} />
-          <Route path="/board"                  element={<Placeholder emoji="📋" title="Digital Board"  color="#2563EB" />} />
-        </Routes>
-      </VolunteerProvider>
+        {/* Experienced volunteer flow */}
+        <Route path="/experienced" element={<VolunteerIdEntry />} />
+        <Route path="/experienced/tasks" element={<ExperiencedTaskPoolWrapper />} />
+        <Route path="/experienced/mytask" element={<MyTaskWrapper />} />
+
+        {/* New volunteer flow */}
+        <Route path="/new" element={<NewVolunteerWrapper />} />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }

@@ -12,7 +12,7 @@ function TaskTimer({ claimedAt }) {
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const secs = String(elapsed % 60).padStart(2, '0')
   return (
-    <span className="font-mono font-bold text-sm" style={{ color: '#FF9500' }}>
+    <span className="font-mono font-bold text-sm" style={{ color: '#6B7280' }}>
       ⏱ {mins}:{secs}
     </span>
   )
@@ -37,7 +37,7 @@ export default function MyTasks() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
 
       {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#FF9500' }}>
+      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#4B5563' }}>
         <div>
           <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
             Experienced Volunteer
@@ -66,7 +66,7 @@ export default function MyTasks() {
             <button
               onClick={() => navigate('/experienced/tasks')}
               className="mt-3 px-6 py-2.5 rounded-xl font-bold text-white text-sm transition-transform active:scale-95"
-              style={{ backgroundColor: '#FF9500', border: 'none', cursor: 'pointer' }}
+              style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
             >
               Browse Available Tasks
             </button>
@@ -82,8 +82,8 @@ export default function MyTasks() {
               onClick={() => navigate(`/experienced/task/${activeTask.id}`)}
               className="rounded-2xl shadow-sm p-4 flex flex-col gap-3 cursor-pointer"
               style={{
-                backgroundColor: completing ? '#DCFCE7' : '#fff',
-                border: `2px solid ${completing ? '#34C759' : '#FF950033'}`,
+                backgroundColor: completing ? '#F3F4F6' : '#fff',
+                border: `2px solid ${completing ? '#9CA3AF' : '#6B728033'}`,
                 transition: 'background-color 0.4s, border-color 0.4s',
               }}
             >
@@ -95,7 +95,7 @@ export default function MyTasks() {
                 </div>
                 <span
                   className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: '#FFF7ED', color: '#FF9500' }}
+                  style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
                 >
                   {activeTask.time}
                 </span>
@@ -117,11 +117,11 @@ export default function MyTasks() {
               <div className="flex items-center justify-between">
                 <span
                   className="flex items-center gap-1.5 text-sm font-semibold"
-                  style={{ color: completing ? '#34C759' : '#FF9500' }}
+                  style={{ color: completing ? '#6B7280' : '#6B7280' }}
                 >
                   <span
                     className="w-2.5 h-2.5 rounded-full inline-block"
-                    style={{ backgroundColor: completing ? '#34C759' : '#FF9500' }}
+                    style={{ backgroundColor: completing ? '#9CA3AF' : '#6B7280' }}
                   />
                   {completing ? 'Completed! ✓' : '🟠 In Progress'}
                 </span>
@@ -136,7 +136,7 @@ export default function MyTasks() {
               <button
                 onClick={handleComplete}
                 className="w-full py-4 rounded-2xl font-bold text-white text-base tracking-wide transition-transform active:scale-95"
-                style={{ backgroundColor: '#34C759', border: 'none', cursor: 'pointer' }}
+                style={{ backgroundColor: '#374151', border: 'none', cursor: 'pointer' }}
               >
                 MARK COMPLETE ✓
               </button>
@@ -165,10 +165,10 @@ export default function MyTasks() {
         <button
           className="flex-1 py-3 flex flex-col items-center gap-0.5 font-bold text-xs"
           style={{
-            color: '#FF9500',
+            color: '#6B7280',
             background: 'none',
             border: 'none',
-            borderTop: '2px solid #FF9500',
+            borderTop: '2px solid #6B7280',
             cursor: 'pointer',
           }}
         >
