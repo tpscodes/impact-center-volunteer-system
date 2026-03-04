@@ -77,7 +77,7 @@ export default function LandingPage() {
       {/* QR Code */}
       <div className="mt-12 flex flex-col items-center gap-3">
         <img
-          src="/qr-code.jpg"
+          src="/qr-code.png"
           alt="Scan to access on mobile"
           className="rounded-xl shadow-sm"
           style={{ width: 140, height: 140, objectFit: 'contain' }}
