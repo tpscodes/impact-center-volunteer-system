@@ -112,7 +112,7 @@ export default function ManagerLogin() {
             disabled={loading}
             className="w-full py-3 rounded-xl font-bold text-white text-base mt-1 transition-opacity active:scale-95"
             style={{
-              backgroundColor: '#DC2626',
+              backgroundColor: '#374151',
               opacity: loading ? 0.7 : 1,
               border: 'none',
               cursor: loading ? 'not-allowed' : 'pointer',

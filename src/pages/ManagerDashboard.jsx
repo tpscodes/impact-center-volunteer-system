@@ -1,221 +1,142 @@
-import { useNavigate } from 'react-router-dom'
+// ManagerDashboard.jsx
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const metrics = [
-  { label: 'Active Tasks',      value: 12, color: '#34C759', bg: '#DCFCE7', icon: '✅' },
-  { label: 'Completed Today',   value: 8,  color: '#2563EB', bg: '#DBEAFE', icon: '📋' },
-  { label: 'Active Volunteers', value: 7,  color: '#FF9500', bg: '#FEF3C7', icon: '👥' },
-  { label: 'Families Served',   value: 47, color: '#DC2626', bg: '#FEE2E2', icon: '🏠' },
-]
+const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
-const quickActions = [
-  { label: '+ Create New Task', color: '#2563EB', hover: '#1D4ED8' },
-  { label: '📊 Import Excel',   color: '#34C759', hover: '#28A745' },
-  { label: '📈 View Analytics', color: '#FF9500', hover: '#E07B00' },
-]
+function StatusBadge({ status }) {
+  const cfg = {
+    available: { label: "Available", bg: "#F3F4F6", color: "#374151" },
+    "in-progress": { label: "In Progress", bg: "#D1D5DB", color: "#1F2937" },
+    complete: { label: "Complete", bg: "#374151", color: "white" },
+  }[status] || { label: status, bg: "#F3F4F6", color: "#374151" };
+  return (
+    <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+      {cfg.label}
+    </span>
+  );
+}
 
-const tasks = [
-  {
-    status: 'active',
-    statusLabel: 'Active',
-    statusColor: '#FF9500',
-    task: 'Food Pantry Setup',
-    location: 'Main Hall',
-    assignedTo: 'Maria S.',
-  },
-  {
-    status: 'completed',
-    statusLabel: 'Done',
-    statusColor: '#34C759',
-    task: 'Registration Desk',
-    location: 'Front Entrance',
-    assignedTo: 'Carlos T.',
-  },
-  {
-    status: 'pending',
-    statusLabel: 'Pending',
-    statusColor: '#94A3B8',
-    task: 'Clothing Sort',
-    location: 'Storage Room B',
-    assignedTo: 'Unassigned',
-  },
-]
+function PriorityDot({ priority }) {
+  const color = priority === "Urgent" ? "#4B5563" : priority === "High" ? "#6B7280" : "#D1D5DB";
+  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 6 }} />;
+}
 
-export default function ManagerDashboard() {
-  const navigate = useNavigate()
+export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, synced, error }) {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
 
-  function handleLogout() {
-    navigate('/')
-  }
+  const active = tasks.filter(t => t.status !== "complete");
+  const completed = tasks.filter(t => t.status === "complete");
+  const inProgress = tasks.filter(t => t.status === "in-progress");
+
+  const filtered = tasks.filter(t =>
+    !search || t.name?.toLowerCase().includes(search.toLowerCase()) ||
+    t.item?.toLowerCase().includes(search.toLowerCase()) ||
+    t.destination?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F8F8FA' }}>
+    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* ── Header ── */}
-      <header
-        className="w-full px-4 py-4 flex items-center justify-between shadow-sm"
-        style={{ backgroundColor: '#1F497D' }}
-      >
+      {/* Header */}
+      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 className="text-lg font-extrabold text-white leading-tight tracking-wide">
-            Operations Manager Dashboard
-          </h1>
-          <p className="text-xs font-medium text-white" style={{ opacity: 0.75 }}>
-            Welcome, Jason
-          </p>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Operations Manager</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Dashboard</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Welcome, Jason</div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 rounded-xl text-sm font-bold transition-opacity active:scale-95"
-          style={{ backgroundColor: '#DC2626', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
-          Logout
-        </button>
-      </header>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Sync indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.1)", borderRadius: 20, padding: "4px 10px" }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D", animation: synced && !error ? "pulse 2s infinite" : "none" }} />
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{error ? "Offline" : synced ? "Live" : "Syncing…"}</span>
+          </div>
+          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "7px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Logout</button>
+        </div>
+      </div>
 
-      <main className="w-full max-w-5xl mx-auto px-4 py-6 flex flex-col gap-6">
+      <div style={{ padding: "20px 20px 40px" }}>
 
-        {/* ── Metric Cards ── */}
-        <section>
-          <h2 className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#1F497D', opacity: 0.6 }}>
-            Today's Overview
-          </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {metrics.map(({ label, value, color, bg, icon }) => (
-              <div
-                key={label}
-                className="rounded-2xl p-4 flex flex-col gap-1 shadow-sm"
-                style={{ backgroundColor: bg }}
-              >
-                <span className="text-2xl">{icon}</span>
-                <span
-                  className="text-4xl font-extrabold leading-none"
-                  style={{ color }}
-                >
-                  {value}
-                </span>
-                <span className="text-xs font-semibold text-gray-500 leading-tight">{label}</span>
-              </div>
+        {/* Metric cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "Active Tasks", value: active.length, icon: "📋" },
+            { label: "In Progress", value: inProgress.length, icon: "🔄" },
+            { label: "Completed", value: completed.length, icon: "✅" },
+          ].map(m => (
+            <div key={m.label} style={{ background: "white", borderRadius: 12, padding: "14px 12px", border: `1px solid ${GRAY.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: 20 }}>{m.icon}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: GRAY.dark, lineHeight: 1.2 }}>{m.value}</div>
+              <div style={{ fontSize: 11, color: GRAY.light, fontWeight: 600 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <button onClick={() => navigate("/manager/tasks")}
+            style={{ flex: 2, padding: "12px 0", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            + Create New Task
+          </button>
+          <button onClick={onResetTasks}
+            style={{ flex: 1, padding: "12px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            ↺ Reset Demo
+          </button>
+        </div>
+
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 14 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: GRAY.light, fontSize: 14 }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+            style={{ width: "100%", padding: "10px 12px 10px 34px", border: `1.5px solid ${GRAY.border}`, borderRadius: 8, fontSize: 14, color: GRAY.dark, background: "white", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        {/* Task table */}
+        <div style={{ background: "white", borderRadius: 12, border: `1px solid ${GRAY.border}`, overflow: "hidden" }}>
+          {/* Table header */}
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px", padding: "10px 14px", background: GRAY.dark, gap: 8 }}>
+            {["TASK", "LOCATION", "ASSIGNED TO", "STATUS"].map(h => (
+              <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: "0.06em" }}>{h}</div>
             ))}
           </div>
-        </section>
 
-        {/* ── Quick Actions ── */}
-        <section>
-          <h2 className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#1F497D', opacity: 0.6 }}>
-            Quick Actions
-          </h2>
-          <div className="flex flex-col sm:flex-row gap-3">
-            {quickActions.map(({ label, color, hover }) => (
-              <button
-                key={label}
-                className="flex-1 py-3 px-4 rounded-xl font-bold text-white text-sm shadow-sm transition-transform active:scale-95"
-                style={{ backgroundColor: color, border: 'none', cursor: 'pointer' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = color)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
+          {filtered.length === 0 && (
+            <div style={{ padding: 32, textAlign: "center", color: GRAY.light, fontSize: 14 }}>No tasks yet — create one above!</div>
+          )}
 
-        {/* ── Task Table ── */}
-        <section>
-          <h2 className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#1F497D', opacity: 0.6 }}>
-            Current Tasks
-          </h2>
-
-          {/* Desktop table */}
-          <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ backgroundColor: '#1F497D' }}>
-                  {['Status', 'Task', 'Location', 'Assigned To', 'Actions'].map((col) => (
-                    <th
-                      key={col}
-                      className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider"
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t, i) => (
-                  <tr
-                    key={t.task}
-                    className="border-t"
-                    style={{ borderColor: '#F1F5F9', backgroundColor: i % 2 === 0 ? '#fff' : '#F8FAFC' }}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-2 font-semibold" style={{ color: t.statusColor }}>
-                        <span
-                          className="inline-block w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: t.statusColor }}
-                        />
-                        {t.statusLabel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{t.task}</td>
-                    <td className="px-4 py-3 text-gray-500">{t.location}</td>
-                    <td className="px-4 py-3 text-gray-500">{t.assignedTo}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          className="px-3 py-1 rounded-lg text-xs font-bold text-white"
-                          style={{ backgroundColor: '#2563EB', border: 'none', cursor: 'pointer' }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="px-3 py-1 rounded-lg text-xs font-bold text-white"
-                          style={{ backgroundColor: '#DC2626', border: 'none', cursor: 'pointer' }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="flex flex-col gap-3 sm:hidden">
-            {tasks.map((t) => (
-              <div key={t.task} className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-800">{t.task}</span>
-                  <span
-                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full"
-                    style={{ backgroundColor: t.statusColor + '22', color: t.statusColor }}
-                  >
-                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: t.statusColor }} />
-                    {t.statusLabel}
-                  </span>
+          {filtered.map((t, i) => (
+            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px", padding: "12px 14px", gap: 8, borderBottom: i < filtered.length - 1 ? `1px solid ${GRAY.border}` : "none", alignItems: "center", background: t.status === "complete" ? "#FAFAFA" : "white" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.status === "complete" ? GRAY.light : GRAY.dark, display: "flex", alignItems: "center" }}>
+                  <PriorityDot priority={t.priority} />
+                  {t.name}
                 </div>
-                <p className="text-xs text-gray-500">📍 {t.location}</p>
-                <p className="text-xs text-gray-500">👤 {t.assignedTo}</p>
-                <div className="flex gap-2 mt-1">
-                  <button
-                    className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white"
-                    style={{ backgroundColor: '#2563EB', border: 'none', cursor: 'pointer' }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white"
-                    style={{ backgroundColor: '#DC2626', border: 'none', cursor: 'pointer' }}
-                  >
+                <div style={{ fontSize: 11, color: GRAY.light, marginTop: 1 }}>{t.estimatedTime}</div>
+              </div>
+              <div style={{ fontSize: 12, color: GRAY.soft }}>{t.destination || "—"}</div>
+              <div style={{ fontSize: 12, color: GRAY.soft }}>{t.assignedName || "Open"}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                <StatusBadge status={t.status} />
+                {t.status !== "complete" && (
+                  <button onClick={() => onDeleteTask(t.id)}
+                    style={{ fontSize: 10, color: GRAY.light, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
                     Remove
                   </button>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        </section>
-      </main>
+            </div>
+          ))}
+        </div>
+
+        {/* Live updates note */}
+        <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, color: GRAY.light }}>
+          🔄 Updates every 2.5 seconds across all devices
+        </div>
+      </div>
+
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     </div>
-  )
+  );
 }

@@ -1,195 +1,139 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+// NewVolunteerTasks.jsx — Simple tap-to-claim interface, no login required
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const INITIAL_TASKS = [
-  { id: 1, name: 'Empty Trash Cans',        location: 'Warehouse' },
-  { id: 2, name: 'Flatten Cardboard Boxes', location: 'By recycling bin' },
-  { id: 3, name: 'Front Cereal Shelves',    location: 'Rack 9' },
-  { id: 4, name: 'Organize Donation Bins',  location: 'Warehouse tables' },
-  { id: 5, name: 'Remove Old Boxes',        location: 'Pantry entrance' },
-]
+const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
-export default function NewVolunteerTasks() {
-  const navigate = useNavigate()
-  const [tasks, setTasks] = useState(INITIAL_TASKS.map(t => ({ ...t, status: 'available' })))
+// New volunteers only see "available" tasks not specifically assigned to a named volunteer
+export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, synced, error }) {
+  const navigate = useNavigate();
+  const [myTaskId, setMyTaskId] = useState(null);
+  const [completing, setCompleting] = useState(false);
+  const [allDone, setAllDone] = useState(false);
 
-  const activeId   = tasks.find(t => t.status === 'in_progress' || t.status === 'completing')?.id
-  const visibleTasks = tasks.filter(t => t.status !== 'done')
-  const allDone    = tasks.every(t => t.status === 'done')
+  const anonId = "new-" + (sessionStorage.getItem("anonId") || (() => {
+    const id = Math.random().toString(36).slice(2, 6);
+    sessionStorage.setItem("anonId", id);
+    return id;
+  })());
 
-  function handleClaim(id) {
-    if (activeId) return
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'in_progress' } : t))
+  // Show available tasks that are open (no specific named assignment)
+  const openTasks = tasks.filter(t =>
+    t.status === "available" && (!t.assignedTo || t.assignedTo === "" || t.assignedTo === "new")
+  );
+
+  const myTask = tasks.find(t => t.id === myTaskId && t.status === "in-progress");
+  const taskToShow = myTaskId ? myTask : null;
+
+  async function handleClaim(task) {
+    if (myTaskId) return;
+    setMyTaskId(task.id);
+    await onClaimTask(task.id, anonId, "New Volunteer");
   }
 
-  function handleUnclaim(id) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'available' } : t))
+  async function handleComplete() {
+    if (!myTaskId) return;
+    setCompleting(true);
+    await onCompleteTask(myTaskId);
+    setMyTaskId(null);
+    setCompleting(false);
+    if (openTasks.length <= 1) setAllDone(true);
   }
 
-  function handleComplete(id) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'completing' } : t))
-    setTimeout(() => {
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'done' } : t))
-    }, 1000)
-  }
-
-  // ── All done screen ───────────────────────────────────────────────────────
-  if (allDone) {
+  if (allDone && openTasks.length === 0) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center"
-        style={{ backgroundColor: '#F0FDF4' }}
-      >
-        <span style={{ fontSize: '5rem' }}>🎉</span>
-        <h1 className="text-3xl font-extrabold" style={{ color: '#16A34A' }}>
-          Great work!
-        </h1>
-        <p className="text-lg font-semibold" style={{ color: '#15803D' }}>
-          All tasks complete.
-        </p>
-        <p className="text-base" style={{ color: '#166534' }}>
-          See Jason for more assignments.
-        </p>
-        <button
-          onClick={() => navigate('/')}
-          className="mt-4 px-8 py-3 rounded-2xl font-bold text-white text-base"
-          style={{ backgroundColor: '#34C759', border: 'none', cursor: 'pointer' }}
-        >
+      <div style={{ background: "white", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <div style={{ fontSize: 56 }}>🎉</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, textAlign: "center" }}>All done!</div>
+        <div style={{ fontSize: 14, color: GRAY.soft, textAlign: "center" }}>Great work today. All tasks are complete!</div>
+        <button onClick={() => { setAllDone(false); navigate("/"); }}
+          style={{ padding: "12px 28px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
           ← Back to Home
         </button>
       </div>
-    )
+    );
   }
 
-  // ── Main task list ────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
+    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Header */}
-      <header
-        className="px-5 pt-8 pb-6 flex items-start justify-between"
-        style={{ backgroundColor: '#34C759' }}
-      >
+      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <p
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'rgba(255,255,255,0.8)' }}
-          >
-            🆕 New Volunteer
-          </p>
-          <h1 className="text-2xl font-extrabold text-white mt-1 leading-tight">
-            Welcome!
-          </h1>
-          <p className="text-sm font-medium text-white mt-0.5" style={{ opacity: 0.9 }}>
-            Tap a task to get started
-          </p>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>New Volunteer</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome!</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Tap a task to get started</div>
         </div>
-        <button
-          onClick={() => navigate('/')}
-          className="text-xs font-bold px-3 py-1.5 rounded-xl mt-1"
-          style={{ backgroundColor: 'rgba(0,0,0,0.15)', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
-          Exit
-        </button>
-      </header>
-
-      {/* Task count */}
-      <div className="px-5 pt-5 pb-2">
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#34C759', opacity: 0.7 }}>
-          {visibleTasks.filter(t => t.status === 'available').length} tasks remaining
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D", animation: "pulse 2s infinite" }} />
+          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+        </div>
       </div>
 
-      {/* Task cards */}
-      <div className="flex-1 px-4 pb-10 flex flex-col gap-4">
-        {visibleTasks.map(task => {
-          const isInProgress  = task.status === 'in_progress'
-          const isCompleting  = task.status === 'completing'
-          const isLocked      = !!activeId && !isInProgress && !isCompleting
+      <div style={{ padding: "16px 16px 40px" }}>
 
-          // Card colours per state
-          let cardBg     = '#fff'
-          let cardBorder = '2px solid #E2E8F0'
-          if (isInProgress)  { cardBg = '#FFF7ED'; cardBorder = '2px solid #FF9500' }
-          if (isCompleting)  { cardBg = '#F0FDF4'; cardBorder = '2px solid #34C759' }
+        {/* My active task */}
+        {taskToShow && (
+          <div style={{ background: GRAY.dark, borderRadius: 14, padding: "16px", marginBottom: 16, border: "2px solid #374151" }}>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>🔄 You're working on</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "white", marginBottom: 4 }}>{taskToShow.name}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>
+              {taskToShow.source} → {taskToShow.destination}
+            </div>
+            {taskToShow.comments && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14, fontStyle: "italic" }}>📌 {taskToShow.comments}</div>
+            )}
+            <button onClick={handleComplete} disabled={completing}
+              style={{ width: "100%", padding: "14px 0", background: completing ? "#6B7280" : "white", color: completing ? "white" : GRAY.dark, border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer" }}>
+              {completing ? "Saving…" : "TAP WHEN DONE ✓"}
+            </button>
+          </div>
+        )}
 
-          return (
-            <div
-              key={task.id}
-              onClick={() => {
-                if (task.status === 'available') handleClaim(task.id)
-                else if (task.status === 'in_progress') handleUnclaim(task.id)
-              }}
-              className="rounded-2xl shadow-sm flex flex-col gap-3"
-              style={{
-                backgroundColor: cardBg,
-                border: cardBorder,
-                padding: '20px',
-                minHeight: '80px',
-                cursor: isLocked || isCompleting ? 'default' : 'pointer',
-                opacity: isLocked ? 0.45 : 1,
-                transition: 'background-color 0.3s, border-color 0.3s, opacity 0.3s',
-              }}
-            >
-              {/* Task name + location */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <span
-                    className="font-extrabold leading-tight"
-                    style={{ fontSize: '1.1rem', color: isCompleting ? '#16A34A' : '#1E293B' }}
-                  >
-                    {isCompleting ? '✅ Complete!' : task.name}
-                  </span>
-                  {!isCompleting && (
-                    <span className="text-sm font-medium" style={{ color: '#64748B' }}>
-                      📍 {task.location}
-                    </span>
-                  )}
+        {/* Task count */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+          {openTasks.length} Tasks Remaining
+        </div>
+
+        {/* Open task list */}
+        {openTasks.length === 0 && !taskToShow && (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: GRAY.light, fontSize: 14 }}>
+            {myTaskId ? "Complete your task to see more!" : "No open tasks right now — check back soon!"}
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {openTasks.map(t => {
+            const isMyActive = t.id === myTaskId;
+            return (
+              <div key={t.id}
+                onClick={() => !myTaskId && !isMyActive && handleClaim(t)}
+                style={{
+                  background: isMyActive ? "#E5E7EB" : "white",
+                  borderRadius: 12,
+                  border: `2px solid ${isMyActive ? GRAY.mid : GRAY.border}`,
+                  padding: "16px",
+                  cursor: myTaskId ? "default" : "pointer",
+                  opacity: myTaskId && !isMyActive ? 0.5 : 1,
+                  transition: "all 0.15s"
+                }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>{t.name}</div>
+                <div style={{ fontSize: 12, color: GRAY.soft, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>📍</span> {t.destination}
                 </div>
-
-                {/* Status badge */}
-                {isInProgress && (
-                  <span
-                    className="flex-shrink-0 text-sm font-bold px-3 py-1 rounded-full"
-                    style={{ backgroundColor: '#FF950022', color: '#FF9500' }}
-                  >
-                    🟠 In Progress
-                  </span>
+                {t.estimatedTime && (
+                  <div style={{ fontSize: 11, color: GRAY.light, marginTop: 4 }}>⏱ {t.estimatedTime}</div>
                 )}
-                {isCompleting && (
-                  <span
-                    className="flex-shrink-0 text-sm font-bold px-3 py-1 rounded-full"
-                    style={{ backgroundColor: '#34C75922', color: '#16A34A' }}
-                  >
-                    ✅ Done
-                  </span>
-                )}
-                {task.status === 'available' && !isLocked && (
-                  <span className="flex-shrink-0 text-xs text-gray-400 font-medium">
-                    Tap →
-                  </span>
+                {!myTaskId && (
+                  <div style={{ fontSize: 11, color: GRAY.light, marginTop: 6 }}>Tap to claim →</div>
                 )}
               </div>
-
-              {/* TAP WHEN DONE button + cancel hint */}
-              {isInProgress && (
-                <>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleComplete(task.id) }}
-                    className="w-full py-4 rounded-xl font-extrabold text-white text-base tracking-wide transition-transform active:scale-95"
-                    style={{ backgroundColor: '#34C759', border: 'none', cursor: 'pointer', marginTop: '4px' }}
-                  >
-                    TAP WHEN DONE ✓
-                  </button>
-                  <p className="text-xs text-center" style={{ color: '#FF9500', opacity: 0.7 }}>
-                    Tap card to cancel
-                  </p>
-                </>
-              )}
-            </div>
-          )
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     </div>
-  )
+  );
 }

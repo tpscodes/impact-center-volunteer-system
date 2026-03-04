@@ -17,7 +17,7 @@ export default function TaskPool() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
 
       {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#FF9500' }}>
+      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#4B5563' }}>
         <div>
           <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
             Experienced Volunteer
@@ -47,7 +47,7 @@ export default function TaskPool() {
           <button
             onClick={() => navigate(`/experienced/task/${activeTask.id}`)}
             className="self-start px-3 py-1.5 rounded-lg text-xs font-bold text-white"
-            style={{ backgroundColor: '#FF9500', border: 'none', cursor: 'pointer' }}
+            style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
           >
             View My Task →
           </button>
@@ -150,10 +150,10 @@ export default function TaskPool() {
         <button
           className="flex-1 py-3 flex flex-col items-center gap-0.5 font-bold text-xs"
           style={{
-            color: '#FF9500',
+            color: '#6B7280',
             background: 'none',
             border: 'none',
-            borderTop: '2px solid #FF9500',
+            borderTop: '2px solid #6B7280',
             cursor: 'pointer',
           }}
         >
@@ -171,7 +171,7 @@ export default function TaskPool() {
             {claimedTasks.length > 0 && (
               <span
                 className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full text-white flex items-center justify-center font-bold"
-                style={{ backgroundColor: '#FF9500', fontSize: '10px' }}
+                style={{ backgroundColor: '#6B7280', fontSize: '10px' }}
               >
                 1
               </span>
