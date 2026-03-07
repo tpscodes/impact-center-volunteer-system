@@ -8,7 +8,8 @@ import ManagerLogin from "./pages/ManagerLogin";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import { ManagerTasksScreen, CreateTaskScreen } from "./pages/ManagerTasks";
 import DigitalBoard from "./pages/DigitalBoard";
-import { VolunteerIdEntry, ExperiencedTaskPool, MyTask } from "./pages/ExperiencedVolunteer";
+import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
+import TaskPool from "./pages/TaskPool";
 import NewVolunteerTasks from "./pages/NewVolunteerTasks";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
@@ -40,6 +41,7 @@ function CreateTaskScreenWrapper() {
           priority: row.priority,
           estimatedTime: row.estimatedTime,
           assignedTo: row.assignTo,
+          tags: row.tags,
         })));
       }}
     />
@@ -49,11 +51,6 @@ function CreateTaskScreenWrapper() {
 function DigitalBoardWrapper() {
   const { tasks, synced, error } = useSharedTasks();
   return <DigitalBoard tasks={tasks} synced={synced} error={error} />;
-}
-
-function ExperiencedTaskPoolWrapper() {
-  const { tasks, synced, error, claimTask } = useSharedTasks();
-  return <ExperiencedTaskPool tasks={tasks} synced={synced} error={error} onClaimTask={claimTask} />;
 }
 
 function MyTaskWrapper() {
@@ -85,7 +82,7 @@ export default function App() {
 
         {/* Experienced volunteer flow */}
         <Route path="/experienced" element={<VolunteerIdEntry />} />
-        <Route path="/experienced/tasks" element={<ExperiencedTaskPoolWrapper />} />
+        <Route path="/experienced/tasks" element={<TaskPool />} />
         <Route path="/experienced/mytask" element={<MyTaskWrapper />} />
 
         {/* New volunteer flow */}

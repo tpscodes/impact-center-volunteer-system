@@ -23,10 +23,10 @@ const HEADERS = {
 
 // ── Initial seed tasks from Jason's real task lists ──────────────────────────
 export const SEED_TASKS = [
-  { id: "t1", name: "Rack 7 — Fill Coffee", item: "Coffee bags", action: "Fill", source: "Warehouse — Green shelf", destination: "Rack 7", comments: "Front shelf when done", priority: "High", estimatedTime: "~15 min", status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() },
-  { id: "t2", name: "Rack 9 — Front Cereal", item: "Cereal boxes", action: "Front up", source: "Already on shelf", destination: "Rack 9", comments: "Pull all products forward, make it look full", priority: "Normal", estimatedTime: "~10 min", status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() },
-  { id: "t3", name: "Door 1 — Fill Yogurt", item: "Yogurt cups", action: "Fill", source: "Walk-in fridge", destination: "Door 1", comments: "Check expiration dates, oldest in front", priority: "High", estimatedTime: "~12 min", status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() },
-  { id: "t4", name: "Rack 15 — Stock Beans", item: "Great Northern Beans (silver bags)", action: "Fill", source: "Donation bins in warehouse", destination: "Rack 15", comments: "Move peanut butter to Rack 18 first, then fill with beans", priority: "Urgent", estimatedTime: "~20 min", status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() },
+  { id: "t1", name: "Rack 7 — Fill Coffee", item: "Coffee bags", action: "Fill", source: "Warehouse — Green shelf", destination: "Rack 7", comments: "Front shelf when done", priority: "High", estimatedTime: "~15 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Warm"], createdAt: Date.now() },
+  { id: "t2", name: "Rack 9 — Front Cereal", item: "Cereal boxes", action: "Front up", source: "Already on shelf", destination: "Rack 9", comments: "Pull all products forward, make it look full", priority: "Normal", estimatedTime: "~10 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "General"], createdAt: Date.now() },
+  { id: "t3", name: "Door 1 — Fill Yogurt", item: "Yogurt cups", action: "Fill", source: "Walk-in fridge", destination: "Door 1", comments: "Check expiration dates, oldest in front", priority: "High", estimatedTime: "~12 min", status: "available", assignedTo: "", assignedName: "", tags: ["Fridge", "Cool"], createdAt: Date.now() },
+  { id: "t4", name: "Rack 15 — Stock Beans", item: "Great Northern Beans (silver bags)", action: "Fill", source: "Donation bins in warehouse", destination: "Rack 15", comments: "Move peanut butter to Rack 18 first, then fill with beans", priority: "Urgent", estimatedTime: "~20 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Sorting"], createdAt: Date.now() },
 ];
 
 // ── Fetch current tasks from JSONBin ─────────────────────────────────────────
@@ -95,6 +95,7 @@ export function useSharedTasks() {
       status: "available",
       assignedTo: taskData.assignedTo || taskData.assignTo || "",
       assignedName: taskData.assignedName || "",
+      tags: taskData.tags || [],
       createdAt: Date.now(),
     };
     pendingWrite.current = true;
