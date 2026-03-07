@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks } from '../hooks/useSharedTasks'
+import TaskDetail from './TaskDetail'
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
 
@@ -14,6 +15,7 @@ export default function TaskPool() {
   const [activeTags, setActiveTags] = useState([])
   const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
   const [slName, setSlName] = useState('')
+  const [selectedTask, setSelectedTask] = useState(null) // task being viewed in detail
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
@@ -50,6 +52,7 @@ export default function TaskPool() {
     await claimTask(task.id, volunteerId, volunteerName)
     if ((task.tags || []).includes('Shift Leader')) {
       setPendingClaim(task)
+      setSelectedTask(null)
     } else {
       navigate('/experienced/mytask')
     }
@@ -61,6 +64,64 @@ export default function TaskPool() {
     setPendingClaim(null)
     setSlName('')
     navigate('/experienced/mytask')
+  }
+
+  // If a task is selected, show TaskDetail instead of pool
+  if (selectedTask) {
+    // Re-fetch from tasks to get latest status
+    const liveTask = tasks.find(t => t.id === selectedTask.id) || selectedTask
+    const isMyTask = liveTask.assignedTo === volunteerId && liveTask.status === 'in-progress'
+    return (
+      <>
+        <TaskDetail
+          task={liveTask}
+          isMyTask={isMyTask}
+          isLocked={!!myTask && !isMyTask}
+          onClaim={() => handleClaim(liveTask)}
+          onComplete={() => navigate('/experienced/mytask')}
+          onBack={() => setSelectedTask(null)}
+        />
+        {/* Shift Leader modal rendered at root level so it appears above TaskDetail */}
+        {pendingClaim && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 360 }}>
+              <div style={{ background: '#FF9500', padding: '18px 20px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Shift Leader Task</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginTop: 2 }}>What's your name?</div>
+              </div>
+              <div style={{ padding: 20 }}>
+                <div style={{ fontSize: 14, color: GRAY.soft, marginBottom: 16 }}>
+                  New volunteers will see you as their point of contact.
+                </div>
+                <input
+                  value={slName}
+                  onChange={e => setSlName(e.target.value)}
+                  placeholder="Your name…"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter' && slName.trim()) handleSetShiftLeader() }}
+                  style={{ width: '100%', padding: '12px 14px', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 16, color: GRAY.dark, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  onFocus={e => e.target.style.borderColor = '#FF9500'}
+                  onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+                />
+                <button
+                  onClick={handleSetShiftLeader}
+                  disabled={!slName.trim()}
+                  style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#FF9500' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                >
+                  Set as Shift Leader
+                </button>
+                <button
+                  onClick={() => { setPendingClaim(null); setSlName(''); navigate('/experienced/mytask') }}
+                  style={{ width: '100%', marginTop: 8, padding: '10px 0', background: 'none', color: GRAY.light, border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
   }
 
   return (
@@ -147,17 +208,21 @@ export default function TaskPool() {
           </div>
         )}
 
-        {/* Task cards */}
+        {/* Task cards — tap to view detail */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {available.map(t => (
-            <div key={t.id} style={{ background: 'white', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, overflow: 'hidden' }}>
+            <div
+              key={t.id}
+              onClick={() => setSelectedTask(t)}
+              style={{ background: 'white', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, overflow: 'hidden', cursor: 'pointer' }}
+            >
               <div style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: GRAY.dark, flex: 1 }}>{t.name}</div>
                   <span style={{
                     fontSize: 11, fontWeight: 700,
-                    color: t.priority === 'Urgent' ? '#374151' : t.priority === 'High' ? '#6B7280' : '#9CA3AF',
-                    background: t.priority === 'Urgent' ? '#E5E7EB' : '#F3F4F6',
+                    color: t.priority === 'Urgent' ? '#EF4444' : t.priority === 'High' ? '#FF9500' : '#9CA3AF',
+                    background: t.priority === 'Urgent' ? '#FEE2E2' : t.priority === 'High' ? '#FFF7ED' : '#F3F4F6',
                     borderRadius: 20, padding: '2px 8px', marginLeft: 8,
                   }}>
                     {t.priority || 'Normal'}
@@ -178,14 +243,9 @@ export default function TaskPool() {
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={() => !myTask && handleClaim(t)}
-                disabled={!!myTask}
-                style={{ width: '100%', padding: '12px 0', background: myTask ? '#F3F4F6' : GRAY.dark, color: myTask ? GRAY.light : 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: myTask ? 'not-allowed' : 'pointer' }}
-              >
-                {myTask ? 'Complete your current task first' : 'CLAIM TASK'}
-              </button>
+              <div style={{ padding: '10px 16px', borderTop: `1px solid ${GRAY.border}`, fontSize: 12, fontWeight: 700, color: GRAY.soft }}>
+                Tap to view details →
+              </div>
             </div>
           ))}
         </div>

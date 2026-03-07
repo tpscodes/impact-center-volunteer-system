@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks } from '../hooks/useSharedTasks'
+import TaskDetail from './TaskDetail'
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
 
@@ -20,6 +21,7 @@ export default function MyTasks() {
   const navigate = useNavigate()
   const { tasks, synced, completeTask, clearShiftLeader } = useSharedTasks()
   const [completing, setCompleting] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
@@ -32,7 +34,22 @@ export default function MyTasks() {
     const isShiftLeaderTask = (myTask.tags || []).includes('Shift Leader')
     await completeTask(myTask.id)
     if (isShiftLeaderTask) await clearShiftLeader()
+    setShowDetail(false)
     setTimeout(() => navigate('/experienced/tasks'), 1200)
+  }
+
+  // Show TaskDetail fullscreen when task card is tapped
+  if (showDetail && myTask) {
+    return (
+      <TaskDetail
+        task={myTask}
+        isMyTask={true}
+        isLocked={false}
+        onClaim={null}
+        onComplete={handleComplete}
+        onBack={() => setShowDetail(false)}
+      />
+    )
   }
 
   return (
@@ -69,8 +86,11 @@ export default function MyTasks() {
           </div>
         ) : (
           <>
-            {/* Task card */}
-            <div style={{ background: 'white', borderRadius: 14, border: `2px solid ${GRAY.dark}`, overflow: 'hidden', marginBottom: 16 }}>
+            {/* Task card — tap to open detail */}
+            <div
+              onClick={() => setShowDetail(true)}
+              style={{ background: 'white', borderRadius: 14, border: `2px solid ${GRAY.dark}`, overflow: 'hidden', marginBottom: 16, cursor: 'pointer' }}
+            >
               <div style={{ background: GRAY.dark, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>In Progress</div>
@@ -102,6 +122,7 @@ export default function MyTasks() {
                     🟠 You are the Shift Leader — new volunteers can find you for help
                   </div>
                 )}
+                <div style={{ marginTop: 10, fontSize: 12, color: GRAY.light, fontWeight: 600 }}>Tap card for full details →</div>
               </div>
             </div>
 

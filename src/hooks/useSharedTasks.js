@@ -27,6 +27,7 @@ export const SEED_TASKS = [
 async function fetchBin() {
   try {
     const res = await fetch(BASE_URL + "/latest", { headers: HEADERS });
+    if (!res.ok) return null; // treat 4xx/5xx (incl. 429 rate-limit) as failure
     const data = await res.json();
     return { tasks: data.tasks || [], shiftLeader: data.shiftLeader || null };
   } catch {
@@ -37,12 +38,12 @@ async function fetchBin() {
 // ── Save full bin ─────────────────────────────────────────────────────────────
 async function saveBin(tasks, shiftLeader) {
   try {
-    await fetch(BASE_URL, {
+    const res = await fetch(BASE_URL, {
       method: "PUT",
       headers: HEADERS,
       body: JSON.stringify({ tasks, shiftLeader }),
     });
-    return true;
+    return res.ok; // false on 4xx/5xx so callers know the save failed
   } catch {
     return false;
   }

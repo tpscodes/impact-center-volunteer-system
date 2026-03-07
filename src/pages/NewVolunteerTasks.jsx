@@ -6,13 +6,16 @@ import { useSharedTasks } from "../hooks/useSharedTasks";
 const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
 // New volunteers only see "available" tasks not specifically assigned to a named volunteer
-export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, synced, error }) {
+// Self-contained: uses its own hook so slRef.current is always fresh and won't
+// accidentally overwrite shiftLeader when claiming/completing tasks.
+export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { shiftLeader } = useSharedTasks();
+  const { tasks, synced, error, claimTask, completeTask, shiftLeader } = useSharedTasks();
   const [myTaskId, setMyTaskId] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [detailTask, setDetailTask] = useState(null); // task being viewed in new-volunteer detail
 
   const anonId = "new-" + (sessionStorage.getItem("anonId") || (() => {
     const id = Math.random().toString(36).slice(2, 6);
@@ -26,23 +29,110 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
   );
 
   const myTask = tasks.find(t => t.id === myTaskId && t.status === "in-progress");
-  const taskToShow = myTaskId ? myTask : null;
 
   async function handleClaim(task) {
     if (myTaskId) return;
     setMyTaskId(task.id);
-    await onClaimTask(task.id, anonId, "New Volunteer");
+    setDetailTask(task); // open detail immediately after claiming
+    await claimTask(task.id, anonId, "New Volunteer");
   }
 
   async function handleComplete() {
     if (!myTaskId) return;
     setCompleting(true);
-    await onCompleteTask(myTaskId);
+    await completeTask(myTaskId);
     setMyTaskId(null);
+    setDetailTask(null);
     setCompleting(false);
     if (openTasks.length <= 1) setAllDone(true);
   }
 
+  // ── New Volunteer Task Detail overlay ──────────────────────────────────────
+  const activeTaskForDetail = detailTask
+    ? (tasks.find(t => t.id === detailTask.id) || detailTask)
+    : null;
+
+  if (activeTaskForDetail) {
+    const isActive = activeTaskForDetail.id === myTaskId;
+    return (
+      <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 100 }}>
+
+        {/* Header */}
+        <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
+          <div style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => setDetailTask(null)}
+              style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >
+              ← Back
+            </button>
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+            {isActive ? "Your Task" : "Task Details"}
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "white", lineHeight: 1.3 }}>{activeTaskForDetail.name}</div>
+        </div>
+
+        <div style={{ padding: "20px 16px" }}>
+
+          {/* Action — large and prominent */}
+          {activeTaskForDetail.action && (
+            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "16px 18px", marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>What to do</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark }}>{activeTaskForDetail.action}</div>
+            </div>
+          )}
+
+          {/* Destination — very prominent */}
+          {activeTaskForDetail.destination && (
+            <div style={{ background: GRAY.dark, borderRadius: 14, padding: "16px 18px", marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📍 Where to go</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "white" }}>{activeTaskForDetail.destination}</div>
+            </div>
+          )}
+
+          {/* Item */}
+          {activeTaskForDetail.item && (
+            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Item</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: GRAY.dark }}>{activeTaskForDetail.item}</div>
+            </div>
+          )}
+
+          {/* Comments */}
+          {activeTaskForDetail.comments && (
+            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📌 Instructions</div>
+              <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6 }}>{activeTaskForDetail.comments}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky bottom button */}
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, padding: "14px 16px" }}>
+          {isActive ? (
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              style={{ width: "100%", padding: "18px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
+            >
+              {completing ? "Saving…" : "✓ MARK DONE"}
+            </button>
+          ) : (
+            <button
+              onClick={() => handleClaim(activeTaskForDetail)}
+              disabled={!!myTaskId}
+              style={{ width: "100%", padding: "18px 0", background: myTaskId ? "#F3F4F6" : "#34C759", color: myTaskId ? GRAY.light : "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: myTaskId ? "not-allowed" : "pointer" }}
+            >
+              {myTaskId ? "Complete your current task first" : "TAP TO CLAIM"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── All Done screen ─────────────────────────────────────────────────────────
   if (allDone && openTasks.length === 0) {
     return (
       <div style={{ background: "white", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -57,6 +147,7 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
     );
   }
 
+  // ── Main task list ──────────────────────────────────────────────────────────
   return (
     <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
@@ -75,21 +166,21 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
 
       <div style={{ padding: "16px 16px 40px" }}>
 
-        {/* My active task */}
-        {taskToShow && (
-          <div style={{ background: GRAY.dark, borderRadius: 14, padding: "16px", marginBottom: 16, border: "2px solid #374151" }}>
+        {/* My active task banner */}
+        {myTask && (
+          <div
+            onClick={() => setDetailTask(myTask)}
+            style={{ background: GRAY.dark, borderRadius: 14, padding: "16px", marginBottom: 16, border: "2px solid #374151", cursor: "pointer" }}
+          >
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>🔄 You're working on</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "white", marginBottom: 4 }}>{taskToShow.name}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>
-              {taskToShow.source} → {taskToShow.destination}
+            <div style={{ fontSize: 16, fontWeight: 700, color: "white", marginBottom: 4 }}>{myTask.name}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>
+              {myTask.source} → {myTask.destination}
             </div>
-            {taskToShow.comments && (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14, fontStyle: "italic" }}>📌 {taskToShow.comments}</div>
+            {myTask.comments && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14, fontStyle: "italic" }}>📌 {myTask.comments}</div>
             )}
-            <button onClick={handleComplete} disabled={completing}
-              style={{ width: "100%", padding: "14px 0", background: completing ? "#6B7280" : "white", color: completing ? "white" : GRAY.dark, border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer" }}>
-              {completing ? "Saving…" : "TAP WHEN DONE ✓"}
-            </button>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Tap for details →</div>
           </div>
         )}
 
@@ -99,7 +190,7 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
         </div>
 
         {/* Open task list */}
-        {openTasks.length === 0 && !taskToShow && (
+        {openTasks.length === 0 && !myTask && (
           <div style={{ textAlign: "center", padding: "40px 20px", color: GRAY.light, fontSize: 14 }}>
             {myTaskId ? "Complete your task to see more!" : "No open tasks right now — check back soon!"}
           </div>
@@ -110,13 +201,13 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
             const isMyActive = t.id === myTaskId;
             return (
               <div key={t.id}
-                onClick={() => !myTaskId && !isMyActive && handleClaim(t)}
+                onClick={() => setDetailTask(t)}
                 style={{
                   background: isMyActive ? "#E5E7EB" : "white",
                   borderRadius: 12,
                   border: `2px solid ${isMyActive ? GRAY.mid : GRAY.border}`,
                   padding: "16px",
-                  cursor: myTaskId ? "default" : "pointer",
+                  cursor: "pointer",
                   opacity: myTaskId && !isMyActive ? 0.5 : 1,
                   transition: "all 0.15s"
                 }}>
@@ -127,9 +218,7 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
                 {t.estimatedTime && (
                   <div style={{ fontSize: 11, color: GRAY.light, marginTop: 4 }}>⏱ {t.estimatedTime}</div>
                 )}
-                {!myTaskId && (
-                  <div style={{ fontSize: 11, color: GRAY.light, marginTop: 6 }}>Tap to claim →</div>
-                )}
+                <div style={{ fontSize: 11, color: GRAY.light, marginTop: 6 }}>Tap for details →</div>
               </div>
             );
           })}
