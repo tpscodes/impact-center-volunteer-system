@@ -1,8 +1,15 @@
+// TaskDetail.jsx — Prop-driven task detail for Experienced Volunteers
+// No hooks, no routing — rendered conditionally by TaskPool and MyTasks
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useVolunteer, PRIORITY_COLORS, PRIORITY_LABELS } from '../context/VolunteerContext'
 
-// ── Live timer (reused from MyTasks) ─────────────────────────────────────────
+const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
+
+const PRIORITY_COLOR = {
+  Urgent: "#EF4444",
+  High:   "#FF9500",
+  Normal: "#9CA3AF",
+}
+
 function TaskTimer({ claimedAt }) {
   const [elapsed, setElapsed] = useState(Math.floor((Date.now() - claimedAt) / 1000))
   useEffect(() => {
@@ -12,242 +19,152 @@ function TaskTimer({ claimedAt }) {
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const secs = String(elapsed % 60).padStart(2, '0')
   return (
-    <span className="font-mono font-bold" style={{ color: '#6B7280' }}>
+    <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: GRAY.light }}>
       ⏱ {mins}:{secs}
     </span>
   )
 }
 
-// ── Detail row component ──────────────────────────────────────────────────────
-function DetailRow({ label, value, highlight }) {
-  return (
-    <div
-      className="flex flex-col gap-1 p-3 rounded-xl"
-      style={{ backgroundColor: '#F8FAFC' }}
-    >
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
-        {label}
-      </span>
-      <span
-        className="text-sm font-semibold leading-snug"
-        style={{ color: '#1E293B' }}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
+// props:
+//   task       — the task object
+//   isMyTask   — true if this is the volunteer's claimed in-progress task
+//   isLocked   — true if volunteer already has a different active task (can't claim)
+//   onClaim    — () => void  called when CLAIM TASK tapped
+//   onComplete — () => void  called when MARK COMPLETE tapped
+//   onBack     — () => void  called when ← Back tapped
+export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComplete, onBack }) {
+  const [acting, setActing] = useState(false)
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-export default function TaskDetail() {
-  const { taskId } = useParams()
-  const navigate = useNavigate()
-  const { availableTasks, activeTask, hasActiveTask, claimTask, completeTask, logout } = useVolunteer()
-  const [completing, setCompleting] = useState(false)
-  const [claiming, setClaiming] = useState(false)
+  if (!task) return null
 
-  const id = Number(taskId)
+  const priorityColor = PRIORITY_COLOR[task.priority] || GRAY.light
 
-  // Find task in available pool or as the active (claimed) task
-  const availableTask = availableTasks.find((t) => t.id === id)
-  const isActiveTask  = activeTask?.id === id
-  const task          = availableTask ?? (isActiveTask ? activeTask : null)
-
-  if (!task) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4" style={{ backgroundColor: '#F8F8FA' }}>
-        <span className="text-5xl">🔍</span>
-        <p className="font-semibold text-gray-500">Task not found.</p>
-        <button
-          onClick={() => navigate('/experienced/tasks')}
-          className="px-6 py-2.5 rounded-xl font-bold text-white text-sm"
-          style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
-        >
-          ← Back to Tasks
-        </button>
-      </div>
-    )
+  async function handleClaim() {
+    if (acting || isLocked) return
+    setActing(true)
+    await onClaim()
+    setActing(false)
   }
 
-  const priorityColor = PRIORITY_COLORS[task.priority]
-  const priorityLabel = PRIORITY_LABELS[task.priority]
-  const isAvailable   = !!availableTask
-  const status        = isActiveTask ? 'in_progress' : 'available'
-
-  function handleClaim() {
-    if (hasActiveTask) return
-    setClaiming(true)
-    setTimeout(() => {
-      claimTask(id)
-      setClaiming(false)
-      navigate('/experienced/mytasks')
-    }, 400)
-  }
-
-  function handleComplete() {
-    setCompleting(true)
-    setTimeout(() => {
-      completeTask()
-      navigate('/experienced/tasks')
-    }, 800)
+  async function handleComplete() {
+    if (acting) return
+    setActing(true)
+    await onComplete()
+    setActing(false)
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
+    <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 96 }}>
 
-      {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5" style={{ backgroundColor: '#4B5563' }}>
-        <div className="flex items-start justify-between mb-3">
+      {/* Header */}
+      <div style={{ background: GRAY.mid, padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-white text-sm font-bold opacity-90"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            onClick={onBack}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             ← Back
           </button>
-          <button
-            onClick={() => { logout(); navigate('/') }}
-            className="text-xs font-bold px-3 py-1.5 rounded-xl"
-            style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}
-          >
-            Exit
-          </button>
+          {isMyTask && task.claimedAt && (
+            <TaskTimer claimedAt={task.claimedAt} />
+          )}
         </div>
-        <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
-          Task Details
-        </p>
-        <h1 className="text-xl font-extrabold text-white mt-0.5 leading-tight">{task.name}</h1>
-      </header>
-
-      {/* ── Status badge + timer ── */}
-      <div className="px-4 pt-4 flex items-center gap-3">
-        {isActiveTask ? (
-          <>
-            <span
-              className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full"
-              style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-            >
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#6B7280' }} />
-              🟠 In Progress
-            </span>
-            <TaskTimer claimedAt={activeTask.claimedAt} />
-          </>
-        ) : (
-          <span
-            className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-          >
-            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#9CA3AF' }} />
-            ⬜ Available
-          </span>
-        )}
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+          {isMyTask ? 'In Progress' : 'Task Details'}
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: 'white', lineHeight: 1.3 }}>{task.name}</div>
       </div>
 
-      {/* ── Task info card ── */}
-      <div className="px-4 pt-4 pb-32 flex flex-col gap-3">
+      <div style={{ padding: '16px 16px 0' }}>
 
-        {/* Priority + time row */}
-        <div className="flex gap-3">
-          <div
-            className="flex-1 flex flex-col gap-1 p-3 rounded-xl"
-            style={{ backgroundColor: priorityColor + '18' }}
-          >
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
-              Priority
-            </span>
-            <span className="text-sm font-bold" style={{ color: priorityColor }}>
-              ● {priorityLabel}
-            </span>
+        {/* Priority + Est Time row */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{ flex: 1, background: 'white', borderRadius: 12, padding: '12px 14px', border: `2px solid ${priorityColor}22` }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Priority</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: priorityColor }}>{task.priority || 'Normal'}</div>
           </div>
-          <div className="flex-1 flex flex-col gap-1 p-3 rounded-xl" style={{ backgroundColor: '#F8FAFC' }}>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
-              Est. Time
-            </span>
-            <span className="text-sm font-semibold" style={{ color: '#1E293B' }}>⏱ {task.time}</span>
-          </div>
+          {task.estimatedTime && (
+            <div style={{ flex: 1, background: 'white', borderRadius: 12, padding: '12px 14px', border: `1.5px solid ${GRAY.border}` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Est. Time</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark }}>{task.estimatedTime}</div>
+            </div>
+          )}
         </div>
 
-        {/* Detail rows */}
-        <DetailRow label="Item"        value={task.item}        />
-        <DetailRow label="Action"      value={task.action}      />
-        <DetailRow label="Source"      value={task.source}      />
-        <DetailRow label="Destination" value={task.destination} />
-
-        {/* Comments — highlighted */}
-        <div
-          className="flex flex-col gap-1.5 p-4 rounded-xl"
-          style={{ backgroundColor: '#F3F4F6', border: '1px solid #E2E8F0' }}
-        >
-          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6B7280' }}>
-            📝 Special Instructions
-          </span>
-          <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
-            {task.comments}
-          </p>
+        {/* Detail grid */}
+        <div style={{ background: 'white', borderRadius: 14, border: `1.5px solid ${GRAY.border}`, overflow: 'hidden', marginBottom: 12 }}>
+          {[
+            ['ITEM',        task.item],
+            ['ACTION',      task.action],
+            ['FROM',        task.source],
+            ['TO',          task.destination],
+          ].filter(([, v]) => v).map(([label, val], i, arr) => (
+            <div key={label} style={{
+              padding: '14px 16px',
+              borderBottom: i < arr.length - 1 ? `1px solid ${GRAY.border}` : 'none'
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: GRAY.dark }}>{val}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Warning: already has a task (shown on available tasks only) */}
-        {isAvailable && hasActiveTask && (
-          <div
-            className="flex flex-col gap-2 p-4 rounded-xl"
-            style={{ backgroundColor: '#FEF9C3', border: '1px solid #FDE047' }}
-          >
-            <p className="text-sm font-bold" style={{ color: '#854D0E' }}>
-              ⚠️ You already have a task in progress.
-            </p>
-            <p className="text-xs text-yellow-700">Complete your current task before claiming another.</p>
-            <button
-              onClick={() => navigate(`/experienced/task/${activeTask.id}`)}
-              className="mt-1 w-full py-2 rounded-lg text-sm font-bold text-white"
-              style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
-            >
-              View My Current Task →
-            </button>
+        {/* Comments */}
+        {task.comments && (
+          <div style={{ background: 'white', borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: '14px 16px', marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>📌 Special Instructions</div>
+            <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.55 }}>{task.comments}</div>
+          </div>
+        )}
+
+        {/* Tags */}
+        {task.tags && task.tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            {task.tags.map(tag => (
+              <span key={tag} style={{
+                fontSize: 12, fontWeight: 700, padding: '4px 12px',
+                borderRadius: 20, background: GRAY.border, color: GRAY.mid
+              }}>{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Shift Leader badge */}
+        {isMyTask && (task.tags || []).includes('Shift Leader') && (
+          <div style={{ padding: '10px 14px', background: '#FFF7ED', borderRadius: 10, borderLeft: '4px solid #FF9500', fontSize: 13, color: '#FF9500', fontWeight: 700, marginBottom: 12 }}>
+            🟠 You are the Shift Leader — new volunteers can find you for help
+          </div>
+        )}
+
+        {/* Locked warning */}
+        {isLocked && !isMyTask && (
+          <div style={{ padding: '12px 14px', background: '#FEF9C3', borderRadius: 10, borderLeft: '4px solid #F59E0B', fontSize: 13, color: '#92400E', fontWeight: 600, marginBottom: 12 }}>
+            ⚠️ Complete your current task before claiming another.
           </div>
         )}
       </div>
 
-      {/* ── Sticky action button ── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white"
-        style={{ borderTop: '1px solid #E2E8F0' }}
-      >
-        {isActiveTask ? (
-          /* Mark complete */
+      {/* Sticky action button */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: 'white', borderTop: `1px solid ${GRAY.border}`, padding: '14px 16px' }}>
+        {isMyTask ? (
           <button
             onClick={handleComplete}
-            disabled={completing}
-            className="w-full py-4 rounded-2xl font-bold text-white text-base tracking-wide transition-all active:scale-95"
-            style={{
-              backgroundColor: completing ? '#9CA3AF' : '#374151',
-              border: 'none',
-              cursor: completing ? 'not-allowed' : 'pointer',
-            }}
+            disabled={acting}
+            style={{ width: '100%', padding: '16px 0', background: acting ? '#D1D5DB' : '#34C759', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
           >
-            {completing ? 'Completing… ✓' : 'MARK COMPLETE ✓'}
+            {acting ? 'Saving…' : '✓ MARK COMPLETE'}
           </button>
-        ) : hasActiveTask ? (
-          /* Blocked — already has a task */
-          <button
-            disabled
-            className="w-full py-4 rounded-2xl font-bold text-white text-base"
-            style={{ backgroundColor: '#D1D5DB', border: 'none', cursor: 'not-allowed' }}
-          >
+        ) : isLocked ? (
+          <button disabled style={{ width: '100%', padding: '16px 0', background: '#F3F4F6', color: GRAY.light, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'not-allowed' }}>
             Complete Your Current Task First
           </button>
         ) : (
-          /* Claim */
           <button
             onClick={handleClaim}
-            disabled={claiming}
-            className="w-full py-4 rounded-2xl font-bold text-white text-base tracking-wide transition-all active:scale-95"
-            style={{
-              backgroundColor: claiming ? '#86EFAC' : '#34C759',
-              border: 'none',
-              cursor: claiming ? 'not-allowed' : 'pointer',
-            }}
+            disabled={acting}
+            style={{ width: '100%', padding: '16px 0', background: acting ? '#D1D5DB' : '#FF9500', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
           >
-            {claiming ? 'Claiming…' : 'CLAIM TASK'}
+            {acting ? 'Claiming…' : 'CLAIM TASK'}
           </button>
         )}
       </div>

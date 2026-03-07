@@ -74,7 +74,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, sy
         </div>
 
         {/* Action buttons */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <button onClick={() => navigate("/manager/tasks")}
             style={{ flex: 2, padding: "12px 0", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
             + Create New Task
@@ -84,6 +84,10 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, sy
             ↺ Reset Demo
           </button>
         </div>
+        <button onClick={() => navigate("/manager/history")}
+          style={{ width: "100%", padding: "11px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 20 }}>
+          📋 Task History
+        </button>
 
         {/* Search */}
         <div style={{ position: "relative", marginBottom: 14 }}>

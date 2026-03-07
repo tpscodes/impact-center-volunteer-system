@@ -1,8 +1,11 @@
+// MyTasks.jsx — Experienced volunteer "My Task" screen
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useVolunteer } from '../context/VolunteerContext'
+import { useSharedTasks } from '../hooks/useSharedTasks'
+import TaskDetail from './TaskDetail'
 
-// ── Live timer ────────────────────────────────────────────────────────────────
+const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
+
 function TaskTimer({ claimedAt }) {
   const [elapsed, setElapsed] = useState(Math.floor((Date.now() - claimedAt) / 1000))
   useEffect(() => {
@@ -11,171 +14,142 @@ function TaskTimer({ claimedAt }) {
   }, [claimedAt])
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const secs = String(elapsed % 60).padStart(2, '0')
-  return (
-    <span className="font-mono font-bold text-sm" style={{ color: '#6B7280' }}>
-      ⏱ {mins}:{secs}
-    </span>
-  )
+  return <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: GRAY.soft }}>⏱ {mins}:{secs}</span>
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function MyTasks() {
   const navigate = useNavigate()
-  const { activeTask, completeTask, availableTasks, logout } = useVolunteer()
+  const { tasks, synced, completeTask, clearShiftLeader } = useSharedTasks()
   const [completing, setCompleting] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
 
-  function handleComplete() {
+  const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
+  const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
+
+  async function handleComplete() {
+    if (!myTask) return
     setCompleting(true)
-    setTimeout(() => {
-      completeTask()
-      setCompleting(false)
-      navigate('/experienced/tasks')
-    }, 800)
+    // completeTask auto-clears shiftLeader if task has "Shift Leader" tag
+    // clearShiftLeader is also called explicitly here for safety
+    const isShiftLeaderTask = (myTask.tags || []).includes('Shift Leader')
+    const completedBy = myTask.assignedName || volunteerId
+    await completeTask(myTask.id, completedBy)
+    if (isShiftLeaderTask) await clearShiftLeader()
+    setShowDetail(false)
+    setTimeout(() => navigate('/experienced/tasks'), 1200)
+  }
+
+  // Show TaskDetail fullscreen when task card is tapped
+  if (showDetail && myTask) {
+    return (
+      <TaskDetail
+        task={myTask}
+        isMyTask={true}
+        isLocked={false}
+        onClaim={null}
+        onComplete={handleComplete}
+        onBack={() => setShowDetail(false)}
+      />
+    )
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F8F8FA' }}>
+    <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
 
-      {/* ── Header ── */}
-      <header className="px-4 pt-6 pb-5 flex items-start justify-between" style={{ backgroundColor: '#4B5563' }}>
+      {/* Header */}
+      <div style={{ background: GRAY.mid, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <p className="text-xs font-bold text-white uppercase tracking-widest" style={{ opacity: 0.85 }}>
-            Experienced Volunteer
-          </p>
-          <h1 className="text-xl font-extrabold text-white mt-0.5">My Current Task</h1>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Experienced Volunteer</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>My Task</div>
         </div>
-        <button
-          onClick={() => { logout(); navigate('/') }}
-          className="text-xs font-bold px-3 py-1.5 rounded-xl mt-1"
-          style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
+        <button onClick={() => { sessionStorage.removeItem('volunteerId'); navigate('/') }}
+          style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
           Exit
         </button>
-      </header>
+      </div>
 
-      {/* ── Content ── */}
-      <div className="flex-1 px-4 pb-28 flex flex-col gap-3 pt-4">
-        {!activeTask ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <span className="text-5xl">📭</span>
-            <p className="font-semibold text-gray-500">No task claimed yet.</p>
-            <p className="text-sm text-gray-400 max-w-xs">
-              Go to Available Tasks to find and claim a task.
-            </p>
-            <button
-              onClick={() => navigate('/experienced/tasks')}
-              className="mt-3 px-6 py-2.5 rounded-xl font-bold text-white text-sm transition-transform active:scale-95"
-              style={{ backgroundColor: '#4B5563', border: 'none', cursor: 'pointer' }}
-            >
-              Browse Available Tasks
-            </button>
+      <div style={{ padding: '20px 16px' }}>
+        {!myTask ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>{completing ? '✅' : '📭'}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>
+              {completing ? 'Task Complete!' : 'No active task'}
+            </div>
+            <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 20 }}>
+              {completing ? 'Heading back to task pool…' : 'Head back to pick a new one!'}
+            </div>
+            {!completing && (
+              <button onClick={() => navigate('/experienced/tasks')}
+                style={{ padding: '12px 24px', background: GRAY.dark, color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                ← Back to Tasks
+              </button>
+            )}
           </div>
         ) : (
           <>
-            <p className="text-xs font-bold uppercase tracking-widest pb-1" style={{ color: '#1F497D', opacity: 0.5 }}>
-              In Progress
-            </p>
-
-            {/* Task card — clickable to see full detail */}
+            {/* Task card — tap to open detail */}
             <div
-              onClick={() => navigate(`/experienced/task/${activeTask.id}`)}
-              className="rounded-2xl shadow-sm p-4 flex flex-col gap-3 cursor-pointer"
-              style={{
-                backgroundColor: completing ? '#F3F4F6' : '#fff',
-                border: `2px solid ${completing ? '#9CA3AF' : '#6B728033'}`,
-                transition: 'background-color 0.4s, border-color 0.4s',
-              }}
+              onClick={() => setShowDetail(true)}
+              style={{ background: 'white', borderRadius: 14, border: `2px solid ${GRAY.dark}`, overflow: 'hidden', marginBottom: 16, cursor: 'pointer' }}
             >
-              {/* Task name + time */}
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-800 text-base leading-tight">{activeTask.name}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{activeTask.description}</p>
+              <div style={{ background: GRAY.dark, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>In Progress</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: 'white' }}>{myTask.name}</div>
                 </div>
-                <span
-                  className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-                >
-                  {activeTask.time}
-                </span>
+                <TaskTimer claimedAt={myTask.claimedAt || Date.now()} />
               </div>
 
-              {/* Quick detail preview */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg p-2.5" style={{ backgroundColor: '#F8FAFC' }}>
-                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Item</p>
-                  <p className="text-xs font-semibold text-gray-700 mt-0.5 leading-tight">{activeTask.item}</p>
+              <div style={{ padding: '16px 18px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: myTask.comments ? 14 : 0 }}>
+                  {[['ACTION', myTask.action], ['ITEM', myTask.item], ['FROM', myTask.source], ['TO', myTask.destination], ['EST. TIME', myTask.estimatedTime]]
+                    .filter(([, v]) => v)
+                    .map(([label, val]) => (
+                      <div key={label}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+                        <div style={{ fontSize: 14, color: GRAY.dark, fontWeight: 600, marginTop: 2 }}>{val}</div>
+                      </div>
+                    ))}
                 </div>
-                <div className="rounded-lg p-2.5" style={{ backgroundColor: '#F8FAFC' }}>
-                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>Destination</p>
-                  <p className="text-xs font-semibold text-gray-700 mt-0.5 leading-tight">{activeTask.destination}</p>
-                </div>
+                {myTask.comments && (
+                  <div style={{ background: GRAY.bg, borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${GRAY.light}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Special Instructions</div>
+                    <div style={{ fontSize: 13, color: GRAY.soft }}>{myTask.comments}</div>
+                  </div>
+                )}
+                {/* Shift Leader badge */}
+                {(myTask.tags || []).includes('Shift Leader') && (
+                  <div style={{ marginTop: 12, padding: '8px 12px', background: '#FFF7ED', borderRadius: 8, borderLeft: '3px solid #FF9500', fontSize: 12, color: '#FF9500', fontWeight: 700 }}>
+                    🟠 You are the Shift Leader — new volunteers can find you for help
+                  </div>
+                )}
+                <div style={{ marginTop: 10, fontSize: 12, color: GRAY.light, fontWeight: 600 }}>Tap card for full details →</div>
               </div>
-
-              {/* Status + timer */}
-              <div className="flex items-center justify-between">
-                <span
-                  className="flex items-center gap-1.5 text-sm font-semibold"
-                  style={{ color: completing ? '#6B7280' : '#6B7280' }}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full inline-block"
-                    style={{ backgroundColor: completing ? '#9CA3AF' : '#6B7280' }}
-                  />
-                  {completing ? 'Completed! ✓' : '🟠 In Progress'}
-                </span>
-                {!completing && <TaskTimer claimedAt={activeTask.claimedAt} />}
-              </div>
-
-              <p className="text-xs text-gray-400 text-center">Tap card to view full details →</p>
             </div>
 
-            {/* Mark complete button */}
-            {!completing && (
-              <button
-                onClick={handleComplete}
-                className="w-full py-4 rounded-2xl font-bold text-white text-base tracking-wide transition-transform active:scale-95"
-                style={{ backgroundColor: '#374151', border: 'none', cursor: 'pointer' }}
-              >
-                MARK COMPLETE ✓
-              </button>
-            )}
+            <button onClick={handleComplete} disabled={completing}
+              style={{ width: '100%', padding: '16px 0', background: completing ? '#D1D5DB' : GRAY.dark, color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? 'not-allowed' : 'pointer' }}>
+              {completing ? 'Marking complete…' : '✓ MARK COMPLETE'}
+            </button>
+
+            <button onClick={() => navigate('/experienced/tasks')}
+              style={{ width: '100%', marginTop: 10, padding: '12px 0', background: 'white', color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              ← Back to Task Pool
+            </button>
           </>
         )}
       </div>
 
-      {/* ── Bottom tab bar ── */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 flex bg-white"
-        style={{ borderTop: '1px solid #E2E8F0' }}
-      >
-        <button
-          onClick={() => navigate('/experienced/tasks')}
-          className="flex-1 py-3 flex flex-col items-center gap-0.5 text-xs font-semibold"
-          style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          <span className="text-lg">📋</span>
-          Available Tasks
-          {availableTasks.length > 0 && (
-            <span className="text-xs" style={{ color: '#94A3B8' }}>({availableTasks.length})</span>
-          )}
+      {/* Bottom nav */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: 'white', borderTop: `1px solid ${GRAY.border}`, display: 'flex' }}>
+        <button onClick={() => navigate('/experienced/tasks')}
+          style={{ flex: 1, padding: '14px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: 'pointer' }}>
+          📋 Available Tasks
         </button>
-
-        <button
-          className="flex-1 py-3 flex flex-col items-center gap-0.5 font-bold text-xs"
-          style={{
-            color: '#6B7280',
-            background: 'none',
-            border: 'none',
-            borderTop: '2px solid #6B7280',
-            cursor: 'pointer',
-          }}
-        >
-          <span className="text-lg">✅</span>
-          My Task
+        <button style={{ flex: 1, padding: '14px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: 'pointer', borderBottom: `2px solid ${GRAY.dark}` }}>
+          ✅ My Task
         </button>
-      </nav>
+      </div>
     </div>
   )
 }

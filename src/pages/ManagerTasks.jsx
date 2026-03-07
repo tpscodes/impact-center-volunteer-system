@@ -65,8 +65,10 @@ const ASSIGN_OPTIONS = [
 
 const PRIORITY_OPTIONS = ["Normal", "High", "Urgent"];
 
+const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Delivery", "Shift Leader", "Warm", "Cool", "Kitchen", "Clothing", "General"];
+
 function emptyRow() {
-  return { id: Date.now() + Math.random(), item: "", source: "", destination: "", action: "", assignTo: "", priority: "Normal", comments: "", estimatedTime: "" };
+  return { id: Date.now() + Math.random(), item: "", source: "", destination: "", action: "", assignTo: "", priority: "Normal", comments: "", estimatedTime: "", tags: [] };
 }
 
 // ── Autocomplete input ────────────────────────────────────────────────────────
@@ -113,6 +115,55 @@ function AutoInput({ value, onChange, onSelect, suggestions, placeholder, style 
               onMouseEnter={e => e.currentTarget.style.background = GRAY.bg}
               onMouseLeave={e => e.currentTarget.style.background = "white"}>
               {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tags multi-select cell ────────────────────────────────────────────────────
+function TagsCell({ tags, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function toggleTag(tag) {
+    onChange(tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]);
+  }
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div onClick={() => setOpen(!open)}
+        style={{ minHeight: 34, padding: "4px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, cursor: "pointer", display: "flex", flexWrap: "wrap", gap: 3, alignItems: "flex-start", background: "white", boxSizing: "border-box" }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = GRAY.soft}
+        onMouseLeave={e => e.currentTarget.style.borderColor = GRAY.border}
+      >
+        {tags.length === 0
+          ? <span style={{ fontSize: 11, color: GRAY.light, lineHeight: "26px", paddingLeft: 2 }}>+ Tags</span>
+          : tags.map(tag => (
+              <span key={tag} style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 10, background: GRAY.border, color: GRAY.mid, whiteSpace: "nowrap" }}>{tag}</span>
+            ))
+        }
+      </div>
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 200, background: "white", border: `1px solid ${GRAY.border}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", width: 164, marginTop: 2, maxHeight: 240, overflowY: "auto" }}>
+          {ALL_TAGS.map(tag => (
+            <div key={tag} onClick={() => toggleTag(tag)}
+              style={{ padding: "7px 10px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, background: tags.includes(tag) ? GRAY.bg : "white" }}
+              onMouseEnter={e => e.currentTarget.style.background = GRAY.bg}
+              onMouseLeave={e => e.currentTarget.style.background = tags.includes(tag) ? GRAY.bg : "white"}
+            >
+              <span style={{ width: 14, height: 14, borderRadius: 3, border: `1.5px solid ${GRAY.border}`, background: tags.includes(tag) ? GRAY.dark : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {tags.includes(tag) && <span style={{ fontSize: 9, color: "white", lineHeight: 1 }}>✓</span>}
+              </span>
+              <span style={{ color: GRAY.dark, fontWeight: tags.includes(tag) ? 600 : 400 }}>{tag}</span>
             </div>
           ))}
         </div>
@@ -296,16 +347,16 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
         </div>
 
         {/* Column headers */}
-        <div style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 30px", gap: 4, padding: "6px 4px", marginBottom: 4 }}>
-          {["#", "ITEM ✦", "SOURCE", "DESTINATION", "ACTION", "ASSIGN TO", "PRIORITY", ""].map((h, i) => (
-            <div key={i} style={{ fontSize: 9, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 || i === 7 ? "center" : "left" }}>{h}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, padding: "6px 4px", marginBottom: 4 }}>
+          {["#", "ITEM ✦", "SOURCE", "DESTINATION", "ACTION", "ASSIGN TO", "PRIORITY", "TAGS", ""].map((h, i) => (
+            <div key={i} style={{ fontSize: 9, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 || i === 8 ? "center" : "left" }}>{h}</div>
           ))}
         </div>
 
         {/* Rows */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((row, idx) => (
-            <div key={row.id} style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 30px", gap: 4, alignItems: "start", background: "white", borderRadius: 8, border: `1px solid ${row.item ? GRAY.border : "#F3F4F6"}`, padding: "8px 6px", transition: "border 0.15s" }}>
+            <div key={row.id} style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, alignItems: "start", background: "white", borderRadius: 8, border: `1px solid ${row.item ? GRAY.border : "#F3F4F6"}`, padding: "8px 6px", transition: "border 0.15s" }}>
 
               {/* Row number */}
               <div style={{ textAlign: "center", fontSize: 11, color: GRAY.light, paddingTop: 8, fontWeight: 600 }}>{idx + 1}</div>
@@ -340,6 +391,9 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
                 style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
                 {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
+
+              {/* Tags */}
+              <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
 
               {/* Remove row */}
               <button onClick={() => removeRow(row.id)}

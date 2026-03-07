@@ -74,46 +74,14 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* QR Code Placeholder */}
+      {/* QR Code */}
       <div className="mt-12 flex flex-col items-center gap-3">
-        <div
-          className="w-24 h-24 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: '#E2E8F0', border: '2px dashed #94A3B8' }}
-        >
-          <svg
-            width="56"
-            height="56"
-            viewBox="0 0 56 56"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="QR code placeholder"
-          >
-            <rect x="0"  y="0"  width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="4"  y="4"  width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="7"  y="7"  width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="0"  width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="38" y="4"  width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="41" y="7"  width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="0"  y="34" width="22" height="22" rx="2" fill="#94A3B8" />
-            <rect x="4"  y="38" width="14" height="14" rx="1" fill="#F8F8FA" />
-            <rect x="7"  y="41" width="8"  height="8"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="2"  width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="10" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="18" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="50" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="34" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="34" y="42" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="34" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="50" y="42" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="26" y="50" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="42" y="50" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="2"  y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="10" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-            <rect x="18" y="26" width="4"  height="4"  rx="1" fill="#94A3B8" />
-          </svg>
-        </div>
+        <img
+          src="/qr-code.png"
+          alt="Scan to access on mobile"
+          className="rounded-xl shadow-sm"
+          style={{ width: 140, height: 140, objectFit: 'contain' }}
+        />
         <p className="text-sm font-medium" style={{ color: '#64748B' }}>
           Scan to access on mobile
         </p>
