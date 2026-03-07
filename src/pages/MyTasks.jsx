@@ -32,7 +32,8 @@ export default function MyTasks() {
     // completeTask auto-clears shiftLeader if task has "Shift Leader" tag
     // clearShiftLeader is also called explicitly here for safety
     const isShiftLeaderTask = (myTask.tags || []).includes('Shift Leader')
-    await completeTask(myTask.id)
+    const completedBy = myTask.assignedName || volunteerId
+    await completeTask(myTask.id, completedBy)
     if (isShiftLeaderTask) await clearShiftLeader()
     setShowDetail(false)
     setTimeout(() => navigate('/experienced/tasks'), 1200)

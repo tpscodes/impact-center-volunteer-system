@@ -23,25 +23,29 @@ export const SEED_TASKS = [
   { id: "t4", name: "Rack 15 — Stock Beans", item: "Great Northern Beans (silver bags)", action: "Fill", source: "Donation bins in warehouse", destination: "Rack 15", comments: "Move peanut butter to Rack 18 first, then fill with beans", priority: "Urgent", estimatedTime: "~20 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Sorting"], createdAt: Date.now() },
 ];
 
-// ── Fetch full bin (tasks + shiftLeader) ─────────────────────────────────────
+// ── Fetch full bin (tasks + shiftLeader + completedTasks) ─────────────────────
 async function fetchBin() {
   try {
     const res = await fetch(BASE_URL + "/latest", { headers: HEADERS });
     if (!res.ok) return null; // treat 4xx/5xx (incl. 429 rate-limit) as failure
     const data = await res.json();
-    return { tasks: data.tasks || [], shiftLeader: data.shiftLeader || null };
+    return {
+      tasks: data.tasks || [],
+      shiftLeader: data.shiftLeader || null,
+      completedTasks: data.completedTasks || [],
+    };
   } catch {
     return null;
   }
 }
 
 // ── Save full bin ─────────────────────────────────────────────────────────────
-async function saveBin(tasks, shiftLeader) {
+async function saveBin(tasks, shiftLeader, completedTasks) {
   try {
     const res = await fetch(BASE_URL, {
       method: "PUT",
       headers: HEADERS,
-      body: JSON.stringify({ tasks, shiftLeader }),
+      body: JSON.stringify({ tasks, shiftLeader, completedTasks }),
     });
     return res.ok; // false on 4xx/5xx so callers know the save failed
   } catch {
@@ -53,15 +57,23 @@ async function saveBin(tasks, shiftLeader) {
 export function useSharedTasks() {
   const [tasks, setTasks] = useState(SEED_TASKS);
   const [shiftLeader, _setShiftLeader] = useState(null);
+  const [completedTasks, _setCompletedTasks] = useState([]);
   const [synced, setSynced] = useState(false);
   const [error, setError] = useState(false);
   const pendingWrite = useRef(false);
-  // Ref mirror of shiftLeader so callbacks always see current value
+
+  // Ref mirrors so all useCallback closures always see current values
   const slRef = useRef(null);
+  const ctRef = useRef([]);
 
   function updateShiftLeader(val) {
     slRef.current = val;
     _setShiftLeader(val);
+  }
+
+  function updateCompletedTasks(val) {
+    ctRef.current = val;
+    _setCompletedTasks(val);
   }
 
   // Poll for remote changes
@@ -77,6 +89,7 @@ export function useSharedTasks() {
       setSynced(true);
       setTasks(remote.tasks.length > 0 ? remote.tasks : SEED_TASKS);
       updateShiftLeader(remote.shiftLeader || null);
+      updateCompletedTasks(remote.completedTasks || []);
     }
 
     poll();
@@ -105,7 +118,7 @@ export function useSharedTasks() {
     pendingWrite.current = true;
     const updated = [...tasks, newTask];
     setTasks(updated);
-    await saveBin(updated, slRef.current);
+    await saveBin(updated, slRef.current, ctRef.current);
     pendingWrite.current = false;
     return newTask;
   }, [tasks]);
@@ -119,12 +132,12 @@ export function useSharedTasks() {
         : t
     );
     setTasks(updated);
-    await saveBin(updated, slRef.current);
+    await saveBin(updated, slRef.current, ctRef.current);
     pendingWrite.current = false;
   }, [tasks]);
 
-  // Complete a task — auto-clears shiftLeader if the task had the "Shift Leader" tag
-  const completeTask = useCallback(async (taskId) => {
+  // Complete a task — records history entry, auto-clears shiftLeader if task has "Shift Leader" tag
+  const completeTask = useCallback(async (taskId, completedBy) => {
     pendingWrite.current = true;
     const completedTask = tasks.find(t => t.id === taskId);
     const updated = tasks.map(t =>
@@ -132,9 +145,25 @@ export function useSharedTasks() {
     );
     const isShiftLeaderTask = completedTask && (completedTask.tags || []).includes("Shift Leader");
     const newShiftLeader = isShiftLeaderTask ? null : slRef.current;
+
+    // Build history entry
+    const historyEntry = completedTask ? {
+      id: completedTask.id,
+      name: completedTask.name,
+      tags: completedTask.tags || [],
+      completedBy: completedBy || completedTask.assignedName || completedTask.assignedTo || "Unknown",
+      completedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      completedAtMs: Date.now(),
+    } : null;
+
+    const newCompletedTasks = historyEntry
+      ? [...ctRef.current, historyEntry]
+      : ctRef.current;
+
     setTasks(updated);
     if (isShiftLeaderTask) updateShiftLeader(null);
-    await saveBin(updated, newShiftLeader);
+    updateCompletedTasks(newCompletedTasks);
+    await saveBin(updated, newShiftLeader, newCompletedTasks);
     pendingWrite.current = false;
   }, [tasks]);
 
@@ -143,7 +172,7 @@ export function useSharedTasks() {
     pendingWrite.current = true;
     const updated = tasks.filter(t => t.id !== taskId);
     setTasks(updated);
-    await saveBin(updated, slRef.current);
+    await saveBin(updated, slRef.current, ctRef.current);
     pendingWrite.current = false;
   }, [tasks]);
 
@@ -153,7 +182,7 @@ export function useSharedTasks() {
     const fresh = SEED_TASKS.map(t => ({ ...t, id: "t" + Date.now() + Math.random(), status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() }));
     setTasks(fresh);
     updateShiftLeader(null);
-    await saveBin(fresh, null);
+    await saveBin(fresh, null, ctRef.current);
     pendingWrite.current = false;
   }, []);
 
@@ -162,7 +191,7 @@ export function useSharedTasks() {
     pendingWrite.current = true;
     const sl = { name, taskId };
     updateShiftLeader(sl);
-    await saveBin(tasks, sl);
+    await saveBin(tasks, sl, ctRef.current);
     pendingWrite.current = false;
   }, [tasks]);
 
@@ -170,9 +199,21 @@ export function useSharedTasks() {
   const clearShiftLeader = useCallback(async () => {
     pendingWrite.current = true;
     updateShiftLeader(null);
-    await saveBin(tasks, null);
+    await saveBin(tasks, null, ctRef.current);
     pendingWrite.current = false;
   }, [tasks]);
 
-  return { tasks, shiftLeader, synced, error, createTask, claimTask, completeTask, deleteTask, resetTasks, setShiftLeader, clearShiftLeader };
+  // Clear all task history (manager only)
+  const clearCompletedTasks = useCallback(async () => {
+    pendingWrite.current = true;
+    updateCompletedTasks([]);
+    await saveBin(tasks, slRef.current, []);
+    pendingWrite.current = false;
+  }, [tasks]);
+
+  return {
+    tasks, shiftLeader, completedTasks, synced, error,
+    createTask, claimTask, completeTask, deleteTask, resetTasks,
+    setShiftLeader, clearShiftLeader, clearCompletedTasks,
+  };
 }

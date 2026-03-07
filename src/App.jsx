@@ -11,6 +11,7 @@ import DigitalBoard from "./pages/DigitalBoard";
 import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
 import TaskPool from "./pages/TaskPool";
 import NewVolunteerTasks from "./pages/NewVolunteerTasks";
+import TaskHistory from "./pages/TaskHistory";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/manager/dashboard" element={<ManagerDashboardWrapper />} />
         <Route path="/manager/tasks" element={<ManagerTasksWrapper />} />
         <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
+        <Route path="/manager/history" element={<TaskHistory />} />
 
         {/* Digital board (Prof. Amy's screen) */}
         <Route path="/board" element={<DigitalBoardWrapper />} />

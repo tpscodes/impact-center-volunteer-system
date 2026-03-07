@@ -40,7 +40,7 @@ export default function NewVolunteerTasks() {
   async function handleComplete() {
     if (!myTaskId) return;
     setCompleting(true);
-    await completeTask(myTaskId);
+    await completeTask(myTaskId, "New Volunteer");
     setMyTaskId(null);
     setDetailTask(null);
     setCompleting(false);
@@ -104,6 +104,15 @@ export default function NewVolunteerTasks() {
             <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📌 Instructions</div>
               <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6 }}>{activeTaskForDetail.comments}</div>
+            </div>
+          )}
+
+          {/* Point of contact */}
+          {shiftLeader && (
+            <div style={{ background: "#F0FDF4", borderRadius: 14, padding: "14px 18px", marginBottom: 12, borderLeft: "4px solid #34C759" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Need help? Find your point of contact</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: GRAY.dark }}>{shiftLeader.name}</div>
+              <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 4 }}>They're wearing an orange lanyard</div>
             </div>
           )}
         </div>
