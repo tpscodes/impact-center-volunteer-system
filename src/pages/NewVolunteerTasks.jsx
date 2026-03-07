@@ -1,15 +1,18 @@
 // NewVolunteerTasks.jsx — Simple tap-to-claim interface, no login required
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
 // New volunteers only see "available" tasks not specifically assigned to a named volunteer
 export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, synced, error }) {
   const navigate = useNavigate();
+  const { shiftLeader } = useSharedTasks();
   const [myTaskId, setMyTaskId] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [allDone, setAllDone] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const anonId = "new-" + (sessionStorage.getItem("anonId") || (() => {
     const id = Math.random().toString(36).slice(2, 6);
@@ -134,6 +137,43 @@ export default function NewVolunteerTasks({ tasks, onClaimTask, onCompleteTask, 
       </div>
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+
+      {/* Floating help button — only shown when a Shift Leader is on duty */}
+      {shiftLeader && (
+        <button
+          onClick={() => setHelpOpen(true)}
+          style={{
+            position: "fixed", bottom: 28, right: 20, width: 54, height: 54,
+            borderRadius: "50%", background: "#34C759", border: "none",
+            color: "white", fontSize: 26, fontWeight: 900, cursor: "pointer",
+            boxShadow: "0 4px 18px rgba(52,199,89,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 50, lineHeight: 1,
+          }}
+        >
+          ?
+        </button>
+      )}
+
+      {/* Shift Leader help modal */}
+      {helpOpen && shiftLeader && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 16px 36px" }}>
+          <div style={{ background: "white", borderRadius: 20, padding: "24px", width: "100%", maxWidth: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#34C759", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Need Help?</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: GRAY.dark, marginBottom: 16 }}>Find your Shift Leader:</div>
+            <div style={{ background: "#F0FDF4", borderRadius: 12, padding: "16px 18px", marginBottom: 16, borderLeft: "4px solid #34C759" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: GRAY.dark }}>{shiftLeader.name}</div>
+              <div style={{ fontSize: 13, color: GRAY.soft, marginTop: 5 }}>They're wearing an orange lanyard</div>
+            </div>
+            <button
+              onClick={() => setHelpOpen(false)}
+              style={{ width: "100%", padding: "13px 0", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Got it ✓
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

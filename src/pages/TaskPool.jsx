@@ -9,9 +9,11 @@ const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Deliv
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, claimTask } = useSharedTasks()
+  const { tasks, synced, error, claimTask, setShiftLeader } = useSharedTasks()
   const [search, setSearch] = useState('')
   const [activeTags, setActiveTags] = useState([])
+  const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
+  const [slName, setSlName] = useState('')
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
@@ -46,6 +48,18 @@ export default function TaskPool() {
 
   async function handleClaim(task) {
     await claimTask(task.id, volunteerId, volunteerName)
+    if ((task.tags || []).includes('Shift Leader')) {
+      setPendingClaim(task)
+    } else {
+      navigate('/experienced/mytask')
+    }
+  }
+
+  async function handleSetShiftLeader() {
+    if (!slName.trim() || !pendingClaim) return
+    await setShiftLeader({ name: slName.trim(), taskId: pendingClaim.id })
+    setPendingClaim(null)
+    setSlName('')
     navigate('/experienced/mytask')
   }
 
@@ -187,6 +201,47 @@ export default function TaskPool() {
           ✅ My Task {myTask ? '(1)' : ''}
         </button>
       </div>
+
+      {/* Shift Leader name prompt modal */}
+      {pendingClaim && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 360 }}>
+            {/* Orange header */}
+            <div style={{ background: '#FF9500', padding: '18px 20px' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Shift Leader Task</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginTop: 2 }}>What's your name?</div>
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontSize: 14, color: GRAY.soft, marginBottom: 16 }}>
+                New volunteers will see you as their point of contact.
+              </div>
+              <input
+                value={slName}
+                onChange={e => setSlName(e.target.value)}
+                placeholder="Your name…"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter' && slName.trim()) handleSetShiftLeader() }}
+                style={{ width: '100%', padding: '12px 14px', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 16, color: GRAY.dark, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                onFocus={e => e.target.style.borderColor = '#FF9500'}
+                onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+              />
+              <button
+                onClick={handleSetShiftLeader}
+                disabled={!slName.trim()}
+                style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#FF9500' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+              >
+                Set as Shift Leader
+              </button>
+              <button
+                onClick={() => { setPendingClaim(null); setSlName(''); navigate('/experienced/mytask') }}
+                style={{ width: '100%', marginTop: 8, padding: '10px 0', background: 'none', color: GRAY.light, border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
