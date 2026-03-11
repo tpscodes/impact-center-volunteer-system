@@ -15,6 +15,15 @@ const HEADERS = {
   "X-Bin-Meta": "false",
 };
 
+// ── Named volunteer profiles ──────────────────────────────────────────────────
+export const VOLUNTEER_PROFILES = [
+  { id: "1001", name: "Volunteer 1" },
+  { id: "1002", name: "Volunteer 2" },
+  { id: "1003", name: "Volunteer 3" },
+  { id: "1004", name: "Volunteer 4" },
+  { id: "1005", name: "Volunteer 5" },
+];
+
 // ── Initial seed tasks from Jason's real task lists ──────────────────────────
 export const SEED_TASKS = [
   { id: "t1", name: "Rack 7 — Fill Coffee", item: "Coffee bags", action: "Fill", source: "Warehouse — Green shelf", destination: "Rack 7", comments: "Front shelf when done", priority: "High", estimatedTime: "~15 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Warm"], createdAt: Date.now() },

@@ -120,7 +120,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, sy
                 <div style={{ fontSize: 11, color: GRAY.light, marginTop: 1 }}>{t.estimatedTime}</div>
               </div>
               <div style={{ fontSize: 12, color: GRAY.soft }}>{t.destination || "—"}</div>
-              <div style={{ fontSize: 12, color: GRAY.soft }}>{t.assignedName || "Open"}</div>
+              <div style={{ fontSize: 12, color: t.assignedName ? GRAY.dark : GRAY.light, fontWeight: t.assignedName ? 600 : 400 }}>{t.assignedName || "Unassigned"}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
                 <StatusBadge status={t.status} />
                 {t.status !== "complete" && (

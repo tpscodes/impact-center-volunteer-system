@@ -1,6 +1,7 @@
 // ExperiencedVolunteer flows: ID entry → Task Pool → My Task → Complete
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -12,8 +13,13 @@ export function VolunteerIdEntry() {
 
   function handleSubmit() {
     if (id.length < 4) { setError("Enter your 4-digit volunteer ID"); return; }
-    sessionStorage.setItem("volunteerId", id);
-    sessionStorage.setItem("volunteerName", `Vol #${id}`);
+    const profile = VOLUNTEER_PROFILES.find(p => p.id === id);
+    if (!profile) {
+      setError("ID not recognized. Please check with your session coordinator.");
+      return;
+    }
+    sessionStorage.setItem("volunteerId", profile.id);
+    sessionStorage.setItem("volunteerName", profile.name);
     navigate("/experienced/tasks");
   }
 
@@ -186,7 +192,8 @@ export function MyTask({ tasks, onCompleteTask, synced }) {
   async function handleComplete() {
     if (!myTask) return;
     setCompleting(true);
-    await onCompleteTask(myTask.id);
+    const completedBy = myTask.assignedName || sessionStorage.getItem("volunteerName") || volunteerId;
+    await onCompleteTask(myTask.id, completedBy);
     setTimeout(() => navigate("/experienced/tasks"), 1200);
   }
 
