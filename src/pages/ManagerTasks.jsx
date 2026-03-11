@@ -356,51 +356,66 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
         {/* Rows */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((row, idx) => (
-            <div key={row.id} style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, alignItems: "start", background: "white", borderRadius: 8, border: `1px solid ${row.item ? GRAY.border : "#F3F4F6"}`, padding: "8px 6px", transition: "border 0.15s" }}>
+            <div key={row.id} style={{ background: "white", borderRadius: 8, border: `1px solid ${row.item ? GRAY.border : "#F3F4F6"}`, padding: "8px 6px", transition: "border 0.15s" }}>
 
-              {/* Row number */}
-              <div style={{ textAlign: "center", fontSize: 11, color: GRAY.light, paddingTop: 8, fontWeight: 600 }}>{idx + 1}</div>
+              {/* Main grid row */}
+              <div style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, alignItems: "start" }}>
 
-              {/* Item — with autocomplete + auto-fill */}
-              <AutoInput
-                value={row.item}
-                onChange={v => updateRow(row.id, "item", v)}
-                onSelect={s => handleItemSelect(row.id, s)}
-                suggestions={ITEM_SUGGESTIONS.map(i => i.item)}
-                placeholder="Item name…"
-                style={{ fontWeight: row.item ? 600 : 400 }}
-              />
+                {/* Row number */}
+                <div style={{ textAlign: "center", fontSize: 11, color: GRAY.light, paddingTop: 8, fontWeight: 600 }}>{idx + 1}</div>
 
-              {/* Source */}
-              <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="From…" />
+                {/* Item — with autocomplete + auto-fill */}
+                <AutoInput
+                  value={row.item}
+                  onChange={v => updateRow(row.id, "item", v)}
+                  onSelect={s => handleItemSelect(row.id, s)}
+                  suggestions={ITEM_SUGGESTIONS.map(i => i.item)}
+                  placeholder="Item name…"
+                  style={{ fontWeight: row.item ? 600 : 400 }}
+                />
 
-              {/* Destination */}
-              <AutoInput value={row.destination} onChange={v => updateRow(row.id, "destination", v)} suggestions={DEST_SUGGESTIONS} placeholder="To / Rack…" />
+                {/* Source */}
+                <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="From…" />
 
-              {/* Action */}
-              <AutoInput value={row.action} onChange={v => updateRow(row.id, "action", v)} suggestions={ACTION_SUGGESTIONS} placeholder="Action…" />
+                {/* Destination */}
+                <AutoInput value={row.destination} onChange={v => updateRow(row.id, "destination", v)} suggestions={DEST_SUGGESTIONS} placeholder="To / Rack…" />
 
-              {/* Assign to */}
-              <select value={row.assignTo} onChange={e => updateRow(row.id, "assignTo", e.target.value)}
-                style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
-                {ASSIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+                {/* Action */}
+                <AutoInput value={row.action} onChange={v => updateRow(row.id, "action", v)} suggestions={ACTION_SUGGESTIONS} placeholder="Action…" />
 
-              {/* Priority */}
-              <select value={row.priority} onChange={e => updateRow(row.id, "priority", e.target.value)}
-                style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
-                {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+                {/* Assign to */}
+                <select value={row.assignTo} onChange={e => updateRow(row.id, "assignTo", e.target.value)}
+                  style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
+                  {ASSIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
 
-              {/* Tags */}
-              <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
+                {/* Priority */}
+                <select value={row.priority} onChange={e => updateRow(row.id, "priority", e.target.value)}
+                  style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
+                  {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
 
-              {/* Remove row */}
-              <button onClick={() => removeRow(row.id)}
-                style={{ textAlign: "center", background: "none", border: "none", color: GRAY.light, cursor: "pointer", fontSize: 16, paddingTop: 6 }}
-                title="Remove row">
-                ×
-              </button>
+                {/* Tags */}
+                <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
+
+                {/* Remove row */}
+                <button onClick={() => removeRow(row.id)}
+                  style={{ textAlign: "center", background: "none", border: "none", color: GRAY.light, cursor: "pointer", fontSize: 16, paddingTop: 6 }}
+                  title="Remove row">
+                  ×
+                </button>
+              </div>
+
+              {/* Special instructions input — below the grid */}
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${GRAY.border}`, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, flexShrink: 0 }}>📝</span>
+                <input
+                  value={row.comments}
+                  onChange={e => updateRow(row.id, "comments", e.target.value)}
+                  placeholder="Special instructions for volunteer (optional)…"
+                  style={{ flex: 1, border: "none", outline: "none", fontSize: 12, color: row.comments ? GRAY.dark : GRAY.light, background: "transparent", fontFamily: "inherit" }}
+                />
+              </div>
             </div>
           ))}
         </div>
