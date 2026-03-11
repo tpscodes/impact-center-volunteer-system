@@ -1,19 +1,10 @@
 // useSharedTasks.js
-// Simple shared state via JSONBin.io polling — no Firebase, no backend.
-// All devices on same network poll every 2.5 seconds.
+// Real-time shared state via Firebase Realtime Database.
+// onValue listeners push updates to all connected clients instantly.
 
 import { useState, useEffect, useCallback, useRef } from "react";
-
-const BIN_ID = "69a7a3c7d0ea881f40eca986";
-const API_KEY = "$2a$10$dmSINC.eIcDCRnQgrEyGyeVbmUAsH1dcSQfvfMWfGpMEzjzxXyuXu";
-const POLL_INTERVAL = 2500; // ms
-
-const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-const HEADERS = {
-  "Content-Type": "application/json",
-  "X-Master-Key": API_KEY,
-  "X-Bin-Meta": "false",
-};
+import { db } from "../firebase";
+import { ref, onValue, set, remove } from "firebase/database";
 
 // ── Named volunteer profiles ──────────────────────────────────────────────────
 export const VOLUNTEER_PROFILES = [
@@ -24,7 +15,7 @@ export const VOLUNTEER_PROFILES = [
   { id: "1005", name: "Volunteer 5" },
 ];
 
-// ── Initial seed tasks from Jason's real task lists ──────────────────────────
+// ── Seed tasks ────────────────────────────────────────────────────────────────
 export const SEED_TASKS = [
   { id: "t1", name: "Rack 7 — Fill Coffee", item: "Coffee bags", action: "Fill", source: "Warehouse — Green shelf", destination: "Rack 7", comments: "Front shelf when done", priority: "High", estimatedTime: "~15 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Warm"], createdAt: Date.now() },
   { id: "t2", name: "Rack 9 — Front Cereal", item: "Cereal boxes", action: "Front up", source: "Already on shelf", destination: "Rack 9", comments: "Pull all products forward, make it look full", priority: "Normal", estimatedTime: "~10 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "General"], createdAt: Date.now() },
@@ -32,34 +23,45 @@ export const SEED_TASKS = [
   { id: "t4", name: "Rack 15 — Stock Beans", item: "Great Northern Beans (silver bags)", action: "Fill", source: "Donation bins in warehouse", destination: "Rack 15", comments: "Move peanut butter to Rack 18 first, then fill with beans", priority: "Urgent", estimatedTime: "~20 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Sorting"], createdAt: Date.now() },
 ];
 
-// ── Fetch full bin (tasks + shiftLeader + completedTasks) ─────────────────────
-async function fetchBin() {
-  try {
-    const res = await fetch(BASE_URL + "/latest", { headers: HEADERS });
-    if (!res.ok) return null; // treat 4xx/5xx (incl. 429 rate-limit) as failure
-    const data = await res.json();
-    return {
-      tasks: data.tasks || [],
-      shiftLeader: data.shiftLeader || null,
-      completedTasks: data.completedTasks || [],
-    };
-  } catch {
-    return null;
+// ── Firebase path helpers ─────────────────────────────────────────────────────
+// Firebase doesn't store arrays — tasks are keyed by task.id under "tasks/"
+// e.g. tasks/t1 = { id:"t1", name:..., ... }
+
+function tasksToFirebase(tasksArray) {
+  const obj = {};
+  for (const t of tasksArray) {
+    // Firebase doesn't allow undefined values — strip them out
+    const clean = {};
+    for (const [k, v] of Object.entries(t)) {
+      if (v !== undefined) clean[k] = v;
+    }
+    obj[t.id] = clean;
   }
+  return obj;
 }
 
-// ── Save full bin ─────────────────────────────────────────────────────────────
-async function saveBin(tasks, shiftLeader, completedTasks) {
-  try {
-    const res = await fetch(BASE_URL, {
-      method: "PUT",
-      headers: HEADERS,
-      body: JSON.stringify({ tasks, shiftLeader, completedTasks }),
-    });
-    return res.ok; // false on 4xx/5xx so callers know the save failed
-  } catch {
-    return false;
-  }
+function tasksFromFirebase(snap) {
+  if (!snap) return null;
+  return Object.values(snap);
+}
+
+function completedTasksToFirebase(arr) {
+  // Store as object keyed by index-safe key (use completedAtMs or index)
+  const obj = {};
+  arr.forEach((entry, i) => {
+    const key = entry.completedAtMs ? String(entry.completedAtMs) : String(i);
+    const clean = {};
+    for (const [k, v] of Object.entries(entry)) {
+      if (v !== undefined) clean[k] = v;
+    }
+    obj[key] = clean;
+  });
+  return obj;
+}
+
+function completedTasksFromFirebase(snap) {
+  if (!snap) return [];
+  return Object.values(snap).sort((a, b) => (a.completedAtMs || 0) - (b.completedAtMs || 0));
 }
 
 // ── Main hook ────────────────────────────────────────────────────────────────
@@ -69,42 +71,84 @@ export function useSharedTasks() {
   const [completedTasks, _setCompletedTasks] = useState([]);
   const [synced, setSynced] = useState(false);
   const [error, setError] = useState(false);
-  const pendingWrite = useRef(false);
 
-  // Ref mirrors so all useCallback closures always see current values
+  // Ref mirrors so write callbacks always see current values without stale closures
+  const tasksRef = useRef(SEED_TASKS);
   const slRef = useRef(null);
   const ctRef = useRef([]);
 
-  function updateShiftLeader(val) {
-    slRef.current = val;
-    _setShiftLeader(val);
-  }
+  function updateTasks(val) { tasksRef.current = val; setTasks(val); }
+  function updateShiftLeader(val) { slRef.current = val; _setShiftLeader(val); }
+  function updateCompletedTasks(val) { ctRef.current = val; _setCompletedTasks(val); }
 
-  function updateCompletedTasks(val) {
-    ctRef.current = val;
-    _setCompletedTasks(val);
-  }
-
-  // Poll for remote changes
+  // ── Real-time listeners ───────────────────────────────────────────────────
   useEffect(() => {
-    let alive = true;
+    // tasks/ listener
+    const unsubTasks = onValue(
+      ref(db, "tasks"),
+      (snap) => {
+        const data = snap.val();
+        if (data === null) {
+          // First load — seed Firebase with default tasks
+          const seed = SEED_TASKS.map(t => ({ ...t, createdAt: Date.now() }));
+          set(ref(db, "tasks"), tasksToFirebase(seed));
+          updateTasks(seed);
+        } else {
+          const arr = tasksFromFirebase(data);
+          updateTasks(arr && arr.length > 0 ? arr : SEED_TASKS);
+        }
+        setSynced(true);
+        setError(false);
+      },
+      (err) => {
+        console.error("Firebase tasks error:", err);
+        setError(true);
+      }
+    );
 
-    async function poll() {
-      if (pendingWrite.current) return;
-      const remote = await fetchBin();
-      if (!alive) return;
-      if (remote === null) { setError(true); return; }
-      setError(false);
-      setSynced(true);
-      setTasks(remote.tasks.length > 0 ? remote.tasks : SEED_TASKS);
-      updateShiftLeader(remote.shiftLeader || null);
-      updateCompletedTasks(remote.completedTasks || []);
-    }
+    // shiftLeader/ listener
+    const unsubSL = onValue(
+      ref(db, "shiftLeader"),
+      (snap) => { updateShiftLeader(snap.val() || null); },
+      (err) => { console.error("Firebase shiftLeader error:", err); }
+    );
 
-    poll();
-    const interval = setInterval(poll, POLL_INTERVAL);
-    return () => { alive = false; clearInterval(interval); };
+    // completedTasks/ listener
+    const unsubCT = onValue(
+      ref(db, "completedTasks"),
+      (snap) => { updateCompletedTasks(completedTasksFromFirebase(snap.val())); },
+      (err) => { console.error("Firebase completedTasks error:", err); }
+    );
+
+    return () => {
+      unsubTasks();
+      unsubSL();
+      unsubCT();
+    };
   }, []);
+
+  // ── Write helpers ─────────────────────────────────────────────────────────
+  async function writeTasks(arr) {
+    await set(ref(db, "tasks"), tasksToFirebase(arr));
+  }
+
+  async function writeShiftLeader(sl) {
+    if (sl === null) {
+      await remove(ref(db, "shiftLeader"));
+    } else {
+      await set(ref(db, "shiftLeader"), sl);
+    }
+  }
+
+  async function writeCompletedTasks(arr) {
+    if (arr.length === 0) {
+      await remove(ref(db, "completedTasks"));
+    } else {
+      await set(ref(db, "completedTasks"), completedTasksToFirebase(arr));
+    }
+  }
+
+  // ── Public actions ────────────────────────────────────────────────────────
 
   // Create a new task
   const createTask = useCallback(async (taskData) => {
@@ -124,32 +168,27 @@ export function useSharedTasks() {
       tags: taskData.tags || [],
       createdAt: Date.now(),
     };
-    pendingWrite.current = true;
-    const updated = [...tasks, newTask];
-    setTasks(updated);
-    await saveBin(updated, slRef.current, ctRef.current);
-    pendingWrite.current = false;
+    const updated = [...tasksRef.current, newTask];
+    updateTasks(updated);
+    await writeTasks(updated);
     return newTask;
-  }, [tasks]);
+  }, []);
 
   // Claim a task
   const claimTask = useCallback(async (taskId, volunteerId, volunteerName) => {
-    pendingWrite.current = true;
-    const updated = tasks.map(t =>
+    const updated = tasksRef.current.map(t =>
       t.id === taskId
         ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now() }
         : t
     );
-    setTasks(updated);
-    await saveBin(updated, slRef.current, ctRef.current);
-    pendingWrite.current = false;
-  }, [tasks]);
+    updateTasks(updated);
+    await writeTasks(updated);
+  }, []);
 
-  // Complete a task — records history entry, auto-clears shiftLeader if task has "Shift Leader" tag
+  // Complete a task — records history, auto-clears shiftLeader if Shift Leader task
   const completeTask = useCallback(async (taskId, completedBy) => {
-    pendingWrite.current = true;
-    const completedTask = tasks.find(t => t.id === taskId);
-    const updated = tasks.map(t =>
+    const completedTask = tasksRef.current.find(t => t.id === taskId);
+    const updated = tasksRef.current.map(t =>
       t.id === taskId ? { ...t, status: "complete", completedAt: Date.now() } : t
     );
     const isShiftLeaderTask = completedTask && (completedTask.tags || []).includes("Shift Leader");
@@ -169,56 +208,62 @@ export function useSharedTasks() {
       ? [...ctRef.current, historyEntry]
       : ctRef.current;
 
-    setTasks(updated);
+    updateTasks(updated);
     if (isShiftLeaderTask) updateShiftLeader(null);
     updateCompletedTasks(newCompletedTasks);
-    await saveBin(updated, newShiftLeader, newCompletedTasks);
-    pendingWrite.current = false;
-  }, [tasks]);
+
+    // Write all three paths in parallel
+    await Promise.all([
+      writeTasks(updated),
+      writeShiftLeader(newShiftLeader),
+      writeCompletedTasks(newCompletedTasks),
+    ]);
+  }, []);
 
   // Delete a task (manager only)
   const deleteTask = useCallback(async (taskId) => {
-    pendingWrite.current = true;
-    const updated = tasks.filter(t => t.id !== taskId);
-    setTasks(updated);
-    await saveBin(updated, slRef.current, ctRef.current);
-    pendingWrite.current = false;
-  }, [tasks]);
+    const updated = tasksRef.current.filter(t => t.id !== taskId);
+    updateTasks(updated);
+    // Remove the specific task node rather than rewriting all tasks
+    await remove(ref(db, `tasks/${taskId}`));
+  }, []);
 
   // Reset to seed tasks (manager only — for demo reset)
   const resetTasks = useCallback(async () => {
-    pendingWrite.current = true;
-    const fresh = SEED_TASKS.map(t => ({ ...t, id: "t" + Date.now() + Math.random(), status: "available", assignedTo: "", assignedName: "", createdAt: Date.now() }));
-    setTasks(fresh);
+    const fresh = SEED_TASKS.map(t => ({
+      ...t,
+      id: "t" + Date.now() + Math.random(),
+      status: "available",
+      assignedTo: "",
+      assignedName: "",
+      createdAt: Date.now(),
+    }));
+    updateTasks(fresh);
     updateShiftLeader(null);
-    await saveBin(fresh, null, ctRef.current);
-    pendingWrite.current = false;
+    await Promise.all([
+      writeTasks(fresh),
+      remove(ref(db, "shiftLeader")),
+    ]);
   }, []);
 
   // Set the current shift leader (called after claiming a Shift Leader task)
   const setShiftLeader = useCallback(async ({ name, taskId }) => {
-    pendingWrite.current = true;
     const sl = { name, taskId };
     updateShiftLeader(sl);
-    await saveBin(tasks, sl, ctRef.current);
-    pendingWrite.current = false;
-  }, [tasks]);
+    await writeShiftLeader(sl);
+  }, []);
 
   // Manually clear the shift leader
   const clearShiftLeader = useCallback(async () => {
-    pendingWrite.current = true;
     updateShiftLeader(null);
-    await saveBin(tasks, null, ctRef.current);
-    pendingWrite.current = false;
-  }, [tasks]);
+    await remove(ref(db, "shiftLeader"));
+  }, []);
 
   // Clear all task history (manager only)
   const clearCompletedTasks = useCallback(async () => {
-    pendingWrite.current = true;
     updateCompletedTasks([]);
-    await saveBin(tasks, slRef.current, []);
-    pendingWrite.current = false;
-  }, [tasks]);
+    await remove(ref(db, "completedTasks"));
+  }, []);
 
   return {
     tasks, shiftLeader, completedTasks, synced, error,
