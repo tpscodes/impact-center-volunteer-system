@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVolunteer } from '../context/VolunteerContext'
+import { VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 
 export default function VolunteerIdEntry() {
   const navigate = useNavigate()
@@ -45,7 +46,14 @@ export default function VolunteerIdEntry() {
       setError('Please enter all 4 digits.')
       return
     }
-    setVolunteerId(id)
+    const profile = VOLUNTEER_PROFILES.find(p => p.id === id)
+    if (!profile) {
+      setError('ID not recognized. Please check with your session coordinator.')
+      return
+    }
+    setVolunteerId(profile.id)
+    sessionStorage.setItem('volunteerId', profile.id)
+    sessionStorage.setItem('volunteerName', profile.name)
     navigate('/experienced/tasks')
   }
 

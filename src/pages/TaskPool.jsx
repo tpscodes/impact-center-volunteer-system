@@ -22,6 +22,11 @@ export default function TaskPool() {
 
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
 
+  // In-progress tasks claimed by OTHER volunteers
+  const claimedByOthers = tasks.filter(t =>
+    t.status === 'in-progress' && t.assignedTo !== volunteerId
+  )
+
   // Available tasks for experienced volunteers
   let available = tasks.filter(t =>
     t.status === 'available' &&
@@ -249,6 +254,27 @@ export default function TaskPool() {
             </div>
           ))}
         </div>
+        {/* Claimed by others */}
+        {claimedByOthers.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 16, marginBottom: 8 }}>
+              In Progress ({claimedByOthers.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {claimedByOthers.map(t => (
+                <div key={t.id} style={{ background: '#F9FAFB', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, padding: '12px 16px', opacity: 0.75 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: GRAY.soft }}>{t.name}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#E5E7EB', color: GRAY.soft, borderRadius: 20, padding: '2px 8px' }}>In Progress</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: GRAY.light }}>
+                    🙋 Claimed by <strong style={{ color: GRAY.soft }}>{t.assignedName || 'a volunteer'}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom nav */}
