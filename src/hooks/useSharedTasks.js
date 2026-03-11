@@ -232,7 +232,6 @@ export function useSharedTasks() {
   const resetTasks = useCallback(async () => {
     const fresh = SEED_TASKS.map(t => ({
       ...t,
-      id: "t" + Date.now() + Math.random(),
       status: "available",
       assignedTo: "",
       assignedName: "",
@@ -240,9 +239,11 @@ export function useSharedTasks() {
     }));
     updateTasks(fresh);
     updateShiftLeader(null);
+    updateCompletedTasks([]);
     await Promise.all([
       writeTasks(fresh),
       remove(ref(db, "shiftLeader")),
+      remove(ref(db, "completedTasks")),
     ]);
   }, []);
 
