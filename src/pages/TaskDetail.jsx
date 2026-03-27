@@ -31,8 +31,9 @@ function TaskTimer({ claimedAt }) {
 //   isLocked   — true if volunteer already has a different active task (can't claim)
 //   onClaim    — () => void  called when CLAIM TASK tapped
 //   onComplete — () => void  called when MARK COMPLETE tapped
+//   onUnclaim  — () => void  called when UNCLAIM tapped (returns task to incomplete pool)
 //   onBack     — () => void  called when ← Back tapped
-export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComplete, onBack }) {
+export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComplete, onUnclaim, onBack }) {
   const [acting, setActing] = useState(false)
 
   if (!task) return null
@@ -50,6 +51,13 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
     if (acting) return
     setActing(true)
     await onComplete()
+    setActing(false)
+  }
+
+  async function handleUnclaim() {
+    if (acting || !onUnclaim) return
+    setActing(true)
+    await onUnclaim()
     setActing(false)
   }
 
@@ -96,7 +104,7 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
           {[
             ['ITEM',        task.item],
             ['ACTION',      task.action],
-            ['FROM',        task.source],
+            ['SOURCE',      task.source],
             ['TO',          task.destination],
           ].filter(([, v]) => v).map(([label, val], i, arr) => (
             <div key={label} style={{
@@ -147,13 +155,24 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
       {/* Sticky action button */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: 'white', borderTop: `1px solid ${GRAY.border}`, padding: '14px 16px' }}>
         {isMyTask ? (
-          <button
-            onClick={handleComplete}
-            disabled={acting}
-            style={{ width: '100%', padding: '16px 0', background: acting ? '#D1D5DB' : '#34C759', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
-          >
-            {acting ? 'Saving…' : '✓ MARK COMPLETE'}
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {onUnclaim && (
+              <button
+                onClick={handleUnclaim}
+                disabled={acting}
+                style={{ flex: 1, padding: '16px 0', background: acting ? '#D1D5DB' : '#EF4444', color: 'white', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: acting ? 'not-allowed' : 'pointer' }}
+              >
+                Unclaim
+              </button>
+            )}
+            <button
+              onClick={handleComplete}
+              disabled={acting}
+              style={{ flex: 2, padding: '16px 0', background: acting ? '#D1D5DB' : '#34C759', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
+            >
+              {acting ? 'Saving…' : '✓ MARK COMPLETE'}
+            </button>
+          </div>
         ) : isLocked ? (
           <button disabled style={{ width: '100%', padding: '16px 0', background: '#F3F4F6', color: GRAY.light, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'not-allowed' }}>
             Complete Your Current Task First

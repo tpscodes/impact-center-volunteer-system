@@ -304,7 +304,7 @@ export default function CreateTask({ onBack, onPublish }) {
           </div>
           <Field label="Item" value={fields.item} onChange={upd("item")} placeholder="e.g. Coffee bags" />
           <Field label="Action" value={fields.action} onChange={upd("action")} placeholder="Fill / Front up / Move…" />
-          <Field label="Source" value={fields.source} onChange={upd("source")} placeholder="Where to get it from" />
+          <Field label="Source" value={fields.source} onChange={upd("source")} placeholder="e.g. Bay 14, Walk-in Fridge" />
           <Field label="Destination" value={fields.destination} onChange={upd("destination")} placeholder="Rack 7, Door 1, etc." />
           <Field label="Est. Time" value={fields.estimatedTime} onChange={upd("estimatedTime")} placeholder="~15 min" />
           <Field label="Special Instructions" value={fields.comments} onChange={upd("comments")} placeholder="Notes for the volunteer…" multiline />

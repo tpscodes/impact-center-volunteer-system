@@ -173,14 +173,15 @@ function TagsCell({ tags, onChange }) {
 }
 
 // ── Manager Tasks List Screen ─────────────────────────────────────────────────
-export function ManagerTasksScreen({ tasks, onDeleteTask, synced, error }) {
+export function ManagerTasksScreen({ tasks, onDeleteTask, onMarkIncomplete, synced, error }) {
   const navigate = useNavigate();
 
   function StatusBadge({ status }) {
     const cfg = {
       available: { label: "Available", bg: "#F3F4F6", color: "#374151" },
-      "in-progress": { label: "In Progress", bg: "#D1D5DB", color: "#1F2937" },
+      "in-progress": { label: "In Progress", bg: "#FFF3E0", color: "#C2410C" },
       complete: { label: "Complete", bg: "#1F2937", color: "white" },
+      incomplete: { label: "Incomplete", bg: "#FEE2E2", color: "#DC2626" },
     }[status] || { label: status, bg: "#F3F4F6", color: "#374151" };
     return <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{cfg.label}</span>;
   }
@@ -240,12 +241,20 @@ export function ManagerTasksScreen({ tasks, onDeleteTask, synced, error }) {
                   {t.assignedTo === "new" && <span>👤 New Vol</span>}
                   {!t.assignedTo && <span>👥 Open</span>}
                 </div>
-                {t.status !== "complete" && (
-                  <button onClick={() => onDeleteTask(t.id)}
-                    style={{ marginTop: 8, fontSize: 11, color: GRAY.light, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                    Remove
-                  </button>
-                )}
+                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                  {t.status === "in-progress" && (
+                    <button onClick={() => onMarkIncomplete(t.id)}
+                      style={{ fontSize: 11, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                      Mark Incomplete
+                    </button>
+                  )}
+                  {t.status !== "complete" && (
+                    <button onClick={() => onDeleteTask(t.id)}
+                      style={{ fontSize: 11, color: GRAY.light, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
