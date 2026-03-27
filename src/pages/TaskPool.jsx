@@ -223,31 +223,6 @@ export default function TaskPool() {
           })}
         </div>
 
-        {/* Shift Leader: New Volunteer in-progress tasks */}
-        {isShiftLeader && newVolInProgress.length > 0 && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              New Volunteer Tasks In Progress ({newVolInProgress.length})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              {newVolInProgress.map(t => (
-                <div key={t.id} style={{ background: '#FFF5F5', borderRadius: 12, border: '1.5px solid #FECACA', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark }}>{t.name}</div>
-                    <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 2 }}>Claimed by: {t.assignedName || 'New Volunteer'}</div>
-                  </div>
-                  <button
-                    onClick={() => markTaskIncomplete(t.id)}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'white', background: '#EF4444', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 10 }}
-                  >
-                    Mark Incomplete
-                  </button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
         {/* Incomplete tasks — at the top */}
         {incompleteTasks.length > 0 && (
           <>

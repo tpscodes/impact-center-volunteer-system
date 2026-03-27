@@ -1,7 +1,7 @@
 // MyTasks.jsx — Experienced volunteer "My Task" screen
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSharedTasks } from '../hooks/useSharedTasks'
+import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import TaskDetail from './TaskDetail'
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
@@ -24,7 +24,15 @@ export default function MyTasks() {
   const [showDetail, setShowDetail] = useState(false)
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
+  const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId)
+  const isShiftLeader = volunteerProfile?.isShiftLeader || false
+
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
+
+  // Shift leader: all new volunteer tasks currently in progress
+  const newVolTasks = isShiftLeader
+    ? tasks.filter(t => t.status === 'in-progress' && (t.assignedTo || '').startsWith('new-'))
+    : []
 
   async function handleUnclaim() {
     if (!myTask) return
@@ -149,6 +157,38 @@ export default function MyTasks() {
               style={{ width: '100%', padding: '12px 0', background: 'white', color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               ← Back to Task Pool
             </button>
+
+            {/* Shift Leader: new volunteer tasks panel */}
+            {isShiftLeader && (
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#FF9500', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                  🟠 New Volunteer Tasks ({newVolTasks.length})
+                </div>
+                {newVolTasks.length === 0 ? (
+                  <div style={{ background: 'white', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, padding: '14px 16px', fontSize: 13, color: GRAY.light, textAlign: 'center' }}>
+                    No new volunteers working right now
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {newVolTasks.map(t => (
+                      <div key={t.id} style={{ background: 'white', borderRadius: 12, border: '1.5px solid #FED7AA', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark, marginBottom: 2 }}>{t.name}</div>
+                          <div style={{ fontSize: 12, color: GRAY.soft }}>📍 {t.destination}</div>
+                          <div style={{ fontSize: 11, color: GRAY.light, marginTop: 2 }}>{t.estimatedTime}</div>
+                        </div>
+                        <button
+                          onClick={() => markTaskIncomplete(t.id)}
+                          style={{ fontSize: 12, fontWeight: 700, color: 'white', background: '#EF4444', border: 'none', borderRadius: 8, padding: '7px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+                        >
+                          Mark Incomplete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
