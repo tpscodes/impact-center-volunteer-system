@@ -10,7 +10,7 @@ const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { tasks, synced, error, claimTask, completeTask, markTaskIncomplete, shiftLeader } = useSharedTasks();
+  const { tasks, synced, error, claimTask, completeTask, shiftLeader } = useSharedTasks();
   const [myTaskId, setMyTaskId] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [allDone, setAllDone] = useState(false);
@@ -46,13 +46,6 @@ export default function NewVolunteerTasks() {
     setDetailTask(null);
     setCompleting(false);
     if (openTasks.length <= 1) setAllDone(true);
-  }
-
-  async function handleUnclaim() {
-    if (!myTaskId) return;
-    await markTaskIncomplete(myTaskId);
-    setMyTaskId(null);
-    setDetailTask(null);
   }
 
   // ── New Volunteer Task Detail overlay ──────────────────────────────────────
@@ -128,21 +121,13 @@ export default function NewVolunteerTasks() {
         {/* Sticky bottom button */}
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, padding: "14px 16px" }}>
           {isActive ? (
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={handleUnclaim}
-                style={{ flex: 1, padding: "16px 0", background: "#EF4444", color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
-              >
-                Unclaim
-              </button>
-              <button
-                onClick={handleComplete}
-                disabled={completing}
-                style={{ flex: 2, padding: "16px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
-              >
-                {completing ? "Saving…" : "✓ MARK DONE"}
-              </button>
-            </div>
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              style={{ width: "100%", padding: "18px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
+            >
+              {completing ? "Saving…" : "✓ MARK DONE"}
+            </button>
           ) : (
             <button
               onClick={() => handleClaim(activeTaskForDetail)}
