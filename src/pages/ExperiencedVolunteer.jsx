@@ -188,7 +188,12 @@ export function MyTask() {
   const isActiveShiftLeader = !!myTask && shiftLeader?.taskId === myTask.id;
   const isShiftLeader = isProfileShiftLeader || isActiveShiftLeader;
 
-  const newVolTasks = tasks.filter(t => t.status === "in-progress" && (t.assignedTo || "").startsWith("new-"));
+  const newVolTasks = tasks.filter(t => {
+    if (t.status === "in-progress" && (t.assignedTo || "").startsWith("new-")) return true;
+    if ((t.status === "available" || t.status === "incomplete") &&
+        (!t.assignedTo || t.assignedTo === "" || t.assignedTo === "new")) return true;
+    return false;
+  });
 
   // Timer
   useEffect(() => {
@@ -311,20 +316,35 @@ export function MyTask() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {newVolTasks.map(t => (
-                  <div key={t.id} style={{ background: "white", borderRadius: 12, border: "1.5px solid #FED7AA", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark, marginBottom: 2 }}>{t.name}</div>
-                      <div style={{ fontSize: 12, color: GRAY.soft }}>📍 {t.destination}</div>
-                      <div style={{ fontSize: 11, color: GRAY.light, marginTop: 2 }}>{t.assignedName || "New Volunteer"} · {t.estimatedTime}</div>
+                {newVolTasks.map(t => {
+                  const isActive = t.status === "in-progress";
+                  const isIncomplete = t.status === "incomplete";
+                  return (
+                    <div key={t.id} style={{ background: "white", borderRadius: 12, border: `1.5px solid ${isActive ? "#FED7AA" : isIncomplete ? "#FECACA" : GRAY.border}`, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark }}>{t.name}</div>
+                          <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "2px 7px", flexShrink: 0,
+                            background: isActive ? "#FFF7ED" : isIncomplete ? "#FEE2E2" : "#F0FDF4",
+                            color: isActive ? "#FF9500" : isIncomplete ? "#DC2626" : "#16A34A" }}>
+                            {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: GRAY.soft }}>📍 {t.destination}</div>
+                        <div style={{ fontSize: 11, color: GRAY.light, marginTop: 2 }}>
+                          {isActive ? (t.assignedName || "New Volunteer") : "Unassigned"} · {t.estimatedTime}
+                        </div>
+                      </div>
+                      {isActive && (
+                        <button
+                          onClick={() => markTaskIncomplete(t.id)}
+                          style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#EF4444", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}>
+                          Mark Incomplete
+                        </button>
+                      )}
                     </div>
-                    <button
-                      onClick={() => markTaskIncomplete(t.id)}
-                      style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#EF4444", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}>
-                      Mark Incomplete
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
