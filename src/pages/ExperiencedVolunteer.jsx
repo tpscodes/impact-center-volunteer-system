@@ -180,13 +180,10 @@ export function MyTask() {
   const [elapsed, setElapsed] = useState(0);
 
   const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
-  const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId);
-  const isProfileShiftLeader = volunteerProfile?.isShiftLeader || false;
-
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
 
-  const isActiveShiftLeader = !!myTask && shiftLeader?.taskId === myTask.id;
-  const isShiftLeader = isProfileShiftLeader || isActiveShiftLeader;
+  // Only show shift leader panel if they have actively claimed the Shift Leader task
+  const isShiftLeader = !!myTask && shiftLeader?.taskId === myTask.id;
 
   const newVolTasks = tasks.filter(t => {
     if (t.status === "in-progress" && (t.assignedTo || "").startsWith("new-")) return true;
