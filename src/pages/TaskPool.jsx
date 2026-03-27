@@ -1,7 +1,7 @@
 // TaskPool.jsx — Experienced volunteer task pool with tag filtering
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSharedTasks } from '../hooks/useSharedTasks'
+import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import TaskDetail from './TaskDetail'
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
@@ -10,7 +10,7 @@ const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Deliv
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, claimTask, setShiftLeader } = useSharedTasks()
+  const { tasks, synced, error, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
   const [search, setSearch] = useState('')
   const [activeTags, setActiveTags] = useState([])
   const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
@@ -20,11 +20,26 @@ export default function TaskPool() {
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
 
+  const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId)
+  const isShiftLeader = volunteerProfile?.isShiftLeader || false
+
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
 
   // In-progress tasks claimed by OTHER volunteers
   const claimedByOthers = tasks.filter(t =>
-    t.status === 'in-progress' && t.assignedTo !== volunteerId
+    t.status === 'in-progress' && t.assignedTo !== volunteerId &&
+    !(t.assignedTo || '').startsWith('new-')
+  )
+
+  // Shift leader: in-progress new volunteer tasks they can supervise
+  const newVolInProgress = isShiftLeader
+    ? tasks.filter(t => t.status === 'in-progress' && (t.assignedTo || '').startsWith('new-'))
+    : []
+
+  // Incomplete tasks — claimable by any experienced volunteer
+  let incompleteTasks = tasks.filter(t =>
+    t.status === 'incomplete' &&
+    (!t.assignedTo || t.assignedTo === 'experienced' || t.assignedTo === volunteerId || t.assignedTo === '')
   )
 
   // Available tasks for experienced volunteers
@@ -33,9 +48,14 @@ export default function TaskPool() {
     (!t.assignedTo || t.assignedTo === 'experienced' || t.assignedTo === volunteerId)
   )
 
-  // Apply search filter
+  // Apply search + tag filters to available tasks
   if (search) {
     available = available.filter(t =>
+      (t.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.item || '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.destination || '').toLowerCase().includes(search.toLowerCase())
+    )
+    incompleteTasks = incompleteTasks.filter(t =>
       (t.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.item || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.destination || '').toLowerCase().includes(search.toLowerCase())
@@ -45,6 +65,9 @@ export default function TaskPool() {
   // Apply tag filter — show tasks matching ANY active tag
   if (activeTags.length > 0) {
     available = available.filter(t =>
+      activeTags.some(tag => (t.tags || []).includes(tag))
+    )
+    incompleteTasks = incompleteTasks.filter(t =>
       activeTags.some(tag => (t.tags || []).includes(tag))
     )
   }
@@ -84,6 +107,7 @@ export default function TaskPool() {
           isLocked={!!myTask && !isMyTask}
           onClaim={() => handleClaim(liveTask)}
           onComplete={() => navigate('/experienced/mytask')}
+          onUnclaim={isMyTask ? async () => { await markTaskIncomplete(liveTask.id); setSelectedTask(null) } : undefined}
           onBack={() => setSelectedTask(null)}
         />
         {/* Shift Leader modal rendered at root level so it appears above TaskDetail */}
@@ -199,11 +223,67 @@ export default function TaskPool() {
           })}
         </div>
 
+        {/* Shift Leader: New Volunteer in-progress tasks */}
+        {isShiftLeader && newVolInProgress.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              New Volunteer Tasks In Progress ({newVolInProgress.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {newVolInProgress.map(t => (
+                <div key={t.id} style={{ background: '#FFF5F5', borderRadius: 12, border: '1.5px solid #FECACA', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 2 }}>Claimed by: {t.assignedName || 'New Volunteer'}</div>
+                  </div>
+                  <button
+                    onClick={() => markTaskIncomplete(t.id)}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'white', background: '#EF4444', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 10 }}
+                  >
+                    Mark Incomplete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Incomplete tasks — at the top */}
+        {incompleteTasks.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Incomplete — Needs Finishing ({incompleteTasks.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              {incompleteTasks.map(t => (
+                <div
+                  key={t.id}
+                  onClick={() => setSelectedTask(t)}
+                  style={{ background: '#FFF5F5', borderRadius: 12, border: '1.5px solid #FECACA', overflow: 'hidden', cursor: 'pointer' }}
+                >
+                  <div style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#DC2626', flex: 1 }}>{t.name}</div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEE2E2', borderRadius: 20, padding: '2px 8px', marginLeft: 8 }}>Incomplete</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: GRAY.soft, marginBottom: 4 }}>{t.source} → {t.destination}</div>
+                    <div style={{ fontSize: 11, color: GRAY.light }}>{t.estimatedTime}</div>
+                    {t.rolledOver && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>Rolled over from {t.rolledOverFrom}</div>}
+                  </div>
+                  <div style={{ padding: '8px 16px', borderTop: '1px solid #FECACA', fontSize: 12, fontWeight: 700, color: '#DC2626' }}>
+                    Tap to claim and finish →
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
           Available Tasks ({available.length})
         </div>
 
-        {available.length === 0 && (
+        {available.length === 0 && incompleteTasks.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: GRAY.light, fontSize: 14 }}>
             {myTask
               ? 'Complete your current task first!'

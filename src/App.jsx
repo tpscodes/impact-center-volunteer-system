@@ -17,13 +17,13 @@ import TaskHistory from "./pages/TaskHistory";
 
 function ManagerDashboardWrapper() {
   const navigate = useNavigate();
-  const { tasks, synced, error, deleteTask, resetTasks } = useSharedTasks();
-  return <ManagerDashboard tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onResetTasks={resetTasks} />;
+  const { tasks, synced, error, deleteTask, resetTasks, markTaskIncomplete } = useSharedTasks();
+  return <ManagerDashboard tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} />;
 }
 
 function ManagerTasksWrapper() {
-  const { tasks, synced, error, deleteTask } = useSharedTasks();
-  return <ManagerTasksScreen tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} />;
+  const { tasks, synced, error, deleteTask, markTaskIncomplete } = useSharedTasks();
+  return <ManagerTasksScreen tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onMarkIncomplete={markTaskIncomplete} />;
 }
 
 function CreateTaskScreenWrapper() {

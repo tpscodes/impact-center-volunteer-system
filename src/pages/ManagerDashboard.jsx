@@ -7,8 +7,9 @@ const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF
 function StatusBadge({ status }) {
   const cfg = {
     available: { label: "Available", bg: "#F3F4F6", color: "#374151" },
-    "in-progress": { label: "In Progress", bg: "#D1D5DB", color: "#1F2937" },
+    "in-progress": { label: "In Progress", bg: "#FFF3E0", color: "#C2410C" },
     complete: { label: "Complete", bg: "#374151", color: "white" },
+    incomplete: { label: "Incomplete", bg: "#FEE2E2", color: "#DC2626" },
   }[status] || { label: status, bg: "#F3F4F6", color: "#374151" };
   return (
     <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
@@ -22,13 +23,14 @@ function PriorityDot({ priority }) {
   return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 6 }} />;
 }
 
-export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, synced, error }) {
+export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete, onResetTasks, synced, error }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
   const active = tasks.filter(t => t.status !== "complete");
   const completed = tasks.filter(t => t.status === "complete");
   const inProgress = tasks.filter(t => t.status === "in-progress");
+  const incomplete = tasks.filter(t => t.status === "incomplete");
 
   const filtered = tasks.filter(t =>
     !search || t.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -59,16 +61,17 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, sy
       <div style={{ padding: "20px 20px 40px" }}>
 
         {/* Metric cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
           {[
-            { label: "Active Tasks", value: active.length, icon: "📋" },
+            { label: "Active", value: active.length, icon: "📋" },
             { label: "In Progress", value: inProgress.length, icon: "🔄" },
+            { label: "Incomplete", value: incomplete.length, icon: "⚠️", red: incomplete.length > 0 },
             { label: "Completed", value: completed.length, icon: "✅" },
           ].map(m => (
-            <div key={m.label} style={{ background: "white", borderRadius: 12, padding: "14px 12px", border: `1px solid ${GRAY.border}`, textAlign: "center" }}>
-              <div style={{ fontSize: 20 }}>{m.icon}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: GRAY.dark, lineHeight: 1.2 }}>{m.value}</div>
-              <div style={{ fontSize: 11, color: GRAY.light, fontWeight: 600 }}>{m.label}</div>
+            <div key={m.label} style={{ background: m.red ? "#FFF5F5" : "white", borderRadius: 12, padding: "12px 8px", border: `1px solid ${m.red ? "#FECACA" : GRAY.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: 18 }}>{m.icon}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: m.red ? "#DC2626" : GRAY.dark, lineHeight: 1.2 }}>{m.value}</div>
+              <div style={{ fontSize: 10, color: m.red ? "#DC2626" : GRAY.light, fontWeight: 600 }}>{m.label}</div>
             </div>
           ))}
         </div>
@@ -123,6 +126,12 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onResetTasks, sy
               <div style={{ fontSize: 12, color: t.assignedName ? GRAY.dark : GRAY.light, fontWeight: t.assignedName ? 600 : 400 }}>{t.assignedName || "Unassigned"}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
                 <StatusBadge status={t.status} />
+                {t.status === "in-progress" && (
+                  <button onClick={() => onMarkIncomplete(t.id)}
+                    style={{ fontSize: 10, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                    Mark Incomplete
+                  </button>
+                )}
                 {t.status !== "complete" && (
                   <button onClick={() => onDeleteTask(t.id)}
                     style={{ fontSize: 10, color: GRAY.light, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>

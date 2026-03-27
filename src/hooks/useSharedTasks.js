@@ -8,8 +8,8 @@ import { ref, onValue, set, remove } from "firebase/database";
 
 // ── Named volunteer profiles ──────────────────────────────────────────────────
 export const VOLUNTEER_PROFILES = [
-  { id: "1001", name: "Volunteer 1" },
-  { id: "1002", name: "Volunteer 2" },
+  { id: "1001", name: "Volunteer 1", isShiftLeader: true },
+  { id: "1002", name: "Volunteer 2", isShiftLeader: true },
   { id: "1003", name: "Volunteer 3" },
   { id: "1004", name: "Volunteer 4" },
   { id: "1005", name: "Volunteer 5" },
@@ -228,6 +228,17 @@ export function useSharedTasks() {
     await remove(ref(db, `tasks/${taskId}`));
   }, []);
 
+  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt
+  const markTaskIncomplete = useCallback(async (taskId) => {
+    const updated = tasksRef.current.map(t => {
+      if (t.id !== taskId) return t;
+      const { claimedAt, ...rest } = t;
+      return { ...rest, status: "incomplete", assignedTo: "", assignedName: "" };
+    });
+    updateTasks(updated);
+    await writeTasks(updated);
+  }, []);
+
   // Reset to seed tasks (manager only — for demo reset)
   const resetTasks = useCallback(async () => {
     const fresh = SEED_TASKS.map(t => ({
@@ -270,5 +281,6 @@ export function useSharedTasks() {
     tasks, shiftLeader, completedTasks, synced, error,
     createTask, claimTask, completeTask, deleteTask, resetTasks,
     setShiftLeader, clearShiftLeader, clearCompletedTasks,
+    markTaskIncomplete,
   };
 }

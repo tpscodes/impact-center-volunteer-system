@@ -19,12 +19,18 @@ function TaskTimer({ claimedAt }) {
 
 export default function MyTasks() {
   const navigate = useNavigate()
-  const { tasks, synced, completeTask, clearShiftLeader } = useSharedTasks()
+  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete } = useSharedTasks()
   const [completing, setCompleting] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
+
+  async function handleUnclaim() {
+    if (!myTask) return
+    await markTaskIncomplete(myTask.id)
+    navigate('/experienced/tasks')
+  }
 
   async function handleComplete() {
     if (!myTask) return
@@ -48,6 +54,7 @@ export default function MyTasks() {
         isLocked={false}
         onClaim={null}
         onComplete={handleComplete}
+        onUnclaim={handleUnclaim}
         onBack={() => setShowDetail(false)}
       />
     )
@@ -127,13 +134,19 @@ export default function MyTasks() {
               </div>
             </div>
 
-            <button onClick={handleComplete} disabled={completing}
-              style={{ width: '100%', padding: '16px 0', background: completing ? '#D1D5DB' : GRAY.dark, color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? 'not-allowed' : 'pointer' }}>
-              {completing ? 'Marking complete…' : '✓ MARK COMPLETE'}
-            </button>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <button onClick={handleUnclaim}
+                style={{ flex: 1, padding: '14px 0', background: '#EF4444', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                Unclaim
+              </button>
+              <button onClick={handleComplete} disabled={completing}
+                style={{ flex: 2, padding: '14px 0', background: completing ? '#D1D5DB' : GRAY.dark, color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? 'not-allowed' : 'pointer' }}>
+                {completing ? 'Marking complete…' : '✓ MARK COMPLETE'}
+              </button>
+            </div>
 
             <button onClick={() => navigate('/experienced/tasks')}
-              style={{ width: '100%', marginTop: 10, padding: '12px 0', background: 'white', color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: '12px 0', background: 'white', color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               ← Back to Task Pool
             </button>
           </>

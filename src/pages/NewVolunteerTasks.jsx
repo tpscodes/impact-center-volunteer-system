@@ -10,7 +10,7 @@ const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { tasks, synced, error, claimTask, completeTask, shiftLeader } = useSharedTasks();
+  const { tasks, synced, error, claimTask, completeTask, markTaskIncomplete, shiftLeader } = useSharedTasks();
   const [myTaskId, setMyTaskId] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [allDone, setAllDone] = useState(false);
@@ -23,9 +23,10 @@ export default function NewVolunteerTasks() {
     return id;
   })());
 
-  // Show available tasks that are open (no specific named assignment)
+  // Show available + incomplete tasks that are open (no specific named assignment)
   const openTasks = tasks.filter(t =>
-    t.status === "available" && (!t.assignedTo || t.assignedTo === "" || t.assignedTo === "new")
+    (t.status === "available" || t.status === "incomplete") &&
+    (!t.assignedTo || t.assignedTo === "" || t.assignedTo === "new")
   );
 
   const myTask = tasks.find(t => t.id === myTaskId && t.status === "in-progress");
@@ -45,6 +46,13 @@ export default function NewVolunteerTasks() {
     setDetailTask(null);
     setCompleting(false);
     if (openTasks.length <= 1) setAllDone(true);
+  }
+
+  async function handleUnclaim() {
+    if (!myTaskId) return;
+    await markTaskIncomplete(myTaskId);
+    setMyTaskId(null);
+    setDetailTask(null);
   }
 
   // ── New Volunteer Task Detail overlay ──────────────────────────────────────
@@ -120,13 +128,21 @@ export default function NewVolunteerTasks() {
         {/* Sticky bottom button */}
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, padding: "14px 16px" }}>
           {isActive ? (
-            <button
-              onClick={handleComplete}
-              disabled={completing}
-              style={{ width: "100%", padding: "18px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
-            >
-              {completing ? "Saving…" : "✓ MARK DONE"}
-            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleUnclaim}
+                style={{ flex: 1, padding: "16px 0", background: "#EF4444", color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              >
+                Unclaim
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={completing}
+                style={{ flex: 2, padding: "16px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
+              >
+                {completing ? "Saving…" : "✓ MARK DONE"}
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => handleClaim(activeTaskForDetail)}
@@ -208,25 +224,30 @@ export default function NewVolunteerTasks() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {openTasks.map(t => {
             const isMyActive = t.id === myTaskId;
+            const isIncomplete = t.status === "incomplete";
             return (
               <div key={t.id}
                 onClick={() => setDetailTask(t)}
                 style={{
-                  background: isMyActive ? "#E5E7EB" : "white",
+                  background: isMyActive ? "#E5E7EB" : isIncomplete ? "#FFF5F5" : "white",
                   borderRadius: 12,
-                  border: `2px solid ${isMyActive ? GRAY.mid : GRAY.border}`,
+                  border: `2px solid ${isMyActive ? GRAY.mid : isIncomplete ? "#FECACA" : GRAY.border}`,
                   padding: "16px",
                   cursor: "pointer",
                   opacity: myTaskId && !isMyActive ? 0.5 : 1,
                   transition: "all 0.15s"
                 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>{t.name}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: isIncomplete ? "#DC2626" : GRAY.dark }}>{t.name}</div>
+                  {isIncomplete && <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", background: "#FEE2E2", borderRadius: 20, padding: "2px 8px", marginLeft: 8, flexShrink: 0 }}>Incomplete</span>}
+                </div>
                 <div style={{ fontSize: 12, color: GRAY.soft, display: "flex", alignItems: "center", gap: 4 }}>
                   <span>📍</span> {t.destination}
                 </div>
                 {t.estimatedTime && (
                   <div style={{ fontSize: 11, color: GRAY.light, marginTop: 4 }}>⏱ {t.estimatedTime}</div>
                 )}
+                {isIncomplete && <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4, fontWeight: 600 }}>Incomplete — needs finishing</div>}
                 <div style={{ fontSize: 11, color: GRAY.light, marginTop: 6 }}>Tap for details →</div>
               </div>
             );
