@@ -55,8 +55,7 @@ function DigitalBoardWrapper() {
 }
 
 function MyTaskWrapper() {
-  const { tasks, synced, completeTask } = useSharedTasks();
-  return <MyTask tasks={tasks} synced={synced} onCompleteTask={completeTask} />;
+  return <MyTask />;
 }
 
 function NewVolunteerWrapper() {

@@ -1,7 +1,7 @@
 // ExperiencedVolunteer flows: ID entry → Task Pool → My Task → Complete
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
+import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -173,32 +173,50 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
 }
 
 // ── My Task Screen ───────────────────────────────────────────────────────────
-export function MyTask({ tasks, onCompleteTask, synced }) {
+export function MyTask() {
   const navigate = useNavigate();
-  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks();
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
+  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId);
+  const isProfileShiftLeader = volunteerProfile?.isShiftLeader || false;
+
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
 
+  const isActiveShiftLeader = !!myTask && shiftLeader?.taskId === myTask.id;
+  const isShiftLeader = isProfileShiftLeader || isActiveShiftLeader;
+
+  const newVolTasks = tasks.filter(t => t.status === "in-progress" && (t.assignedTo || "").startsWith("new-"));
+
   // Timer
-  useState(() => {
+  useEffect(() => {
     if (!myTask) return;
     const start = myTask.claimedAt || Date.now();
+    setElapsed(Math.floor((Date.now() - start) / 1000));
     const interval = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
     return () => clearInterval(interval);
-  });
+  }, [myTask?.id]);
+
+  const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
+  const secs = (elapsed % 60).toString().padStart(2, "0");
+
+  async function handleUnclaim() {
+    if (!myTask) return;
+    await markTaskIncomplete(myTask.id);
+    navigate("/experienced/tasks");
+  }
 
   async function handleComplete() {
     if (!myTask) return;
     setCompleting(true);
+    const isShiftLeaderTask = (myTask.tags || []).includes("Shift Leader");
     const completedBy = myTask.assignedName || sessionStorage.getItem("volunteerName") || volunteerId;
-    await onCompleteTask(myTask.id, completedBy);
+    await completeTask(myTask.id, completedBy);
+    if (isShiftLeaderTask) await clearShiftLeader();
     setTimeout(() => navigate("/experienced/tasks"), 1200);
   }
-
-  const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
-  const secs = (elapsed % 60).toString().padStart(2, "0");
 
   return (
     <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
@@ -208,19 +226,25 @@ export function MyTask({ tasks, onCompleteTask, synced }) {
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>My Task</div>
         </div>
-        <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+        <button onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
       </div>
 
       <div style={{ padding: "20px 16px" }}>
         {!myTask ? (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>No active task</div>
-            <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 20 }}>Head back to pick a new one!</div>
-            <button onClick={() => navigate("/experienced/tasks")}
-              style={{ padding: "12px 24px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-              ← Back to Tasks
-            </button>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>{completing ? "✅" : "📭"}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>
+              {completing ? "Task Complete!" : "No active task"}
+            </div>
+            <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 20 }}>
+              {completing ? "Heading back to task pool…" : "Head back to pick a new one!"}
+            </div>
+            {!completing && (
+              <button onClick={() => navigate("/experienced/tasks")}
+                style={{ padding: "12px 24px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                ← Back to Tasks
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -231,15 +255,12 @@ export function MyTask({ tasks, onCompleteTask, synced }) {
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>In Progress</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "white" }}>{myTask.name}</div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Elapsed</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "white", fontVariantNumeric: "tabular-nums" }}>{mins}:{secs}</div>
-                </div>
+                <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.7)" }}>⏱ {mins}:{secs}</span>
               </div>
 
               <div style={{ padding: "16px 18px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: myTask.comments ? 14 : 0 }}>
-                  {[["ACTION", myTask.action], ["ITEM", myTask.item], ["FROM", myTask.source], ["TO", myTask.destination], ["EST. TIME", myTask.estimatedTime]].filter(([, v]) => v).map(([label, val]) => (
+                  {[["ACTION", myTask.action], ["ITEM", myTask.item], ["SOURCE", myTask.source], ["TO", myTask.destination], ["EST. TIME", myTask.estimatedTime]].filter(([, v]) => v).map(([label, val]) => (
                     <div key={label}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
                       <div style={{ fontSize: 14, color: GRAY.dark, fontWeight: 600, marginTop: 2 }}>{val}</div>
@@ -252,19 +273,61 @@ export function MyTask({ tasks, onCompleteTask, synced }) {
                     <div style={{ fontSize: 13, color: GRAY.soft }}>{myTask.comments}</div>
                   </div>
                 )}
+                {(myTask.tags || []).includes("Shift Leader") && (
+                  <div style={{ marginTop: 12, padding: "8px 12px", background: "#FFF7ED", borderRadius: 8, borderLeft: "3px solid #FF9500", fontSize: 12, color: "#FF9500", fontWeight: 700 }}>
+                    🟠 You are the Shift Leader — new volunteers can find you for help
+                  </div>
+                )}
               </div>
             </div>
 
-            <button onClick={handleComplete} disabled={completing}
-              style={{ width: "100%", padding: "16px 0", background: completing ? "#D1D5DB" : GRAY.dark, color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
-              {completing ? "Marking complete…" : "✓ MARK COMPLETE"}
-            </button>
+            <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+              <button onClick={handleUnclaim} disabled={completing}
+                style={{ flex: 1, padding: "14px 0", background: completing ? "#D1D5DB" : "#EF4444", color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
+                Unclaim
+              </button>
+              <button onClick={handleComplete} disabled={completing}
+                style={{ flex: 2, padding: "14px 0", background: completing ? "#D1D5DB" : GRAY.dark, color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
+                {completing ? "Marking complete…" : "✓ MARK COMPLETE"}
+              </button>
+            </div>
 
             <button onClick={() => navigate("/experienced/tasks")}
-              style={{ width: "100%", marginTop: 10, padding: "12px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              style={{ width: "100%", padding: "12px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               ← Back to Task Pool
             </button>
           </>
+        )}
+
+        {/* Shift Leader: new volunteer tasks panel — always visible when shift leader */}
+        {isShiftLeader && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#FF9500", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+              🟠 New Volunteer Tasks ({newVolTasks.length})
+            </div>
+            {newVolTasks.length === 0 ? (
+              <div style={{ background: "white", borderRadius: 12, border: `1.5px solid ${GRAY.border}`, padding: "14px 16px", fontSize: 13, color: GRAY.light, textAlign: "center" }}>
+                No new volunteers working right now
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {newVolTasks.map(t => (
+                  <div key={t.id} style={{ background: "white", borderRadius: 12, border: "1.5px solid #FED7AA", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark, marginBottom: 2 }}>{t.name}</div>
+                      <div style={{ fontSize: 12, color: GRAY.soft }}>📍 {t.destination}</div>
+                      <div style={{ fontSize: 11, color: GRAY.light, marginTop: 2 }}>{t.assignedName || "New Volunteer"} · {t.estimatedTime}</div>
+                    </div>
+                    <button
+                      onClick={() => markTaskIncomplete(t.id)}
+                      style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#EF4444", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}>
+                      Mark Incomplete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
