@@ -354,6 +354,30 @@ export default function TaskPool() {
             </div>
           </>
         )}
+
+        {/* Shift leader: new volunteer tasks in progress */}
+        {newVolInProgress.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#FF9500', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 20, marginBottom: 8 }}>
+              New Volunteer Tasks — In Progress ({newVolInProgress.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {newVolInProgress.map(t => (
+                <div key={t.id} style={{ background: '#FFFBF0', borderRadius: 12, border: '1.5px solid #FCD34D', padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: GRAY.dark }}>{t.name}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#FFF3E0', color: '#C2410C', borderRadius: 20, padding: '2px 8px' }}>In Progress</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: GRAY.soft }}>
+                    {t.claimedByName
+                      ? <>🙋 Claimed by <strong style={{ color: GRAY.dark }}>{t.claimedByName}</strong></>
+                      : 'Unassigned'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom nav */}

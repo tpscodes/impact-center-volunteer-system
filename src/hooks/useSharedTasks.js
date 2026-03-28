@@ -200,11 +200,11 @@ export function useSharedTasks() {
     return newTask;
   }, []);
 
-  // Claim a task
-  const claimTask = useCallback(async (taskId, volunteerId, volunteerName) => {
+  // Claim a task — extraFields is optional { claimedByName, claimedByType, sessionToken }
+  const claimTask = useCallback(async (taskId, volunteerId, volunteerName, extraFields = {}) => {
     const updated = tasksRef.current.map(t =>
       t.id === taskId
-        ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now() }
+        ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now(), ...extraFields }
         : t
     );
     updateTasks(updated);
@@ -225,7 +225,8 @@ export function useSharedTasks() {
       id: completedTask.id,
       name: completedTask.name,
       tags: completedTask.tags || [],
-      completedBy: completedBy || completedTask.assignedName || completedTask.assignedTo || "Unknown",
+      completedBy: completedBy || completedTask.claimedByName || completedTask.assignedName || completedTask.assignedTo || "Unknown",
+      ...(completedTask.claimedByName ? { claimedByName: completedTask.claimedByName } : {}),
       completedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
       completedAtMs: Date.now(),
     } : null;
@@ -254,11 +255,11 @@ export function useSharedTasks() {
     await remove(ref(db, `tasks/${taskId}`));
   }, []);
 
-  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt
+  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and new-vol fields
   const markTaskIncomplete = useCallback(async (taskId) => {
     const updated = tasksRef.current.map(t => {
       if (t.id !== taskId) return t;
-      const { claimedAt, ...rest } = t;
+      const { claimedAt, claimedByName, claimedByType, sessionToken, ...rest } = t;
       return { ...rest, status: "incomplete", assignedTo: "", assignedName: "" };
     });
     updateTasks(updated);
@@ -331,7 +332,7 @@ export function useSharedTasks() {
     const today = new Date().toISOString().slice(0, 10);
     const updated = tasksRef.current.map(t => {
       if (t.status !== "in-progress" && t.status !== "incomplete") return t;
-      const { claimedAt, ...rest } = t;
+      const { claimedAt, claimedByName, claimedByType, sessionToken, ...rest } = t;
       return { ...rest, status: "incomplete", assignedTo: "", assignedName: "", rolledOver: true, rolledOverFrom: today };
     });
     const closedSession = { ...(sessionRef.current || {}), isActive: false };

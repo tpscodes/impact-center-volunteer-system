@@ -5,23 +5,40 @@ import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#4B5563", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
+function formatDisplayName(first, last) {
+  return `${first.trim()} ${last.trim().charAt(0).toUpperCase()}.`;
+}
+
 // New volunteers only see "available" tasks not specifically assigned to a named volunteer
 // Self-contained: uses its own hook so slRef.current is always fresh and won't
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
   const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks();
+
+  // ── Name entry state ─────────────────────────────────────────────────────────
+  const savedName = (() => {
+    try { return JSON.parse(localStorage.getItem("newVolunteerName")) || null; } catch { return null; }
+  })();
+  const [firstName, setFirstName] = useState(savedName?.firstName || "");
+  const [lastName, setLastName] = useState(savedName?.lastName || "");
+  const [nameSubmitted, setNameSubmitted] = useState(!!savedName);
+  const [submitting, setSubmitting] = useState(false);
+
+  // ── Session token ─────────────────────────────────────────────────────────────
+  // Reuse existing token if already saved; a new one is only generated on fresh name submit
+  const [sessionToken] = useState(
+    () => localStorage.getItem("newVolunteerSession") || null
+  );
+  const [mySessionToken, setMySessionToken] = useState(sessionToken);
+
+  // ── Task state ───────────────────────────────────────────────────────────────
   const [myTaskId, setMyTaskId] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [detailTask, setDetailTask] = useState(null); // task being viewed in new-volunteer detail
-
-  const anonId = "new-" + (sessionStorage.getItem("anonId") || (() => {
-    const id = Math.random().toString(36).slice(2, 6);
-    sessionStorage.setItem("anonId", id);
-    return id;
-  })());
+  const [detailTask, setDetailTask] = useState(null);
+  const [claimBlocked, setClaimBlocked] = useState(false);
 
   // Show available + incomplete tasks that are open (no specific named assignment)
   const openTasks = tasks.filter(t =>
@@ -31,24 +48,56 @@ export default function NewVolunteerTasks() {
 
   const myTask = tasks.find(t => t.id === myTaskId && t.status === "in-progress");
 
+  // ── Name submit ──────────────────────────────────────────────────────────────
+  function handleNameSubmit() {
+    if (!firstName.trim() || !lastName.trim()) return;
+    setSubmitting(true);
+    const token = crypto.randomUUID();
+    localStorage.setItem("newVolunteerName", JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim() }));
+    localStorage.setItem("newVolunteerSession", token);
+    setMySessionToken(token);
+    setNameSubmitted(true);
+    setSubmitting(false);
+  }
+
+  // ── Claim / complete ─────────────────────────────────────────────────────────
   async function handleClaim(task) {
+    // One-task-at-a-time: check if this session already holds an active task
     if (myTaskId) return;
+    if (mySessionToken) {
+      const alreadyActive = tasks.find(
+        t => t.sessionToken === mySessionToken && t.status === "in-progress"
+      );
+      if (alreadyActive) {
+        setMyTaskId(alreadyActive.id);
+        setClaimBlocked(true);
+        return;
+      }
+    }
+    setClaimBlocked(false);
     setMyTaskId(task.id);
-    setDetailTask(task); // open detail immediately after claiming
-    await claimTask(task.id, anonId, "New Volunteer");
+    setDetailTask(task);
+    const displayName = nameSubmitted ? formatDisplayName(firstName, lastName) : "New Volunteer";
+    const token = mySessionToken || crypto.randomUUID();
+    await claimTask(task.id, "new-" + token.slice(0, 8), displayName, {
+      claimedByName: displayName,
+      claimedByType: "new",
+      sessionToken: token,
+    });
   }
 
   async function handleComplete() {
     if (!myTaskId) return;
     setCompleting(true);
-    await completeTask(myTaskId, "New Volunteer");
+    const displayName = nameSubmitted ? formatDisplayName(firstName, lastName) : "New Volunteer";
+    await completeTask(myTaskId, displayName);
     setMyTaskId(null);
     setDetailTask(null);
     setCompleting(false);
     if (openTasks.length <= 1) setAllDone(true);
   }
 
-  // ── Session lock ────────────────────────────────────────────────────────────
+  // ── Session lock ─────────────────────────────────────────────────────────────
   const isSessionActive = session?.isActive && (
     session.type !== "timed" || !session.endTime || Date.now() < session.endTime
   );
@@ -71,7 +120,67 @@ export default function NewVolunteerTasks() {
     );
   }
 
-  // ── New Volunteer Task Detail overlay ──────────────────────────────────────
+  // ── Name entry screen ────────────────────────────────────────────────────────
+  if (!nameSubmitted) {
+    const canSubmit = firstName.trim().length > 0 && lastName.trim().length > 0;
+    return (
+      <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>New Volunteer</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome!</div>
+          </div>
+          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 80px)", padding: "32px 24px" }}>
+          <div style={{ background: "white", borderRadius: 16, border: `1px solid ${GRAY.border}`, padding: "32px 24px", width: "100%", maxWidth: 380 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, marginBottom: 6, textAlign: "center" }}>
+              Welcome! What's your name?
+            </div>
+            <div style={{ fontSize: 14, color: GRAY.soft, textAlign: "center", marginBottom: 28 }}>
+              We'll attach your name to tasks you claim today.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: GRAY.soft, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>First Name</label>
+                <input
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && canSubmit) handleNameSubmit(); }}
+                  placeholder="e.g. Jane"
+                  autoFocus
+                  style={{ width: "100%", padding: "13px 14px", border: `2px solid ${GRAY.border}`, borderRadius: 10, fontSize: 16, color: GRAY.dark, background: "white", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  onFocus={e => e.target.style.borderColor = GRAY.mid}
+                  onBlur={e => e.target.style.borderColor = GRAY.border}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: GRAY.soft, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Last Name</label>
+                <input
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && canSubmit) handleNameSubmit(); }}
+                  placeholder="e.g. Smith"
+                  style={{ width: "100%", padding: "13px 14px", border: `2px solid ${GRAY.border}`, borderRadius: 10, fontSize: 16, color: GRAY.dark, background: "white", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  onFocus={e => e.target.style.borderColor = GRAY.mid}
+                  onBlur={e => e.target.style.borderColor = GRAY.border}
+                />
+              </div>
+              <button
+                onClick={handleNameSubmit}
+                disabled={!canSubmit || submitting}
+                style={{ width: "100%", padding: "15px 0", background: canSubmit ? "#34C759" : "#D1D5DB", color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: canSubmit ? "pointer" : "not-allowed", fontFamily: "inherit", marginTop: 4 }}
+              >
+                Start Volunteering →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Task Detail overlay ──────────────────────────────────────────────────────
   const activeTaskForDetail = detailTask
     ? (tasks.find(t => t.id === detailTask.id) || detailTask)
     : null;
@@ -80,8 +189,6 @@ export default function NewVolunteerTasks() {
     const isActive = activeTaskForDetail.id === myTaskId;
     return (
       <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 100 }}>
-
-        {/* Header */}
         <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
           <div style={{ marginBottom: 10 }}>
             <button
@@ -98,40 +205,30 @@ export default function NewVolunteerTasks() {
         </div>
 
         <div style={{ padding: "20px 16px" }}>
-
-          {/* Action — large and prominent */}
           {activeTaskForDetail.action && (
             <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "16px 18px", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>What to do</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark }}>{activeTaskForDetail.action}</div>
             </div>
           )}
-
-          {/* Destination — very prominent */}
           {activeTaskForDetail.destination && (
             <div style={{ background: GRAY.dark, borderRadius: 14, padding: "16px 18px", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📍 Where to go</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "white" }}>{activeTaskForDetail.destination}</div>
             </div>
           )}
-
-          {/* Item */}
           {activeTaskForDetail.item && (
             <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Item</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: GRAY.dark }}>{activeTaskForDetail.item}</div>
             </div>
           )}
-
-          {/* Comments */}
           {activeTaskForDetail.comments && (
             <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📌 Instructions</div>
               <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6 }}>{activeTaskForDetail.comments}</div>
             </div>
           )}
-
-          {/* Point of contact */}
           {shiftLeader && (
             <div style={{ background: "#F0FDF4", borderRadius: 14, padding: "14px 18px", marginBottom: 12, borderLeft: "4px solid #34C759" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Need help? Find your point of contact</div>
@@ -141,7 +238,6 @@ export default function NewVolunteerTasks() {
           )}
         </div>
 
-        {/* Sticky bottom button */}
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, padding: "14px 16px" }}>
           {isActive ? (
             <button
@@ -165,7 +261,7 @@ export default function NewVolunteerTasks() {
     );
   }
 
-  // ── All Done screen ─────────────────────────────────────────────────────────
+  // ── All Done screen ──────────────────────────────────────────────────────────
   if (allDone && openTasks.length === 0) {
     return (
       <div style={{ background: "white", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -180,15 +276,15 @@ export default function NewVolunteerTasks() {
     );
   }
 
-  // ── Main task list ──────────────────────────────────────────────────────────
+  // ── Main task list ───────────────────────────────────────────────────────────
+  const displayName = formatDisplayName(firstName, lastName);
+
   return (
     <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-
-      {/* Header */}
       <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>New Volunteer</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome!</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome, {displayName}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Tap a task to get started</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -198,6 +294,13 @@ export default function NewVolunteerTasks() {
       </div>
 
       <div style={{ padding: "16px 16px 40px" }}>
+
+        {/* Already-active task warning (concurrency block) */}
+        {claimBlocked && (
+          <div style={{ background: "#FFF3CD", borderRadius: 12, border: "1.5px solid #FCD34D", padding: "12px 16px", marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>You already have an active task — complete it first</div>
+          </div>
+        )}
 
         {/* My active task banner */}
         {myTask && (
@@ -217,12 +320,10 @@ export default function NewVolunteerTasks() {
           </div>
         )}
 
-        {/* Task count */}
         <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
           {openTasks.length} Tasks Remaining
         </div>
 
-        {/* Open task list */}
         {openTasks.length === 0 && !myTask && (
           <div style={{ textAlign: "center", padding: "40px 20px", color: GRAY.light, fontSize: 14 }}>
             {myTaskId ? "Complete your task to see more!" : "No open tasks right now — check back soon!"}
@@ -265,7 +366,6 @@ export default function NewVolunteerTasks() {
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
 
-      {/* Floating help button — only shown when a Shift Leader is on duty */}
       {shiftLeader && (
         <button
           onClick={() => setHelpOpen(true)}
@@ -282,7 +382,6 @@ export default function NewVolunteerTasks() {
         </button>
       )}
 
-      {/* Shift Leader help modal */}
       {helpOpen && shiftLeader && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 16px 36px" }}>
           <div style={{ background: "white", borderRadius: 20, padding: "24px", width: "100%", maxWidth: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>

@@ -259,7 +259,10 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
                 <div style={{ fontSize: 11, color: GRAY.light, marginTop: 1 }}>{t.estimatedTime}</div>
               </div>
               <div style={{ fontSize: 12, color: GRAY.soft }}>{t.destination || "—"}</div>
-              <div style={{ fontSize: 12, color: t.assignedName ? GRAY.dark : GRAY.light, fontWeight: t.assignedName ? 600 : 400 }}>{t.assignedName || "Unassigned"}</div>
+              <div style={{ fontSize: 12, color: (t.claimedByName || t.assignedName) ? GRAY.dark : GRAY.light, fontWeight: (t.claimedByName || t.assignedName) ? 600 : 400 }}>
+                {t.claimedByName || t.assignedName || "Unassigned"}
+                {t.claimedByType === "new" && <span style={{ fontSize: 10, color: GRAY.light, fontWeight: 400, marginLeft: 4 }}>(new)</span>}
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
                 <StatusBadge status={t.status} />
                 {t.status === "in-progress" && (
