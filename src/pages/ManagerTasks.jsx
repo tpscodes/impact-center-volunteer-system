@@ -384,7 +384,7 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
                 />
 
                 {/* Source */}
-                <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="From…" />
+                <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="e.g. Warehouse — Bay 14" />
 
                 {/* Destination */}
                 <AutoInput value={row.destination} onChange={v => updateRow(row.id, "destination", v)} suggestions={DEST_SUGGESTIONS} placeholder="To / Rack…" />

@@ -69,6 +69,7 @@ export function useSharedTasks() {
   const [tasks, setTasks] = useState(SEED_TASKS);
   const [shiftLeader, _setShiftLeader] = useState(null);
   const [completedTasks, _setCompletedTasks] = useState([]);
+  const [session, _setSession] = useState(null);
   const [synced, setSynced] = useState(false);
   const [error, setError] = useState(false);
 
@@ -76,10 +77,13 @@ export function useSharedTasks() {
   const tasksRef = useRef(SEED_TASKS);
   const slRef = useRef(null);
   const ctRef = useRef([]);
+  const sessionRef = useRef(null);
+  const endTimerRef = useRef(null);
 
   function updateTasks(val) { tasksRef.current = val; setTasks(val); }
   function updateShiftLeader(val) { slRef.current = val; _setShiftLeader(val); }
   function updateCompletedTasks(val) { ctRef.current = val; _setCompletedTasks(val); }
+  function updateSession(val) { sessionRef.current = val; _setSession(val); }
 
   // ── Real-time listeners ───────────────────────────────────────────────────
   useEffect(() => {
@@ -120,12 +124,34 @@ export function useSharedTasks() {
       (err) => { console.error("Firebase completedTasks error:", err); }
     );
 
+    // session/current listener
+    const unsubSession = onValue(
+      ref(db, "session/current"),
+      (snap) => { updateSession(snap.val() || null); },
+      (err) => { console.error("Firebase session error:", err); }
+    );
+
     return () => {
       unsubTasks();
       unsubSL();
       unsubCT();
+      unsubSession();
     };
   }, []);
+
+  // Auto-end timed sessions when endTime is reached
+  useEffect(() => {
+    if (endTimerRef.current) { clearTimeout(endTimerRef.current); endTimerRef.current = null; }
+    if (!session?.isActive || session.type !== "timed" || !session.endTime) return;
+    const msLeft = session.endTime - Date.now();
+    if (msLeft <= 0) {
+      // Already past end time — end immediately
+      endSession();
+      return;
+    }
+    endTimerRef.current = setTimeout(() => { endSession(); }, msLeft);
+    return () => { if (endTimerRef.current) clearTimeout(endTimerRef.current); };
+  }, [session?.isActive, session?.endTime]);
 
   // ── Write helpers ─────────────────────────────────────────────────────────
   async function writeTasks(arr) {
@@ -174,11 +200,11 @@ export function useSharedTasks() {
     return newTask;
   }, []);
 
-  // Claim a task
-  const claimTask = useCallback(async (taskId, volunteerId, volunteerName) => {
+  // Claim a task — extraFields is optional { claimedByName, claimedByType, sessionToken }
+  const claimTask = useCallback(async (taskId, volunteerId, volunteerName, extraFields = {}) => {
     const updated = tasksRef.current.map(t =>
       t.id === taskId
-        ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now() }
+        ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now(), ...extraFields }
         : t
     );
     updateTasks(updated);
@@ -199,7 +225,8 @@ export function useSharedTasks() {
       id: completedTask.id,
       name: completedTask.name,
       tags: completedTask.tags || [],
-      completedBy: completedBy || completedTask.assignedName || completedTask.assignedTo || "Unknown",
+      completedBy: completedBy || completedTask.claimedByName || completedTask.assignedName || completedTask.assignedTo || "Unknown",
+      ...(completedTask.claimedByName ? { claimedByName: completedTask.claimedByName } : {}),
       completedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
       completedAtMs: Date.now(),
     } : null;
@@ -228,11 +255,11 @@ export function useSharedTasks() {
     await remove(ref(db, `tasks/${taskId}`));
   }, []);
 
-  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt
+  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and new-vol fields
   const markTaskIncomplete = useCallback(async (taskId) => {
     const updated = tasksRef.current.map(t => {
       if (t.id !== taskId) return t;
-      const { claimedAt, ...rest } = t;
+      const { claimedAt, claimedByName, claimedByType, sessionToken, ...rest } = t;
       return { ...rest, status: "incomplete", assignedTo: "", assignedName: "" };
     });
     updateTasks(updated);
@@ -277,10 +304,50 @@ export function useSharedTasks() {
     await remove(ref(db, "completedTasks"));
   }, []);
 
+  // Start a session
+  const startSession = useCallback(async ({ type, startTime, endTime }) => {
+    const now = new Date();
+    const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    const date = now.toISOString().slice(0, 10);
+    const sessionData = {
+      isActive: true,
+      type,
+      startTime: startTime || Date.now(),
+      endTime: type === "timed" ? endTime : null,
+      dayOfWeek,
+      date,
+    };
+    // Save session settings for this day so they pre-fill next time
+    if (type === "timed" && startTime && endTime) {
+      const startStr = new Date(startTime).toTimeString().slice(0, 5);
+      const endStr = new Date(endTime).toTimeString().slice(0, 5);
+      await set(ref(db, `sessionSettings/${dayOfWeek}`), { defaultStartTime: startStr, defaultEndTime: endStr });
+    }
+    updateSession(sessionData);
+    await set(ref(db, "session/current"), sessionData);
+  }, []);
+
+  // End a session — mark all in-progress/incomplete tasks as rolled over
+  const endSession = useCallback(async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const updated = tasksRef.current.map(t => {
+      if (t.status !== "in-progress" && t.status !== "incomplete") return t;
+      const { claimedAt, claimedByName, claimedByType, sessionToken, ...rest } = t;
+      return { ...rest, status: "incomplete", assignedTo: "", assignedName: "", rolledOver: true, rolledOverFrom: today };
+    });
+    const closedSession = { ...(sessionRef.current || {}), isActive: false };
+    updateTasks(updated);
+    updateSession(closedSession);
+    await Promise.all([
+      writeTasks(updated),
+      set(ref(db, "session/current"), closedSession),
+    ]);
+  }, []);
+
   return {
-    tasks, shiftLeader, completedTasks, synced, error,
+    tasks, shiftLeader, completedTasks, session, synced, error,
     createTask, claimTask, completeTask, deleteTask, resetTasks,
     setShiftLeader, clearShiftLeader, clearCompletedTasks,
-    markTaskIncomplete,
+    markTaskIncomplete, startSession, endSession,
   };
 }

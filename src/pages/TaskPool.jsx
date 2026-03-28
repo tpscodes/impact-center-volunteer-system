@@ -10,7 +10,7 @@ const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Deliv
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
   const [search, setSearch] = useState('')
   const [activeTags, setActiveTags] = useState([])
   const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
@@ -92,6 +92,30 @@ export default function TaskPool() {
     setPendingClaim(null)
     setSlName('')
     navigate('/experienced/mytask')
+  }
+
+  // Session lock check
+  const isSessionActive = session?.isActive && (
+    session.type !== "timed" || !session.endTime || Date.now() < session.endTime
+  )
+  if (session !== null && session !== undefined && !isSessionActive) {
+    return (
+      <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <div style={{ background: GRAY.mid, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Experienced Volunteer</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>Welcome, {volunteerName}</div>
+          </div>
+          <button onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>Exit</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', padding: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, marginBottom: 8 }}>No active session right now</div>
+          <div style={{ fontSize: 15, color: GRAY.soft }}>Check back when the pantry opens</div>
+        </div>
+      </div>
+    )
   }
 
   // If a task is selected, show TaskDetail instead of pool
@@ -324,6 +348,30 @@ export default function TaskPool() {
                   </div>
                   <div style={{ fontSize: 12, color: GRAY.light }}>
                     🙋 Claimed by <strong style={{ color: GRAY.soft }}>{t.assignedName || 'a volunteer'}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Shift leader: new volunteer tasks in progress */}
+        {newVolInProgress.length > 0 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#FF9500', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 20, marginBottom: 8 }}>
+              New Volunteer Tasks — In Progress ({newVolInProgress.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {newVolInProgress.map(t => (
+                <div key={t.id} style={{ background: '#FFFBF0', borderRadius: 12, border: '1.5px solid #FCD34D', padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: GRAY.dark }}>{t.name}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#FFF3E0', color: '#C2410C', borderRadius: 20, padding: '2px 8px' }}>In Progress</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: GRAY.soft }}>
+                    {t.claimedByName
+                      ? <>🙋 Claimed by <strong style={{ color: GRAY.dark }}>{t.claimedByName}</strong></>
+                      : 'Unassigned'}
                   </div>
                 </div>
               ))}

@@ -17,8 +17,8 @@ import TaskHistory from "./pages/TaskHistory";
 
 function ManagerDashboardWrapper() {
   const navigate = useNavigate();
-  const { tasks, synced, error, deleteTask, resetTasks, markTaskIncomplete } = useSharedTasks();
-  return <ManagerDashboard tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} />;
+  const { tasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks();
+  return <ManagerDashboard tasks={tasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
 }
 
 function ManagerTasksWrapper() {
@@ -55,13 +55,11 @@ function DigitalBoardWrapper() {
 }
 
 function MyTaskWrapper() {
-  const { tasks, synced, completeTask } = useSharedTasks();
-  return <MyTask tasks={tasks} synced={synced} onCompleteTask={completeTask} />;
+  return <MyTask />;
 }
 
 function NewVolunteerWrapper() {
-  const { tasks, synced, error, claimTask, completeTask } = useSharedTasks();
-  return <NewVolunteerTasks tasks={tasks} synced={synced} error={error} onClaimTask={claimTask} onCompleteTask={completeTask} />;
+  return <NewVolunteerTasks />;
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
