@@ -59,8 +59,7 @@ function MyTaskWrapper() {
 }
 
 function NewVolunteerWrapper() {
-  const { tasks, synced, error, claimTask, completeTask } = useSharedTasks();
-  return <NewVolunteerTasks tasks={tasks} synced={synced} error={error} onClaimTask={claimTask} onCompleteTask={completeTask} />;
+  return <NewVolunteerTasks />;
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
