@@ -10,7 +10,7 @@ const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Deliv
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
   const [search, setSearch] = useState('')
   const [activeTags, setActiveTags] = useState([])
   const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
@@ -92,6 +92,30 @@ export default function TaskPool() {
     setPendingClaim(null)
     setSlName('')
     navigate('/experienced/mytask')
+  }
+
+  // Session lock check
+  const isSessionActive = session?.isActive && (
+    session.type !== "timed" || !session.endTime || Date.now() < session.endTime
+  )
+  if (session !== null && session !== undefined && !isSessionActive) {
+    return (
+      <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <div style={{ background: GRAY.mid, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Experienced Volunteer</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>Welcome, {volunteerName}</div>
+          </div>
+          <button onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>Exit</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', padding: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, marginBottom: 8 }}>No active session right now</div>
+          <div style={{ fontSize: 15, color: GRAY.soft }}>Check back when the pantry opens</div>
+        </div>
+      </div>
+    )
   }
 
   // If a task is selected, show TaskDetail instead of pool
