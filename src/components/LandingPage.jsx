@@ -8,23 +8,23 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white flex flex-col lg:flex-row">
 
       {/* LEFT COLUMN — desktop only */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#F0FAFA] flex-col items-center justify-center p-16">
-        <h1 className="text-4xl font-bold text-[#0A2A3A] text-left w-full mb-1">IMPACT CENTER</h1>
-        <p className="text-[#0D9488] text-base w-full mb-4">Volunteer Task Management</p>
-        <div className="w-12 h-0.5 bg-[#0D9488] mb-10 self-start" />
+      <div className="hidden lg:flex lg:w-1/2 bg-[#F0FAFA] flex-col items-center justify-center p-16 min-h-screen">
+        <h1 className="text-4xl font-bold text-[#0A2A3A] text-center w-full mb-1">IMPACT CENTER</h1>
+        <p className="text-[#0D9488] text-base text-center w-full mb-4">Volunteer Task Management</p>
+        <div className="w-12 h-0.5 bg-[#0D9488] mb-10 mx-auto" />
         <img
           src="/illustration-group.png"
           alt="Volunteers"
-          className="w-[360px] h-auto mb-10"
+          className="w-[320px] h-auto my-8"
         />
         <p className="text-xl font-semibold text-[#0A2A3A] text-center leading-snug">
           Coordinating volunteers,<br />one task at a time
         </p>
-        <div className="w-12 h-0.5 bg-[#0D9488] mt-6" />
+        <div className="w-12 h-0.5 bg-[#0D9488] mt-6 mx-auto" />
       </div>
 
       {/* RIGHT COLUMN */}
-      <div className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-6 lg:px-16 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 lg:px-16 py-12 min-h-screen">
 
         {/* Mobile only header */}
         <div className="lg:hidden text-center mb-6">
@@ -41,15 +41,15 @@ export default function LandingPage() {
         />
 
         {/* Welcome text */}
-        <h2 className="text-2xl font-semibold text-[#1e1e1e] text-center mb-2">Welcome</h2>
-        <p className="text-base text-[#757575] text-center mb-8">Select your role to get started.</p>
+        <h2 className="text-2xl font-semibold text-[#0A2A3A] text-center mb-2">Welcome</h2>
+        <p className="text-base text-[#6B7280] text-center mb-8">Select your role to get started.</p>
 
         {/* Role cards */}
-        <div className="w-full max-w-[480px] flex flex-col gap-3">
+        <div className="w-full max-w-[420px] flex flex-col gap-3">
 
           <button
             onClick={() => navigate('/manager/login')}
-            className="w-full flex items-center gap-6 bg-[#99dbd7] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity"
+            className="w-full flex items-center gap-6 bg-[#99dbd7] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
           >
             <User size={28} className="text-[#1e1e1e] shrink-0" />
             <div>
@@ -61,7 +61,7 @@ export default function LandingPage() {
 
           <button
             onClick={() => navigate('/experienced')}
-            className="w-full flex items-center gap-6 bg-[#09665e] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity"
+            className="w-full flex items-center gap-6 bg-[#09665e] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Users size={28} className="text-white shrink-0" />
             <div>
@@ -73,7 +73,7 @@ export default function LandingPage() {
 
           <button
             onClick={() => navigate('/new')}
-            className="w-full flex items-center gap-6 bg-[#ccedeb] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity"
+            className="w-full flex items-center gap-6 bg-[#ccedeb] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
           >
             <UserPlus size={28} className="text-[#1e1e1e] shrink-0" />
             <div>
