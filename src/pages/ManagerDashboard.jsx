@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { ref, get } from "firebase/database";
-import { Plus } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 
 function fmtTime(ms) {
   if (!ms) return "";
@@ -117,7 +117,149 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* ══════════════════════════════════════════
+          MOBILE LAYOUT — screens under lg (1024px)
+      ══════════════════════════════════════════ */}
+      <div className="lg:hidden min-h-screen bg-[#f5f5f5]">
+
+        {/* Mobile top bar */}
+        <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+            </div>
+          </div>
+          <button className="text-white" onClick={() => navigate("/")}>
+            <Menu size={24} />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="px-4 py-5 flex flex-col gap-4">
+
+          {/* Greeting + session status */}
+          <div className="flex items-start justify-between">
+            <h1 className="text-[22px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
+              Good Morning,<br />Operations Manager
+            </h1>
+            {isSessionActive ? (
+              <span className="bg-[#dcfce7] text-[#16a34a] text-[12px] font-semibold px-3 py-1.5 rounded-full shrink-0">
+                ● Active
+              </span>
+            ) : (
+              <span className="bg-[#f3f4f6] text-[#6b7280] text-[12px] font-semibold px-3 py-1.5 rounded-full shrink-0">
+                ○ No Session
+              </span>
+            )}
+          </div>
+
+          {/* Metrics — 2×2 grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Active Tasks",      value: active.length,      color: "#0d9488" },
+              { label: "In Progress",       value: inProgress.length,  color: "#bf6a02" },
+              { label: "Completed Today",   value: completed.length,   color: "#0d9488" },
+              { label: "Volunteers Active", value: volunteersActive,   color: "#1e1e1e" },
+            ].map(m => (
+              <div key={m.label} className="bg-white border border-[#e5e7ea] rounded-lg h-[90px] flex flex-col items-center justify-center gap-1">
+                <p className="text-[#6b7280] text-[12px] font-semibold text-center px-2">{m.label}</p>
+                <p className="text-[24px] font-semibold tracking-tight" style={{ color: m.color }}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            {isSessionActive ? (
+              <button onClick={() => setShowEndConfirm(true)}
+                className="flex-1 border border-[#900b09] bg-[#fdd3d0] text-[#900b09] py-3 rounded-lg text-[15px] font-semibold cursor-pointer">
+                End Session
+              </button>
+            ) : (
+              <button onClick={() => { setModalType("open"); setShowModal(true); }}
+                className="flex-1 border border-[#16a34a] bg-[#dcfce7] text-[#16a34a] py-3 rounded-lg text-[15px] font-semibold cursor-pointer">
+                ▶ Start Session
+              </button>
+            )}
+            <button onClick={() => navigate("/manager/tasks")}
+              className="flex-1 bg-[#09665e] text-[#f0fafa] py-3 rounded-lg text-[15px] font-semibold flex items-center justify-center gap-2 cursor-pointer">
+              Create Task <Plus size={16} />
+            </button>
+          </div>
+
+          {/* Active Tasks section */}
+          <div className="bg-white rounded-lg overflow-hidden border border-[#e5e7ea]">
+            {/* Header */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-[16px] font-semibold text-[#1e1e1e] mb-3">Active Tasks</p>
+              {/* Tag filters */}
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {TAG_FILTERS.map(tag => (
+                  <button key={tag} onClick={() => setActiveTag(tag)}
+                    className={`px-3 py-1.5 rounded-lg text-[13px] font-semibold shrink-0 cursor-pointer border-none ${
+                      activeTag === tag ? "bg-[#09665e] text-[#f0fafa]" : "bg-[#f0fafa] text-[#09665e]"
+                    }`}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Task cards */}
+            <div className="flex flex-col gap-3 px-3 pb-4 pt-2">
+              {filtered.filter(t => t.status !== "complete").length === 0 && (
+                <p className="text-center text-[#9ca3af] text-[14px] py-6">No active tasks</p>
+              )}
+              {filtered.filter(t => t.status !== "complete").map(task => (
+                <div key={task.id} className="bg-[#f0fafa] border border-[#d1d5db] rounded-lg p-3">
+                  {/* Row 1: name + status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[#0a2a3a] text-[15px] font-medium flex-1">{task.name || task.item}</p>
+                    <span className={`px-2 py-0.5 rounded-lg text-[12px] font-semibold shrink-0 ${
+                      task.status === "in-progress" ? "bg-orange-100 text-[#ff9500]" :
+                      task.status === "incomplete"  ? "bg-red-100 text-[#dc2626]" :
+                      "bg-[#e6e6e6] text-[#757575]"
+                    }`}>
+                      {task.status === "in-progress" ? "In Progress" :
+                       task.status === "incomplete"  ? "Incomplete"  : "Available"}
+                    </span>
+                  </div>
+                  {/* Row 2: location */}
+                  <p className="text-[#6b7280] text-[12px] mt-1">{task.source || task.destination || "—"}</p>
+                  {/* Row 3: assigned + actions */}
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[#0a2a3a] text-[12px]">
+                      {task.claimedByName || task.assignedName || "Unassigned"}
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={() => onCompleteTask(task.id, "Manager")}
+                        className="text-[#303030] text-[12px] font-semibold bg-transparent border-none cursor-pointer">
+                        Mark Complete
+                      </button>
+                      <button onClick={() => onDeleteTask(task.id)}
+                        className="text-[#900b09] text-[12px] bg-transparent border-none cursor-pointer">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          DESKTOP LAYOUT — screens lg (1024px) and up
+      ══════════════════════════════════════════ */}
+      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]">
 
       {/* ── Sidebar ── */}
       <div className="w-[240px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 overflow-y-auto z-20">
@@ -333,6 +475,8 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
         </div>
       </div>
 
+      </div>{/* end desktop layout */}
+
       {/* ── Start Session Modal ── */}
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -407,3 +551,4 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
     </div>
   );
 }
+
