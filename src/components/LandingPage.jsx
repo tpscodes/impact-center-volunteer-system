@@ -1,124 +1,71 @@
 import { useNavigate } from 'react-router-dom'
 import { User, Users, UserPlus } from 'lucide-react'
 
-const ILLUSTRATION_URL = 'https://www.figma.com/api/mcp/asset/23e9b4f1-869d-433e-90b7-3c7516075322'
-
 export default function LandingPage() {
   const navigate = useNavigate()
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#FFFFFF',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        fontFamily: "'Inter', system-ui, sans-serif",
-        maxWidth: 390,
-        margin: '0 auto',
-        paddingTop: 52,
-        paddingBottom: 24,
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* Title */}
-      <div style={{ textAlign: 'center', paddingLeft: 16, paddingRight: 16 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 400, color: '#1e1e1e', margin: 0, letterSpacing: 0 }}>
-          IMPACT CENTER
-        </h1>
-        <p style={{ fontSize: 16, fontWeight: 400, color: '#757575', margin: '6px 0 0' }}>
-          Volunteer Task Management
-        </p>
-        <div style={{ width: 55, height: 2, backgroundColor: '#0D9488', margin: '8px auto 0' }} />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-10 max-w-[390px] mx-auto w-full">
+
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-normal text-center text-[#1e1e1e] tracking-wide">IMPACT CENTER</h1>
+        <p className="text-base text-[#757575] text-center mt-1">Volunteer Task Management</p>
+        <div className="w-14 h-0.5 bg-[#0D9488] mx-auto mt-3" />
       </div>
 
       {/* Illustration */}
-      <div style={{ marginTop: 24, marginBottom: 24 }}>
-        <img
-          src={ILLUSTRATION_URL}
-          alt="Volunteers illustration"
-          style={{ width: 280, height: 200, objectFit: 'contain', display: 'block' }}
-          onError={e => {
-            e.target.style.display = 'none'
-            e.target.nextSibling.style.display = 'block'
-          }}
-        />
-        <div style={{ display: 'none', width: 280, height: 200, backgroundColor: '#f3f4f6', borderRadius: 12 }} />
-      </div>
+      <img
+        src="/illustration-group.png"
+        alt="Volunteers illustration"
+        className="w-[260px] h-auto mx-auto my-8"
+      />
 
       {/* Welcome */}
-      <div style={{ textAlign: 'center', marginBottom: 16, paddingLeft: 16, paddingRight: 16 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 600, color: '#1e1e1e', margin: 0 }}>Welcome</h2>
-        <p style={{ fontSize: 20, fontWeight: 400, color: '#757575', margin: '16px 0 0' }}>
-          Select your role to get started.
-        </p>
-      </div>
+      <h2 className="text-2xl font-semibold text-center text-[#1e1e1e] mb-2">Welcome</h2>
+      <p className="text-lg text-[#757575] text-center mb-6">Select your role to get started.</p>
 
       {/* Role cards */}
-      <div style={{ width: 342, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+      <div className="w-full flex flex-col gap-2">
 
-        {/* Operations Manager */}
         <button
           onClick={() => navigate('/manager/login')}
-          style={{
-            width: '100%', height: 68, backgroundColor: '#99dbd7',
-            border: 'none', borderRadius: 8, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 14,
-            paddingLeft: 24, paddingRight: 24, boxSizing: 'border-box',
-            textAlign: 'left',
-          }}
+          className="w-full flex items-center gap-6 bg-[#99dbd7] rounded-lg px-6 py-4 text-left"
         >
-          <User size={32} color="#1e1e1e" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          <User size={28} className="text-[#1e1e1e] shrink-0" />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#1e1e1e', lineHeight: 1.3 }}>Operations Manager</div>
-            <div style={{ fontSize: 14, fontWeight: 400, color: '#757575', marginTop: 2 }}>Manage task and volunteers</div>
+            <p className="text-base font-semibold text-[#1e1e1e]">Operations Manager</p>
+            <p className="text-sm text-[#757575]">Manage task and volunteers</p>
           </div>
         </button>
 
-        {/* Experienced Volunteer */}
         <button
           onClick={() => navigate('/experienced')}
-          style={{
-            width: '100%', height: 68, backgroundColor: '#09665e',
-            border: 'none', borderRadius: 8, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 14,
-            paddingLeft: 24, paddingRight: 24, boxSizing: 'border-box',
-            textAlign: 'left',
-          }}
+          className="w-full flex items-center gap-6 bg-[#09665e] rounded-lg px-6 py-4 text-left"
         >
-          <Users size={32} color="white" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          <Users size={28} className="text-white shrink-0" />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#f3f3f3', lineHeight: 1.3 }}>Experienced Volunteer</div>
-            <div style={{ fontSize: 14, fontWeight: 400, color: '#b3b3b3', marginTop: 2 }}>View and claim tasks</div>
+            <p className="text-base font-semibold text-[#f3f3f3]">Experienced Volunteer</p>
+            <p className="text-sm text-[#b3b3b3]">View and claim tasks</p>
           </div>
         </button>
 
-        {/* New Volunteer */}
         <button
           onClick={() => navigate('/new')}
-          style={{
-            width: '100%', height: 64, backgroundColor: '#ccedeb',
-            border: 'none', borderRadius: 8, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 14,
-            paddingLeft: 24, paddingRight: 24, boxSizing: 'border-box',
-            textAlign: 'left',
-          }}
+          className="w-full flex items-center gap-6 bg-[#ccedeb] rounded-lg px-6 py-4 text-left"
         >
-          <UserPlus size={32} color="#1e1e1e" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          <UserPlus size={28} className="text-[#1e1e1e] shrink-0" />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#1e1e1e', lineHeight: 1.3 }}>New Volunteer</div>
-            <div style={{ fontSize: 14, fontWeight: 400, color: '#757575', marginTop: 2 }}>First time? Start here</div>
+            <p className="text-base font-semibold text-[#1e1e1e]">New Volunteer</p>
+            <p className="text-sm text-[#757575]">First time? Start here</p>
           </div>
         </button>
+
       </div>
 
       {/* Footer */}
-      <div style={{ marginTop: 'auto', paddingTop: 24, textAlign: 'center' }}>
-        <p style={{ fontSize: 14, fontWeight: 400, color: '#757575', margin: 0 }}>
-          Impact Center | Greenwood, IN
-        </p>
-      </div>
+      <p className="text-sm text-[#757575] text-center mt-8">Impact Center | Greenwood, IN</p>
+
     </div>
   )
 }
