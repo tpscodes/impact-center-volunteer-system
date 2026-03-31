@@ -51,6 +51,17 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
 
+  // Mobile nav menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = () => setMobileMenuOpen(false);
+    if (mobileMenuOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [mobileMenuOpen]);
+
   // Load saved session settings when modal opens
   useEffect(() => {
     if (!showModal) return;
@@ -135,10 +146,38 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
               <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
             </div>
           </div>
-          <button className="text-white" onClick={() => navigate("/")}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+            className="text-white p-1"
+          >
             <Menu size={24} />
           </button>
         </div>
+
+        {/* Mobile nav dropdown */}
+        {mobileMenuOpen && (
+          <div className="bg-[#0a2a3a] px-0 pb-4 border-t border-[#0d9488]">
+            <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-4 mt-2" />
+            {[
+              { label: "Dashboard", active: true, action: () => {} },
+              { label: "Tasks",     active: false, action: () => navigate("/manager/tasks") },
+              { label: "Volunteers",active: false, action: () => {} },
+              { label: "History",   active: false, action: () => navigate("/manager/history") },
+            ].map(item => (
+              <button
+                key={item.label}
+                onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                className={`w-full text-left px-8 py-3 text-[16px] font-semibold flex items-center gap-3 bg-transparent border-none cursor-pointer ${
+                  item.active
+                    ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
+                    : "text-[#757575] border-l-[3px] border-transparent"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Scrollable content */}
         <div className="px-4 py-5 flex flex-col gap-4">
