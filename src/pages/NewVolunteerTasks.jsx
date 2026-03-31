@@ -312,27 +312,30 @@ export default function NewVolunteerTasks() {
   const availableTasks = openTasks.filter(t => t.status === "available");
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col max-w-[390px] mx-auto lg:max-w-full" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Header */}
-      <div className="bg-[#09665e] px-5 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
-          <p className="text-[#f3f3f3] text-base font-semibold">{displayName}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D" }} />
-          <button
-            onClick={() => navigate("/")}
-            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
-          >
-            Exit
-          </button>
+      <div className="bg-[#09665e] px-5 py-5">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
+            <p className="text-[#f3f3f3] text-base font-semibold">{displayName}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D" }} />
+            <button
+              onClick={() => navigate("/")}
+              className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
+            >
+              Exit
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3 pb-20">
+      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-3">
 
         {/* Concurrency block warning */}
         {claimBlocked && (
@@ -432,18 +435,21 @@ export default function NewVolunteerTasks() {
           </div>
         )}
       </div>
+      </div>
 
       {/* Bottom tab bar */}
-      <div className="bg-[#ccedeb] h-14 flex items-center shrink-0 border-t border-[#09665e]">
-        <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
-          Available
-        </button>
-        <button
-          onClick={() => myTask ? setDetailTask(myTask) : undefined}
-          className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
-        >
-          My task {myTask ? "(1)" : ""}
-        </button>
+      <div className="bg-[#ccedeb] shrink-0 border-t border-[#09665e] h-14">
+        <div className="max-w-2xl mx-auto flex h-full">
+          <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
+            Available
+          </button>
+          <button
+            onClick={() => myTask ? setDetailTask(myTask) : undefined}
+            className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
+          >
+            My task {myTask ? "(1)" : ""}
+          </button>
+        </div>
       </div>
 
       {/* Shift leader help FAB */}

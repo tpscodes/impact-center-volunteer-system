@@ -270,15 +270,17 @@ export function MyTask() {
   return (
     <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
 
-      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>My Task</div>
+      <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
+        <div style={{ maxWidth: 672, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>My Task</div>
+          </div>
+          <button onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
         </div>
-        <button onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
       </div>
 
-      <div style={{ padding: "20px 16px" }}>
+      <div style={{ maxWidth: 672, margin: "0 auto", padding: "20px 16px" }}>
         {!myTask ? (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>{completing ? "✅" : "📭"}</div>
@@ -396,13 +398,15 @@ export function MyTask() {
       </div>
 
       {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, display: "flex" }}>
-        <button onClick={() => navigate("/experienced/tasks")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: "pointer" }}>
-          📋 Available Tasks
-        </button>
-        <button style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: "pointer", borderBottom: `2px solid ${GRAY.dark}` }}>
-          ✅ My Task
-        </button>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${GRAY.border}` }}>
+        <div style={{ maxWidth: 672, margin: "0 auto", display: "flex" }}>
+          <button onClick={() => navigate("/experienced/tasks")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: "pointer" }}>
+            📋 Available Tasks
+          </button>
+          <button style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: "pointer", borderBottom: `2px solid ${GRAY.dark}` }}>
+            ✅ My Task
+          </button>
+        </div>
       </div>
     </div>
   );

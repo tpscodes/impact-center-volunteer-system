@@ -55,23 +55,26 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
     <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Header — teal */}
-      <div className="bg-[#09665e] px-6 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-[#ccedeb] text-[11px] font-normal uppercase tracking-widest">
-            Experienced Volunteer
-          </p>
-          <p className="text-white text-[20px] font-semibold">My Task</p>
+      <div className="bg-[#09665e] px-6 py-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="text-[#ccedeb] text-[11px] font-normal uppercase tracking-widest">
+              Experienced Volunteer
+            </p>
+            <p className="text-white text-[20px] font-semibold">My Task</p>
+          </div>
+          <button
+            onClick={onBack}
+            className="border border-white text-white px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
+          >
+            Exit
+          </button>
         </div>
-        <button
-          onClick={onBack}
-          className="border border-white text-white px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
-        >
-          Exit
-        </button>
       </div>
 
       {/* Task status bar — dark navy */}
-      <div className="bg-[#1a1a1a] px-6 py-4 flex items-center justify-between">
+      <div className="bg-[#1a1a1a] px-6 py-4">
+      <div className="max-w-2xl mx-auto flex items-center justify-between">
         <div>
           <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{statusLabel}</p>
           <p className="text-white text-[20px] font-semibold">{task.name || task.item}</p>
@@ -84,6 +87,10 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
           }
         </div>
       </div>
+      </div>
+
+      {/* Content area — centered on desktop */}
+      <div className="max-w-2xl mx-auto w-full flex flex-col flex-1">
 
       {/* Shift leader badge */}
       {isMyTask && (task.tags || []).includes('Shift Leader') && (
@@ -221,6 +228,7 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
         </button>
       </div>
 
+      </div>{/* end content area */}
     </div>
   )
 }

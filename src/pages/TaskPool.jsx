@@ -86,18 +86,20 @@ export default function TaskPool() {
   )
   if (session !== null && session !== undefined && !isSessionActive) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex flex-col max-w-[390px] mx-auto lg:max-w-full">
+      <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
         <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
-          <div>
-            <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
-            <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
+          <div className="max-w-2xl mx-auto w-full flex items-center justify-between">
+            <div>
+              <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
+              <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
+            </div>
+            <button
+              onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+              className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
+            >
+              Exit
+            </button>
           </div>
-          <button
-            onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
-            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
-          >
-            Exit
-          </button>
         </div>
         <div className="flex flex-col items-center justify-center flex-1 py-20 px-8 text-center">
           <div className="text-5xl mb-4">🔒</div>
@@ -166,27 +168,30 @@ export default function TaskPool() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col max-w-[390px] mx-auto lg:max-w-full" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Header */}
-      <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
-          <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: error ? '#EF4444' : synced ? '#86EFAC' : '#FCD34D' }} />
-          <button
-            onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
-            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
-          >
-            Exit
-          </button>
+      <div className="bg-[#09665e] px-6 py-5">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
+            <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: error ? '#EF4444' : synced ? '#86EFAC' : '#FCD34D' }} />
+            <button
+              onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+              className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
+            >
+              Exit
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4 pb-20">
+      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
 
         {/* Active task banner */}
         {myTask && (
@@ -354,18 +359,21 @@ export default function TaskPool() {
           </div>
         )}
       </div>
+      </div>
 
       {/* Bottom tab bar */}
-      <div className="bg-[#ccedeb] h-14 flex items-center border-t border-[#09665e] fixed bottom-0 left-0 right-0 max-w-[390px] mx-auto lg:max-w-full">
-        <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
-          Available
-        </button>
-        <button
-          onClick={() => navigate('/experienced/mytask')}
-          className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
-        >
-          My task {myTask ? '(1)' : ''}
-        </button>
+      <div className="bg-[#ccedeb] border-t border-[#09665e] fixed bottom-0 left-0 right-0 h-14">
+        <div className="max-w-2xl mx-auto flex h-full">
+          <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
+            Available
+          </button>
+          <button
+            onClick={() => navigate('/experienced/mytask')}
+            className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
+          >
+            My task {myTask ? '(1)' : ''}
+          </button>
+        </div>
       </div>
 
       {/* Shift Leader name prompt modal */}
