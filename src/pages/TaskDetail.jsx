@@ -1,15 +1,9 @@
 // TaskDetail.jsx — Prop-driven task detail for Experienced Volunteers
 // No hooks, no routing — rendered conditionally by TaskPool and MyTasks
 import { useState, useEffect } from 'react'
+import { Clock, Check } from 'lucide-react'
 
-const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
-
-const PRIORITY_COLOR = {
-  Urgent: "#EF4444",
-  High:   "#FF9500",
-  Normal: "#9CA3AF",
-}
-
+// Live elapsed timer shown in the status bar when task is in progress
 function TaskTimer({ claimedAt }) {
   const [elapsed, setElapsed] = useState(Math.floor((Date.now() - claimedAt) / 1000))
   useEffect(() => {
@@ -18,11 +12,7 @@ function TaskTimer({ claimedAt }) {
   }, [claimedAt])
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const secs = String(elapsed % 60).padStart(2, '0')
-  return (
-    <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: GRAY.light }}>
-      ⏱ {mins}:{secs}
-    </span>
-  )
+  return <span className="font-mono">{mins}:{secs}</span>
 }
 
 // props:
@@ -32,13 +22,11 @@ function TaskTimer({ claimedAt }) {
 //   onClaim    — () => void  called when CLAIM TASK tapped
 //   onComplete — () => void  called when MARK COMPLETE tapped
 //   onUnclaim  — () => void  called when UNCLAIM tapped (returns task to incomplete pool)
-//   onBack     — () => void  called when ← Back tapped
+//   onBack     — () => void  called when ← Back / Exit tapped
 export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComplete, onUnclaim, onBack }) {
   const [acting, setActing] = useState(false)
 
   if (!task) return null
-
-  const priorityColor = PRIORITY_COLOR[task.priority] || GRAY.light
 
   async function handleClaim() {
     if (acting || isLocked) return
@@ -61,132 +49,178 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
     setActing(false)
   }
 
-  return (
-    <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 96 }}>
+  const statusLabel = isMyTask ? 'In Progress' : task.status === 'incomplete' ? 'Incomplete' : 'Available'
 
-      {/* Header */}
-      <div style={{ background: GRAY.mid, padding: '16px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <button
-            onClick={onBack}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            ← Back
-          </button>
-          {isMyTask && task.claimedAt && (
-            <TaskTimer claimedAt={task.claimedAt} />
-          )}
+  return (
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* Header — teal */}
+      <div className="bg-[#09665e] px-6 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-[#ccedeb] text-[11px] font-normal uppercase tracking-widest">
+            Experienced Volunteer
+          </p>
+          <p className="text-white text-[20px] font-semibold">My Task</p>
         </div>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
-          {isMyTask ? 'In Progress' : 'Task Details'}
-        </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'white', lineHeight: 1.3 }}>{task.name}</div>
+        <button
+          onClick={onBack}
+          className="border border-white text-white px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
+        >
+          Exit
+        </button>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
+      {/* Task status bar — dark navy */}
+      <div className="bg-[#1a1a1a] px-6 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{statusLabel}</p>
+          <p className="text-white text-[20px] font-semibold">{task.name || task.item}</p>
+        </div>
+        <div className="flex items-center gap-2 text-[#6b7280] text-[14px]">
+          <Clock size={14} />
+          {isMyTask && task.claimedAt
+            ? <TaskTimer claimedAt={task.claimedAt} />
+            : <span>{task.estimatedTime || '—'}</span>
+          }
+        </div>
+      </div>
 
-        {/* Priority + Est Time row */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-          <div style={{ flex: 1, background: 'white', borderRadius: 12, padding: '12px 14px', border: `2px solid ${priorityColor}22` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Priority</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: priorityColor }}>{task.priority || 'Normal'}</div>
+      {/* Shift leader badge */}
+      {isMyTask && (task.tags || []).includes('Shift Leader') && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-[#fff7ed] rounded-lg border-l-4 border-[#ff9500]">
+          <p className="text-[#ff9500] text-[13px] font-bold">🟠 You are the Shift Leader — new volunteers can find you for help</p>
+        </div>
+      )}
+
+      {/* Locked warning */}
+      {isLocked && !isMyTask && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-[#fef9c3] rounded-lg border-l-4 border-[#f59e0b]">
+          <p className="text-[#92400e] text-[13px] font-semibold">⚠️ Complete your current task before claiming another.</p>
+        </div>
+      )}
+
+      {/* Task details card */}
+      <div className="mx-4 mt-4 bg-white rounded-xl border border-[#e5e7eb] p-6">
+        <div className="grid grid-cols-2 gap-6">
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Action</p>
+            <p className="text-[#1e1e1e] text-base">{task.action || '—'}</p>
           </div>
-          {task.estimatedTime && (
-            <div style={{ flex: 1, background: 'white', borderRadius: 12, padding: '12px 14px', border: `1.5px solid ${GRAY.border}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Est. Time</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark }}>{task.estimatedTime}</div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Item</p>
+            <p className="text-[#1e1e1e] text-base">{task.item || '—'}</p>
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Source</p>
+            <p className="text-[#1e1e1e] text-base">{task.source || '—'}</p>
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">To</p>
+            <p className="text-[#1e1e1e] text-base">{task.destination || '—'}</p>
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Est. Time</p>
+            <p className="text-[#1e1e1e] text-base">{task.estimatedTime ? `~${task.estimatedTime} min` : '—'}</p>
+          </div>
+
+          {task.priority && (
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Priority</p>
+              <p className={`text-base font-semibold ${
+                task.priority === 'Urgent' ? 'text-[#dc2626]' :
+                task.priority === 'High'   ? 'text-[#ff9500]' :
+                'text-[#6b7280]'
+              }`}>{task.priority}</p>
             </div>
           )}
+
         </div>
 
-        {/* Detail grid */}
-        <div style={{ background: 'white', borderRadius: 14, border: `1.5px solid ${GRAY.border}`, overflow: 'hidden', marginBottom: 12 }}>
-          {[
-            ['ITEM',        task.item],
-            ['ACTION',      task.action],
-            ['SOURCE',      task.source],
-            ['TO',          task.destination],
-          ].filter(([, v]) => v).map(([label, val], i, arr) => (
-            <div key={label} style={{
-              padding: '14px 16px',
-              borderBottom: i < arr.length - 1 ? `1px solid ${GRAY.border}` : 'none'
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: GRAY.dark }}>{val}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Comments */}
-        {task.comments && (
-          <div style={{ background: 'white', borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: '14px 16px', marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>📌 Special Instructions</div>
-            <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.55 }}>{task.comments}</div>
+        {/* Special instructions / comments */}
+        {(task.specialInstructions || task.comments) && (
+          <div className="mt-6 border-l-2 border-[#e5e7eb] pl-4">
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Special Instructions</p>
+            <p className="text-[#6b7280] text-base italic">{task.specialInstructions || task.comments}</p>
           </div>
         )}
 
         {/* Tags */}
         {task.tags && task.tags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          <div className="flex flex-wrap gap-2 mt-4">
             {task.tags.map(tag => (
-              <span key={tag} style={{
-                fontSize: 12, fontWeight: 700, padding: '4px 12px',
-                borderRadius: 20, background: GRAY.border, color: GRAY.mid
-              }}>{tag}</span>
+              <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
+                {tag}
+              </span>
             ))}
-          </div>
-        )}
-
-        {/* Shift Leader badge */}
-        {isMyTask && (task.tags || []).includes('Shift Leader') && (
-          <div style={{ padding: '10px 14px', background: '#FFF7ED', borderRadius: 10, borderLeft: '4px solid #FF9500', fontSize: 13, color: '#FF9500', fontWeight: 700, marginBottom: 12 }}>
-            🟠 You are the Shift Leader — new volunteers can find you for help
-          </div>
-        )}
-
-        {/* Locked warning */}
-        {isLocked && !isMyTask && (
-          <div style={{ padding: '12px 14px', background: '#FEF9C3', borderRadius: 10, borderLeft: '4px solid #F59E0B', fontSize: 13, color: '#92400E', fontWeight: 600, marginBottom: 12 }}>
-            ⚠️ Complete your current task before claiming another.
           </div>
         )}
       </div>
 
-      {/* Sticky action button */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: 'white', borderTop: `1px solid ${GRAY.border}`, padding: '14px 16px' }}>
+      {/* Action buttons */}
+      <div className="flex gap-0 mx-4 mt-4">
         {isMyTask ? (
-          <div style={{ display: 'flex', gap: 10 }}>
+          <>
             {onUnclaim && (
               <button
                 onClick={handleUnclaim}
                 disabled={acting}
-                style={{ flex: 1, padding: '16px 0', background: acting ? '#D1D5DB' : '#EF4444', color: 'white', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: acting ? 'not-allowed' : 'pointer' }}
+                className="flex-1 bg-[#ef4444] text-white py-4 rounded-l-xl text-base font-medium hover:opacity-90 cursor-pointer disabled:opacity-50 border-none"
               >
-                Unclaim
+                {acting ? 'Working…' : 'Unclaim'}
               </button>
             )}
             <button
               onClick={handleComplete}
               disabled={acting}
-              style={{ flex: 2, padding: '16px 0', background: acting ? '#D1D5DB' : '#34C759', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
+              className={`flex-1 bg-[#1a1a1a] text-white py-4 text-base font-medium flex items-center justify-center gap-2 hover:opacity-90 cursor-pointer disabled:opacity-50 border-none ${onUnclaim ? 'rounded-r-xl' : 'rounded-xl'}`}
             >
-              {acting ? 'Saving…' : '✓ MARK COMPLETE'}
+              <Check size={16} />
+              {acting ? 'Saving…' : 'MARK COMPLETE'}
             </button>
-          </div>
+          </>
         ) : isLocked ? (
-          <button disabled style={{ width: '100%', padding: '16px 0', background: '#F3F4F6', color: GRAY.light, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'not-allowed' }}>
+          <button disabled className="flex-1 bg-[#f3f4f6] text-[#9ca3af] py-4 rounded-xl text-base font-medium border-none cursor-not-allowed">
             Complete Your Current Task First
           </button>
         ) : (
           <button
             onClick={handleClaim}
             disabled={acting}
-            style={{ width: '100%', padding: '16px 0', background: acting ? '#D1D5DB' : '#FF9500', color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800, cursor: acting ? 'not-allowed' : 'pointer', letterSpacing: '0.02em' }}
+            className="flex-1 bg-[#09665e] text-white py-4 rounded-xl text-base font-bold hover:opacity-90 cursor-pointer disabled:opacity-50 border-none"
           >
             {acting ? 'Claiming…' : 'CLAIM TASK'}
           </button>
         )}
       </div>
+
+      {/* Back link */}
+      <button
+        onClick={onBack}
+        className="text-center text-[#6b7280] text-base py-4 hover:underline bg-transparent border-none cursor-pointer"
+      >
+        ← Back to Task Pool
+      </button>
+
+      {/* Bottom tab bar */}
+      <div className="mt-auto bg-white border-t border-[#e5e7eb] h-14 flex items-center mx-4 rounded-xl mb-4">
+        <button
+          onClick={onBack}
+          className="flex-1 h-full flex items-center justify-center gap-2 text-[#6b7280] text-base bg-transparent border-none cursor-pointer"
+        >
+          <span>📋</span> Available Tasks
+        </button>
+        <button
+          className="flex-1 h-full flex items-center justify-center gap-2 text-[#09665e] text-base border-b-2 border-[#09665e] bg-transparent border-l-0 border-r-0 border-t-0 cursor-default"
+        >
+          <Check size={16} className="text-[#09665e]" /> My Task
+        </button>
+      </div>
+
     </div>
   )
 }
