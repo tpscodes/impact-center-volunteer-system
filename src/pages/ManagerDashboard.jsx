@@ -154,20 +154,22 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
           </button>
         </div>
 
-        {/* Mobile nav overlay — fullscreen, sits on top of everything */}
+        {/* Mobile nav overlay */}
         {mobileMenuOpen && (
           <>
-            {/* Dim background */}
+            {/* Dim background — 40% black */}
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-black/40 z-40"
               onClick={() => setMobileMenuOpen(false)}
             />
 
             {/* Slide-down menu panel */}
-            <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]">
-
-              {/* Top bar repeated inside overlay */}
-              <div className="px-6 py-5 flex items-center justify-between">
+            <div
+              className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]"
+              style={{ animation: "slideDown 0.25s ease-out forwards" }}
+            >
+              {/* Top bar */}
+              <div className="px-8 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
                     <span className="text-white text-sm font-semibold">JB</span>
@@ -186,7 +188,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
               </div>
 
               {/* Teal divider */}
-              <div className="w-10 h-0.5 bg-[#0d9488] mx-6 mb-2" />
+              <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
 
               {/* Nav items */}
               <nav className="flex flex-col py-2">
@@ -209,7 +211,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
                   </button>
                 ))}
 
-                {/* Divider before logout */}
+                {/* Divider */}
                 <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
 
                 {/* Logout */}
