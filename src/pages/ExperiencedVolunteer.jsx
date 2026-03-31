@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
 
-const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
+const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
 // ── ID Entry Screen ──────────────────────────────────────────────────────────
 export function VolunteerIdEntry() {
@@ -11,8 +11,9 @@ export function VolunteerIdEntry() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  function handleSubmit() {
-    if (id.length < 4) { setError("Enter your 4-digit volunteer ID"); return; }
+  function handleSubmit(e) {
+    if (e) e.preventDefault();
+    if (id.length < 4) { setError("Please enter all 4 digits."); return; }
     const profile = VOLUNTEER_PROFILES.find(p => p.id === id);
     if (!profile) {
       setError("ID not recognized. Please check with your session coordinator.");
@@ -24,39 +25,85 @@ export function VolunteerIdEntry() {
   }
 
   return (
-    <div style={{ background: GRAY.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Sign In</div>
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* LEFT PANEL — desktop only */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#F0FAFA] flex-col items-center justify-center p-16 min-h-screen">
+        <div className="w-full max-w-[420px]">
+          <h1 className="text-4xl font-bold text-[#1e1e1e] mb-1">IMPACT CENTER</h1>
+          <p className="text-lg text-[#0d9488] mb-4">Volunteer Task Management</p>
+          <div className="w-12 h-0.5 bg-[#0d9488] mb-10" />
+          <img src="/illustration-group.png" alt="Volunteers" className="w-[360px] h-auto mb-10" />
+          <p className="text-xl font-semibold text-[#1e1e1e] text-center leading-snug">
+            Coordinating volunteers,<br />one task at a time
+          </p>
+        </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 32px 60px" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>Enter your volunteer ID</div>
-        <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 24 }}>Your 4-digit ID from your volunteer card</div>
+      {/* RIGHT PANEL */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 lg:px-16 py-12 min-h-screen">
 
-        <input
-          value={id}
-          onChange={e => { setId(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(""); }}
-          placeholder="1234"
-          maxLength={4}
-          type="tel"
-          style={{ width: "100%", padding: "18px 16px", border: `2px solid ${error ? "#EF4444" : GRAY.border}`, borderRadius: 12, fontSize: 32, fontWeight: 800, color: GRAY.dark, textAlign: "center", letterSpacing: "0.3em", background: "white", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-          onFocus={e => e.target.style.borderColor = GRAY.soft}
-          onBlur={e => e.target.style.borderColor = error ? "#EF4444" : GRAY.border}
-          onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
-        />
+        {/* Mobile header */}
+        <div className="lg:hidden text-center mb-8">
+          <h1 className="text-2xl font-normal text-[#1e1e1e] tracking-wide">IMPACT CENTER</h1>
+          <p className="text-sm text-[#757575] mt-1">Volunteer Task Management</p>
+          <div className="w-12 h-0.5 bg-[#0d9488] mx-auto mt-3" />
+        </div>
 
-        {error && <div style={{ color: "#EF4444", fontSize: 13, marginTop: 8, textAlign: "center" }}>{error}</div>}
+        {/* Login card */}
+        <form onSubmit={handleSubmit} className="w-full max-w-[360px] bg-white border border-[#d9d9d9] rounded-lg p-8">
+          <h2 className="text-2xl font-semibold text-[#1e1e1e] text-center mb-1 tracking-tight">
+            Experienced Volunteer
+          </h2>
+          <p className="text-lg text-[#757575] text-center mb-8">Sign in to continue</p>
 
-        <button onClick={handleSubmit}
-          style={{ width: "100%", marginTop: 20, padding: 15, background: id.length >= 4 ? GRAY.dark : "#D1D5DB", color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: id.length >= 4 ? "pointer" : "not-allowed" }}>
-          → View My Tasks
-        </button>
+          <div className="flex flex-col gap-2 mb-6">
+            <label className="text-base text-[#1e1e1e]">Enter your 4-digit ID</label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="e.g. 1234"
+              value={id}
+              onChange={e => { setId(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(""); }}
+              maxLength={4}
+              autoFocus
+              className="w-full border border-[#d9d9d9] rounded-lg px-4 py-3 text-base text-[#1e1e1e] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488] transition-colors"
+            />
+          </div>
 
-        <button onClick={() => navigate("/")}
-          style={{ marginTop: 12, background: "none", border: "none", color: GRAY.soft, fontSize: 13, cursor: "pointer", textDecoration: "underline" }}>
-          ← Back to home
-        </button>
+          {error && (
+            <p className="text-sm font-medium text-center rounded-lg py-2 px-3 mb-4 bg-[#fee2e2] text-[#dc2626]">
+              {error}
+            </p>
+          )}
+
+          <div className="flex gap-4 mb-6">
+            <button
+              type="button"
+              onClick={() => { setId(""); setError(""); }}
+              className="flex-1 py-3 rounded-lg text-base text-[#303030] border border-[#d9d9d9] hover:bg-gray-50 cursor-pointer bg-white"
+            >
+              Clear
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-3 rounded-lg text-base bg-[#09665e] border border-[#09665e] text-[#f0fafa] hover:opacity-90 cursor-pointer"
+            >
+              Login
+            </button>
+          </div>
+
+          <p className="text-base text-[#1e1e1e]">
+            Not Exp. Volunteer?{" "}
+            <span onClick={() => navigate("/")} className="text-[#0d9488] cursor-pointer hover:underline">
+              Go back to home
+            </span>
+          </p>
+        </form>
+
+        <p className="text-base italic text-[#757575] text-center mt-8">
+          Impact Center | Greenwood, IN
+        </p>
       </div>
     </div>
   );
