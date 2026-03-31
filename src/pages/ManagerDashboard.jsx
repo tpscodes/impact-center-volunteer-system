@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { ref, get } from "firebase/database";
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, X } from "lucide-react";
 
 function fmtTime(ms) {
   if (!ms) return "";
@@ -150,33 +150,78 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
             onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
             className="text-white p-1"
           >
-            <Menu size={24} />
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
-        {/* Mobile nav dropdown */}
+        {/* Mobile nav overlay — fullscreen, sits on top of everything */}
         {mobileMenuOpen && (
-          <div className="bg-[#0a2a3a] px-0 pb-4 border-t border-[#0d9488]">
-            <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-4 mt-2" />
-            {[
-              { label: "Dashboard", active: true, action: () => {} },
-              { label: "Tasks",     active: false, action: () => navigate("/manager/tasks") },
-              { label: "Volunteers",active: false, action: () => {} },
-              { label: "History",   active: false, action: () => navigate("/manager/history") },
-            ].map(item => (
-              <button
-                key={item.label}
-                onClick={() => { item.action(); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-8 py-3 text-[16px] font-semibold flex items-center gap-3 bg-transparent border-none cursor-pointer ${
-                  item.active
-                    ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                    : "text-[#757575] border-l-[3px] border-transparent"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <>
+            {/* Dim background */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            {/* Slide-down menu panel */}
+            <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]">
+
+              {/* Top bar repeated inside overlay */}
+              <div className="px-6 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                    <span className="text-white text-sm font-semibold">JB</span>
+                  </div>
+                  <div>
+                    <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+                    <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                  className="text-white p-1"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Teal divider */}
+              <div className="w-10 h-0.5 bg-[#0d9488] mx-6 mb-2" />
+
+              {/* Nav items */}
+              <nav className="flex flex-col py-2">
+                {[
+                  { label: "Dashboard", active: true,  action: () => {} },
+                  { label: "Tasks",     active: false, action: () => navigate("/manager/tasks") },
+                  { label: "Volunteers",active: false, action: () => {} },
+                  { label: "History",   active: false, action: () => navigate("/manager/history") },
+                ].map(item => (
+                  <button
+                    key={item.label}
+                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                    className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${
+                      item.active
+                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
+                        : "text-[#757575] border-l-[3px] border-transparent"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+
+                {/* Divider before logout */}
+                <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
+
+                {/* Logout */}
+                <button
+                  onClick={() => { setMobileMenuOpen(false); navigate("/"); }}
+                  className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer"
+                >
+                  Logout
+                </button>
+              </nav>
+            </div>
+          </>
         )}
 
         {/* Scrollable content */}
