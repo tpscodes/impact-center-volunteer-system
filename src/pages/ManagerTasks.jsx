@@ -413,15 +413,16 @@ export function ManagerTasksScreen({ tasks, onDeleteTask, onMarkIncomplete, sync
 
 // ── Bulk Create Tasks Screen ──────────────────────────────────────────────────
 export function CreateTaskScreen({ onPublishAll, onBack }) {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow()]);
   const [publishing, setPublishing] = useState(false);
   const [done, setDone] = useState(false);
+  const [generalNotes, setGeneralNotes] = useState("");
 
   function updateRow(id, field, value) {
     setRows(rows => rows.map(r => r.id === id ? { ...r, [field]: value } : r));
   }
 
-  // When item is selected from suggestion, auto-fill source, destination, action
   function handleItemSelect(id, suggestion) {
     const match = ITEM_SUGGESTIONS.find(s => s.item === suggestion);
     if (match) {
@@ -437,9 +438,7 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
     }
   }
 
-  function addRow() {
-    setRows(r => [...r, emptyRow()]);
-  }
+  function addRow() { setRows(r => [...r, emptyRow()]); }
 
   function removeRow(id) {
     if (rows.length === 1) return;
@@ -459,17 +458,17 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
 
   if (done) {
     return (
-      <div style={{ background: "white", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-        <div style={{ fontSize: 56 }}>✅</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark }}>{filledCount} Tasks Published!</div>
-        <div style={{ fontSize: 14, color: GRAY.soft, textAlign: "center" }}>Tasks are now live on the volunteer boards</div>
-        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 p-8" style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+        <div className="text-[56px]">✅</div>
+        <div className="text-[22px] font-bold text-[#1f2937]">{filledCount} Tasks Published!</div>
+        <div className="text-[14px] text-[#6b7280] text-center">Tasks are now live on the volunteer boards</div>
+        <div className="flex gap-3 mt-2">
           <button onClick={() => { setDone(false); setRows([emptyRow(), emptyRow(), emptyRow()]); }}
-            style={{ padding: "11px 20px", background: "white", color: GRAY.dark, border: `2px solid ${GRAY.border}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            className="px-5 py-3 bg-white text-[#1f2937] border-2 border-[#e5e7eb] rounded-xl text-[14px] font-semibold cursor-pointer hover:bg-[#f9fafb]">
             + Add More
           </button>
           <button onClick={onBack}
-            style={{ padding: "11px 20px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            className="px-5 py-3 bg-[#0a2a3a] text-white border-none rounded-xl text-[14px] font-bold cursor-pointer hover:opacity-90">
             ← Back to Tasks
           </button>
         </div>
@@ -477,120 +476,188 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
     );
   }
 
+  // ── Shared table grid columns ──
+  const COLS = "28px 1.6fr 1.1fr 1fr 0.85fr 1fr 0.75fr 1fr 28px";
+
   return (
-    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 100 }}>
+    <div className="flex min-h-screen" style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-      {/* Header */}
-      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={onBack} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>← Back</button>
-        <div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Operations Manager</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "white" }}>Create Tasks</div>
-        </div>
-      </div>
-
-      <div style={{ padding: "16px 12px" }}>
-        <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 14 }}>
-          Fill in as many tasks as needed. Start typing an item to see suggestions.
+      {/* ── Sidebar ── */}
+      <div className="w-[240px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
+        {/* Logo */}
+        <div className="px-6 pt-8 pb-4">
+          <p className="text-white text-[20px] font-normal leading-tight">IMPACT CENTER</p>
+          <p className="text-[#0d9488] text-[14px] mt-1 leading-tight">Volunteer Task<br />Management</p>
+          <div className="w-[40px] h-[2px] bg-[#0d9488] mt-3" />
         </div>
 
-        {/* Column headers */}
-        <div style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, padding: "6px 4px", marginBottom: 4 }}>
-          {["#", "ITEM ✦", "SOURCE", "DESTINATION", "ACTION", "ASSIGN TO", "PRIORITY", "TAGS", ""].map((h, i) => (
-            <div key={i} style={{ fontSize: 9, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 || i === 8 ? "center" : "left" }}>{h}</div>
-          ))}
-        </div>
-
-        {/* Rows */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {rows.map((row, idx) => (
-            <div key={row.id} style={{ background: "white", borderRadius: 8, border: `1px solid ${row.item ? GRAY.border : "#F3F4F6"}`, padding: "8px 6px", transition: "border 0.15s" }}>
-
-              {/* Main grid row */}
-              <div style={{ display: "grid", gridTemplateColumns: "30px 1.4fr 1fr 1fr 0.8fr 0.9fr 0.7fr 1fr 30px", gap: 4, alignItems: "start" }}>
-
-                {/* Row number */}
-                <div style={{ textAlign: "center", fontSize: 11, color: GRAY.light, paddingTop: 8, fontWeight: 600 }}>{idx + 1}</div>
-
-                {/* Item — with autocomplete + auto-fill */}
-                <AutoInput
-                  value={row.item}
-                  onChange={v => updateRow(row.id, "item", v)}
-                  onSelect={s => handleItemSelect(row.id, s)}
-                  suggestions={ITEM_SUGGESTIONS.map(i => i.item)}
-                  placeholder="Item name…"
-                  style={{ fontWeight: row.item ? 600 : 400 }}
-                />
-
-                {/* Source */}
-                <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="e.g. Warehouse — Bay 14" />
-
-                {/* Destination */}
-                <AutoInput value={row.destination} onChange={v => updateRow(row.id, "destination", v)} suggestions={DEST_SUGGESTIONS} placeholder="To / Rack…" />
-
-                {/* Action */}
-                <AutoInput value={row.action} onChange={v => updateRow(row.id, "action", v)} suggestions={ACTION_SUGGESTIONS} placeholder="Action…" />
-
-                {/* Assign to */}
-                <select value={row.assignTo} onChange={e => updateRow(row.id, "assignTo", e.target.value)}
-                  style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
-                  {ASSIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-
-                {/* Priority */}
-                <select value={row.priority} onChange={e => updateRow(row.id, "priority", e.target.value)}
-                  style={{ width: "100%", padding: "7px 6px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 12, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
-                  {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-
-                {/* Tags */}
-                <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
-
-                {/* Remove row */}
-                <button onClick={() => removeRow(row.id)}
-                  style={{ textAlign: "center", background: "none", border: "none", color: GRAY.light, cursor: "pointer", fontSize: 16, paddingTop: 6 }}
-                  title="Remove row">
-                  ×
-                </button>
-              </div>
-
-              {/* Special instructions input — below the grid */}
-              <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${GRAY.border}`, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, flexShrink: 0 }}>📝</span>
-                <input
-                  value={row.comments}
-                  onChange={e => updateRow(row.id, "comments", e.target.value)}
-                  placeholder="Special instructions for volunteer (optional)…"
-                  style={{ flex: 1, border: "none", outline: "none", fontSize: 12, color: row.comments ? GRAY.dark : GRAY.light, background: "transparent", fontFamily: "inherit" }}
-                />
-              </div>
+        {/* Nav */}
+        <nav className="flex flex-col mt-4">
+          <div className="flex items-center px-6 py-3 cursor-pointer hover:bg-white/5"
+            onClick={() => navigate("/manager/dashboard")}>
+            <span className="text-[#767676] text-[16px] font-semibold">Dashboard</span>
+          </div>
+          <div className="flex items-center border-l-[3px] border-[#0d9488] px-6 py-3">
+            <span className="text-[#0d9488] text-[16px] font-semibold">Tasks</span>
+          </div>
+          {["Volunteers", "History"].map(item => (
+            <div key={item} className="flex items-center px-6 py-3 cursor-pointer hover:bg-white/5"
+              onClick={() => item === "History" ? navigate("/manager/history") : undefined}>
+              <span className="text-[#767676] text-[16px] font-semibold">{item}</span>
             </div>
           ))}
-        </div>
+        </nav>
 
-        {/* Add row */}
-        <button onClick={addRow}
-          style={{ width: "100%", marginTop: 8, padding: "10px 0", background: "white", border: `2px dashed ${GRAY.border}`, borderRadius: 8, fontSize: 13, color: GRAY.soft, cursor: "pointer", fontWeight: 600 }}>
-          + Add Row
-        </button>
-
-        {/* Comments for whole batch — optional */}
-        <div style={{ marginTop: 16, background: "white", borderRadius: 10, border: `1px solid ${GRAY.border}`, padding: "12px 14px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>General Notes (optional)</div>
-          <textarea placeholder="Any notes for all volunteers today…" rows={2}
-            style={{ width: "100%", border: "none", outline: "none", fontSize: 13, color: GRAY.dark, resize: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+        {/* User info */}
+        <div className="mt-auto px-4 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+            </div>
+          </div>
+          <button onClick={() => navigate("/")}
+            className="text-[#dc2626] text-[10px] mt-2 ml-[52px] hover:underline bg-transparent border-none cursor-pointer">
+            Logout
+          </button>
         </div>
       </div>
 
-      {/* Sticky Done button */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", padding: "12px 16px", background: "white", borderTop: `1px solid ${GRAY.border}` }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <div style={{ flex: 1, fontSize: 12, color: GRAY.soft }}>
-            {filledCount > 0 ? `${filledCount} task${filledCount > 1 ? "s" : ""} ready to publish` : "Fill in at least one item"}
+      {/* ── Main content ── */}
+      <div className="ml-[240px] flex-1 flex flex-col min-h-screen bg-white">
+
+        {/* Header bar */}
+        <div className="bg-[#0a2a3a] px-8 py-5 flex items-center gap-4 shrink-0">
+          <button onClick={onBack}
+            className="flex items-center gap-1 border border-white/40 text-white text-[13px] px-3 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-white/10">
+            ← Back
+          </button>
+          <div>
+            <p className="text-[#0d9488] text-[11px] font-semibold uppercase tracking-widest leading-none">Operations Manager</p>
+            <p className="text-white text-[22px] font-semibold leading-tight mt-0.5">Create Tasks</p>
           </div>
+        </div>
+
+        {/* Scrollable form area */}
+        <div className="flex-1 overflow-y-auto px-8 pt-5 pb-28">
+
+          <p className="text-[#6b7280] text-[13px] mb-5">
+            Fill in as many tasks as needed. Start typing an item to see suggestions.
+          </p>
+
+          {/* Column headers */}
+          <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 6, padding: "0 0 6px 0", borderBottom: `2px solid ${GRAY.border}`, marginBottom: 6 }}>
+            {["#", "ITEM ↑", "SOURCE", "DESTINATION", "ACTION", "ASSIGN TO", "PRIORITY", "TAGS", ""].map((h, i) => (
+              <div key={i} className="text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider"
+                style={{ textAlign: i === 0 || i === 8 ? "center" : "left" }}>
+                {h}
+              </div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div className="flex flex-col divide-y divide-[#e5e7eb]">
+            {rows.map((row, idx) => (
+              <div key={row.id} className="py-2">
+                {/* Main grid */}
+                <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 6, alignItems: "center" }}>
+
+                  {/* Row number */}
+                  <div className="text-center text-[12px] text-[#9ca3af] font-semibold">{idx + 1}</div>
+
+                  {/* Item */}
+                  <AutoInput
+                    value={row.item}
+                    onChange={v => updateRow(row.id, "item", v)}
+                    onSelect={s => handleItemSelect(row.id, s)}
+                    suggestions={ITEM_SUGGESTIONS.map(i => i.item)}
+                    placeholder="Item name..."
+                    style={{ fontWeight: row.item ? 600 : 400 }}
+                  />
+
+                  {/* Source */}
+                  <AutoInput value={row.source} onChange={v => updateRow(row.id, "source", v)} suggestions={SOURCE_SUGGESTIONS} placeholder="e.g. Warehouse — Bay 14" />
+
+                  {/* Destination */}
+                  <AutoInput value={row.destination} onChange={v => updateRow(row.id, "destination", v)} suggestions={DEST_SUGGESTIONS} placeholder="To / Rack..." />
+
+                  {/* Action */}
+                  <AutoInput value={row.action} onChange={v => updateRow(row.id, "action", v)} suggestions={ACTION_SUGGESTIONS} placeholder="Action..." />
+
+                  {/* Assign to */}
+                  <select value={row.assignTo} onChange={e => updateRow(row.id, "assignTo", e.target.value)}
+                    style={{ width: "100%", padding: "7px 8px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 13, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
+                    {ASSIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+
+                  {/* Priority */}
+                  <select value={row.priority} onChange={e => updateRow(row.id, "priority", e.target.value)}
+                    style={{ width: "100%", padding: "7px 8px", border: `1px solid ${GRAY.border}`, borderRadius: 6, fontSize: 13, color: GRAY.dark, background: "white", outline: "none", fontFamily: "inherit" }}>
+                    {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+
+                  {/* Tags */}
+                  <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
+
+                  {/* Remove */}
+                  <button onClick={() => removeRow(row.id)}
+                    className="text-center bg-transparent border-none text-[#dc2626] cursor-pointer text-[18px] leading-none hover:text-[#b91c1c]"
+                    title="Remove row">
+                    ×
+                  </button>
+                </div>
+
+                {/* Special instructions */}
+                <div className="mt-2 flex items-center gap-2 pl-[34px]">
+                  <span className="text-[#dc2626] text-[12px] shrink-0">📌</span>
+                  <input
+                    value={row.comments}
+                    onChange={e => updateRow(row.id, "comments", e.target.value)}
+                    placeholder="+ Special instructions for volunteer (optional)..."
+                    className="flex-1 border-none outline-none text-[12px] bg-transparent"
+                    style={{ color: row.comments ? GRAY.dark : "#f87171", fontFamily: "inherit" }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Row */}
+          <button onClick={addRow}
+            className="w-full mt-3 py-3 bg-white border-2 border-dashed border-[#e5e7eb] rounded-lg text-[13px] text-[#6b7280] font-semibold cursor-pointer hover:border-[#9ca3af] hover:text-[#374151]">
+            + Add Row
+          </button>
+
+          {/* General Notes */}
+          <div className="mt-5 border border-[#e5e7eb] rounded-xl p-4">
+            <p className="text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider mb-2">General Notes (Optional)</p>
+            <textarea
+              value={generalNotes}
+              onChange={e => setGeneralNotes(e.target.value)}
+              placeholder="Any notes for all volunteers today..."
+              rows={2}
+              className="w-full border-none outline-none text-[13px] text-[#1f2937] resize-none"
+              style={{ fontFamily: "inherit" }}
+            />
+          </div>
+        </div>
+
+        {/* Fixed bottom bar — spans main content only */}
+        <div className="fixed bottom-0 left-[240px] right-0 bg-white border-t border-[#e5e7eb] px-8 py-3 flex items-center justify-between z-10">
+          <p className="text-[13px] text-[#6b7280]">
+            {filledCount > 0 ? `${filledCount} task${filledCount > 1 ? "s" : ""} ready to publish` : "Fill in at least one item"}
+          </p>
           <button onClick={handleDone} disabled={filledCount === 0 || publishing}
-            style={{ padding: "13px 28px", background: filledCount > 0 && !publishing ? GRAY.dark : "#D1D5DB", color: "white", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: filledCount > 0 && !publishing ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
-            {publishing ? "Publishing…" : `Done — Publish ${filledCount > 0 ? filledCount : ""}`}
+            className="px-7 py-3 rounded-xl text-[15px] font-semibold border-none cursor-pointer"
+            style={{
+              background: filledCount > 0 && !publishing ? "#0a2a3a" : "#d1d5db",
+              color: "white",
+              cursor: filledCount > 0 && !publishing ? "pointer" : "not-allowed",
+            }}>
+            {publishing ? "Publishing…" : "Done — Publish"}
           </button>
         </div>
       </div>
