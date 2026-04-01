@@ -194,7 +194,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
               <nav className="flex flex-col py-2">
                 {[
                   { label: "Dashboard", active: true,  action: () => {} },
-                  { label: "Tasks",     active: false, action: () => navigate("/manager/tasks") },
+                  { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
                   { label: "Volunteers",active: false, action: () => {} },
                   { label: "History",   active: false, action: () => navigate("/manager/history") },
                 ].map(item => (
@@ -273,7 +273,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
                 ▶ Start Session
               </button>
             )}
-            <button onClick={() => navigate("/manager/tasks")}
+            <button onClick={() => navigate("/manager-tasks")}
               className="flex-1 bg-[#09665e] text-[#f0fafa] py-3 rounded-lg text-[15px] font-semibold flex items-center justify-center gap-2 cursor-pointer">
               Create Task <Plus size={16} />
             </button>
@@ -363,7 +363,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
           </div>
           {["Tasks", "Volunteers", "History"].map(item => (
             <div key={item} className="flex items-center px-6 py-3 cursor-pointer hover:bg-white/5"
-              onClick={() => item === "History" ? navigate("/manager/history") : item === "Tasks" ? navigate("/manager/tasks") : undefined}>
+              onClick={() => item === "History" ? navigate("/manager/history") : item === "Tasks" ? navigate("/manager-tasks") : undefined}>
               <span className="text-[#767676] text-[16px] font-semibold">{item}</span>
             </div>
           ))}
@@ -425,7 +425,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
               ▶ Start Session
             </button>
           )}
-          <button onClick={() => navigate("/manager/tasks")}
+          <button onClick={() => navigate("/manager-tasks")}
             className="bg-[#09665e] border border-[#09665e] text-[#f0fafa] px-4 py-2 rounded-lg text-[14px] flex items-center gap-2 hover:opacity-90 cursor-pointer">
             Create Task <Plus size={16} />
           </button>

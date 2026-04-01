@@ -6,7 +6,7 @@ import { useSharedTasks } from "./hooks/useSharedTasks";
 import LandingPage from "./components/LandingPage";
 import ManagerLogin from "./pages/ManagerLogin";
 import ManagerDashboard from "./pages/ManagerDashboard";
-import { ManagerTasksScreen, CreateTaskScreen } from "./pages/ManagerTasks";
+import ManagerTasksPage, { ManagerTasksScreen, CreateTaskScreen } from "./pages/ManagerTasks";
 import DigitalBoard from "./pages/DigitalBoard";
 import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
 import TaskPool from "./pages/TaskPool";
@@ -71,6 +71,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
 
         {/* Manager flow */}
+        <Route path="/manager-tasks" element={<ManagerTasksPage />} />
         <Route path="/manager/login" element={<ManagerLogin />} />
         <Route path="/manager/dashboard" element={<ManagerDashboardWrapper />} />
         <Route path="/manager/tasks" element={<ManagerTasksWrapper />} />
