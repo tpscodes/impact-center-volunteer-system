@@ -296,7 +296,10 @@ export default function TaskPool() {
                 </div>
               )}
               {task.comments && (
-                <p className="text-[#6b7280] text-[12px] mt-1 italic">📌 {task.comments}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Pin size={14} className="text-[#6b7280] shrink-0" />
+                  <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                </div>
               )}
               {task.tags && task.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
