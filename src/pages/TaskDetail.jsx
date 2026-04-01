@@ -133,7 +133,7 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
             <div>
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Est. Time</p>
               <p className="text-[#0a2a3a] text-[16px]">
-                {task.estimatedTime ? `~${task.estimatedTime} min` : '—'}
+                {task.estimatedTime ? `~${task.estimatedTime.toString().replace(/^~/, '').replace(/\s*min$/i, '')} min` : '—'}
               </p>
             </div>
 
