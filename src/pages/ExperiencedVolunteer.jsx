@@ -325,7 +325,7 @@ export function MyTask() {
             {/* Task details card */}
             <div className="bg-white border border-[#e5e7eb] rounded-xl p-6">
               <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-                {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination], ["Est. Time", myTask.estimatedTime ? `~${myTask.estimatedTime.toString().replace(/^~/, '').replace(/\s*min$/i, '')} min` : null]].filter(([, v]) => v).map(([label, val]) => (
+                {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination], ["Est. Time", null]].filter(([, v]) => v).map(([label, val]) => (
                   <div key={label}>
                     <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{label}</p>
                     <p className="text-[#0a2a3a] text-[16px]">{val}</p>

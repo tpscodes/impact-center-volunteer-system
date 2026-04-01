@@ -121,13 +121,6 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
               <p className="text-[#0a2a3a] text-[16px]">{task.destination || '—'}</p>
             </div>
 
-            <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Est. Time</p>
-              <p className="text-[#0a2a3a] text-[16px]">
-                {task.estimatedTime ? `~${task.estimatedTime.toString().replace(/^~/, '').replace(/\s*min$/i, '')} min` : '—'}
-              </p>
-            </div>
-
             {task.priority && (
               <div>
                 <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Priority</p>
