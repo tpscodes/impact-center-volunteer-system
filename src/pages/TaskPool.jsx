@@ -6,7 +6,7 @@ import TaskDetail from './TaskDetail'
 import { Search, MapPin, ArrowRight, Pin } from 'lucide-react'
 
 const GRAY = { dark: "#1e1e1e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB" }
-const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing"]
+const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sorting", "Produce"]
 
 export default function TaskPool() {
   const navigate = useNavigate()
@@ -218,7 +218,7 @@ export default function TaskPool() {
         </div>
 
         {/* Tag filters */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {TAG_FILTERS.map(tag => (
             <button key={tag}
               onClick={() => setActiveTag(tag)}
