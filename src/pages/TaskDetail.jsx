@@ -1,7 +1,7 @@
 // TaskDetail.jsx — Prop-driven task detail for Experienced Volunteers
 // No hooks, no routing — rendered conditionally by TaskPool and MyTasks
 import { useState, useEffect } from 'react'
-import { Clock, Check } from 'lucide-react'
+import { Clock, Check, ClipboardList } from 'lucide-react'
 
 // Live elapsed timer shown in the status bar when task is in progress
 function TaskTimer({ claimedAt }) {
@@ -54,30 +54,32 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* Header — teal */}
-      <div className="bg-[#09665e] px-6 py-4 flex items-center justify-between">
+      {/* Header — Dark Teal */}
+      <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
         <div>
-          <p className="text-[#ccedeb] text-[11px] font-normal uppercase tracking-widest">
+          <p className="text-[#ccedeb] text-[11px] uppercase tracking-widest font-normal">
             Experienced Volunteer
           </p>
-          <p className="text-white text-[20px] font-semibold">My Task</p>
+          <p className="text-white text-[22px] font-semibold leading-tight mt-1">
+            My Task
+          </p>
         </div>
         <button
           onClick={onBack}
-          className="border border-white text-white px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
+          className="border border-white text-white px-4 py-2 rounded-lg text-base hover:opacity-80 bg-transparent cursor-pointer"
         >
           Exit
         </button>
       </div>
 
-      {/* Task status bar — dark navy */}
-      <div className="bg-[#1a1a1a] px-6 py-4 flex items-center justify-between">
+      {/* Status bar — Dark Navy */}
+      <div className="bg-[#0a2a3a] px-6 py-4 flex items-center justify-between">
         <div>
           <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{statusLabel}</p>
-          <p className="text-white text-[20px] font-semibold">{task.name || task.item}</p>
+          <p className="text-white text-[18px] font-semibold">{task.name || task.item}</p>
         </div>
-        <div className="flex items-center gap-2 text-[#6b7280] text-[14px]">
-          <Clock size={14} />
+        <div className="flex items-center gap-2 text-[#6b7280] text-[13px]">
+          <Clock size={13} />
           {isMyTask && task.claimedAt
             ? <TaskTimer claimedAt={task.claimedAt} />
             : <span>{task.estimatedTime || '—'}</span>
@@ -99,77 +101,87 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
         </div>
       )}
 
-      {/* Task details card */}
-      <div className="mx-4 mt-4 bg-white rounded-xl border border-[#e5e7eb] p-6">
-        <div className="grid grid-cols-2 gap-6">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
 
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Action</p>
-            <p className="text-[#1e1e1e] text-base">{task.action || '—'}</p>
-          </div>
+        {/* Task details card */}
+        <div className="bg-white border border-[#e5e7eb] rounded-xl p-6">
 
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Item</p>
-            <p className="text-[#1e1e1e] text-base">{task.item || '—'}</p>
-          </div>
+          {/* 2-column grid */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5">
 
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Source</p>
-            <p className="text-[#1e1e1e] text-base">{task.source || '—'}</p>
-          </div>
-
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">To</p>
-            <p className="text-[#1e1e1e] text-base">{task.destination || '—'}</p>
-          </div>
-
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Est. Time</p>
-            <p className="text-[#1e1e1e] text-base">{task.estimatedTime ? `~${task.estimatedTime} min` : '—'}</p>
-          </div>
-
-          {task.priority && (
             <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Priority</p>
-              <p className={`text-base font-semibold ${
-                task.priority === 'Urgent' ? 'text-[#dc2626]' :
-                task.priority === 'High'   ? 'text-[#ff9500]' :
-                'text-[#6b7280]'
-              }`}>{task.priority}</p>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Action</p>
+              <p className="text-[#0a2a3a] text-[16px]">{task.action || '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Item</p>
+              <p className="text-[#0a2a3a] text-[16px]">{task.item || '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Source</p>
+              <p className="text-[#0a2a3a] text-[16px]">{task.source || '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">To</p>
+              <p className="text-[#0a2a3a] text-[16px]">{task.destination || '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Est. Time</p>
+              <p className="text-[#0a2a3a] text-[16px]">
+                {task.estimatedTime ? `~${task.estimatedTime} min` : '—'}
+              </p>
+            </div>
+
+            {task.priority && (
+              <div>
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Priority</p>
+                <p className={`text-[16px] font-semibold ${
+                  task.priority === 'Urgent' ? 'text-[#dc2626]' :
+                  task.priority === 'High'   ? 'text-[#ff9500]' :
+                  'text-[#6b7280]'
+                }`}>{task.priority}</p>
+              </div>
+            )}
+
+          </div>
+
+          {/* Special instructions / comments */}
+          {(task.specialInstructions || task.comments) && (
+            <div className="border-l-2 border-[#e5e7eb] pl-4 mt-6">
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
+                Special Instructions
+              </p>
+              <p className="text-[#6b7280] text-[14px] italic leading-relaxed">
+                {task.specialInstructions || task.comments}
+              </p>
             </div>
           )}
 
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {task.tags.map(tag => (
+                <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Special instructions / comments */}
-        {(task.specialInstructions || task.comments) && (
-          <div className="mt-6 border-l-2 border-[#e5e7eb] pl-4">
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Special Instructions</p>
-            <p className="text-[#6b7280] text-base italic">{task.specialInstructions || task.comments}</p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {task.tags.map(tag => (
-              <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex gap-0 mx-4 mt-4">
+        {/* Action buttons */}
         {isMyTask ? (
-          <>
+          <div className="flex">
             {onUnclaim && (
               <button
                 onClick={handleUnclaim}
                 disabled={acting}
-                className="flex-1 bg-[#ef4444] text-white py-4 rounded-l-xl text-base font-medium hover:opacity-90 cursor-pointer disabled:opacity-50 border-none"
+                className="flex-1 bg-[#dc2626] text-white py-4 rounded-l-xl text-[16px] font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
               >
                 {acting ? 'Working…' : 'Unclaim'}
               </button>
@@ -177,47 +189,54 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
             <button
               onClick={handleComplete}
               disabled={acting}
-              className={`flex-1 bg-[#1a1a1a] text-white py-4 text-base font-medium flex items-center justify-center gap-2 hover:opacity-90 cursor-pointer disabled:opacity-50 border-none ${onUnclaim ? 'rounded-r-xl' : 'rounded-xl'}`}
+              className={`flex-1 bg-[#09665e] text-white py-4 text-[16px] font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none ${onUnclaim ? 'rounded-r-xl' : 'rounded-xl'}`}
             >
               <Check size={16} />
-              {acting ? 'Saving…' : 'MARK COMPLETE'}
+              {acting ? 'Saving…' : 'Mark Complete'}
             </button>
-          </>
+          </div>
         ) : isLocked ? (
-          <button disabled className="flex-1 bg-[#f3f4f6] text-[#9ca3af] py-4 rounded-xl text-base font-medium border-none cursor-not-allowed">
-            Complete Your Current Task First
-          </button>
+          <div className="flex">
+            <button disabled className="flex-1 bg-[#f3f4f6] text-[#9ca3af] py-4 rounded-xl text-[16px] font-medium border-none cursor-not-allowed">
+              Complete Your Current Task First
+            </button>
+          </div>
         ) : (
-          <button
-            onClick={handleClaim}
-            disabled={acting}
-            className="flex-1 bg-[#09665e] text-white py-4 rounded-xl text-base font-bold hover:opacity-90 cursor-pointer disabled:opacity-50 border-none"
-          >
-            {acting ? 'Claiming…' : 'CLAIM TASK'}
-          </button>
+          <div className="flex">
+            <button
+              onClick={handleClaim}
+              disabled={acting}
+              className="flex-1 bg-[#09665e] text-white py-4 rounded-xl text-[16px] font-bold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
+            >
+              {acting ? 'Claiming…' : 'CLAIM TASK'}
+            </button>
+          </div>
         )}
-      </div>
 
-      {/* Back link */}
-      <button
-        onClick={onBack}
-        className="text-center text-[#6b7280] text-base py-4 hover:underline bg-transparent border-none cursor-pointer"
-      >
-        ← Back to Task Pool
-      </button>
-
-      {/* Bottom tab bar */}
-      <div className="mt-auto bg-white border-t border-[#e5e7eb] h-14 flex items-center mx-4 rounded-xl mb-4">
+        {/* Back link */}
         <button
           onClick={onBack}
-          className="flex-1 h-full flex items-center justify-center gap-2 text-[#6b7280] text-base bg-transparent border-none cursor-pointer"
+          className="text-center text-[#6b7280] text-[14px] py-2 hover:underline bg-transparent border-none cursor-pointer"
         >
-          <span>📋</span> Available Tasks
+          ← Back to Task Pool
+        </button>
+
+      </div>
+
+      {/* Bottom tab bar */}
+      <div className="bg-white border-t border-[#e5e7eb] h-14 flex items-center shrink-0">
+        <button
+          onClick={onBack}
+          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#6b7280] bg-transparent border-none cursor-pointer"
+        >
+          <ClipboardList size={18} />
+          <span className="text-[12px]">Available</span>
         </button>
         <button
-          className="flex-1 h-full flex items-center justify-center gap-2 text-[#09665e] text-base border-b-2 border-[#09665e] bg-transparent border-l-0 border-r-0 border-t-0 cursor-default"
+          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#09665e] border-b-2 border-[#09665e] bg-transparent border-l-0 border-r-0 border-t-0 cursor-default"
         >
-          <Check size={16} className="text-[#09665e]" /> My Task
+          <Check size={18} />
+          <span className="text-[12px] font-medium">My task</span>
         </button>
       </div>
 
