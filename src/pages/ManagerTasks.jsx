@@ -1,7 +1,7 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
@@ -480,7 +480,138 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
   const COLS = "28px 1.6fr 1.1fr 1fr 0.85fr 1fr 0.75fr 1fr 28px";
 
   return (
-    <div className="flex min-h-screen" style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+
+    {/* ══════════════════════════════════
+        MOBILE LAYOUT — under lg (1024px)
+    ══════════════════════════════════ */}
+    <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col">
+
+      {/* Header */}
+      <div className="bg-[#0a2a3a] px-5 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
+          <p className="text-white text-[20px] font-semibold mt-0.5">Create Tasks</p>
+        </div>
+        <button className="text-white bg-transparent border-none cursor-pointer"><Menu size={24} /></button>
+      </div>
+
+      {/* Instruction */}
+      <p className="text-[#6b7280] text-[13px] px-5 py-3 bg-white border-b border-[#e5e7eb]">
+        Fill in as many tasks as needed.
+      </p>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 pb-24">
+
+        {rows.map((row) => (
+          <div key={row.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4">
+
+            {/* Card header */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[#0a2a3a] text-[14px] font-semibold">Task #{rows.indexOf(row) + 1}</p>
+              <button onClick={() => removeRow(row.id)} className="text-[#dc2626] text-[13px] bg-transparent border-none cursor-pointer">
+                × Remove
+              </button>
+            </div>
+            <div className="h-px bg-[#e5e7eb] mb-4" />
+
+            {/* Item */}
+            <div className="mb-3">
+              <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Item</p>
+              <input type="text" placeholder="Item name..."
+                value={row.item} onChange={e => updateRow(row.id, "item", e.target.value)}
+                className="w-full border-b border-[#e5e7eb] py-2 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+            </div>
+
+            {/* Source + Destination */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Source</p>
+                <input type="text" placeholder="e.g. Warehouse — Bay 14"
+                  value={row.source} onChange={e => updateRow(row.id, "source", e.target.value)}
+                  className="w-full border-b border-[#e5e7eb] py-2 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+              </div>
+              <div>
+                <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Destination</p>
+                <input type="text" placeholder="To / Rack..."
+                  value={row.destination} onChange={e => updateRow(row.id, "destination", e.target.value)}
+                  className="w-full border-b border-[#e5e7eb] py-2 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+              </div>
+            </div>
+
+            {/* Action */}
+            <div className="mb-3">
+              <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Action</p>
+              <input type="text" placeholder="Action..."
+                value={row.action} onChange={e => updateRow(row.id, "action", e.target.value)}
+                className="w-full border-b border-[#e5e7eb] py-2 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+            </div>
+
+            {/* Priority + Assign To */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Priority</p>
+                <select value={row.priority} onChange={e => updateRow(row.id, "priority", e.target.value)}
+                  className="w-full border border-[#e5e7eb] rounded-lg py-2 px-2 text-[13px] text-[#0a2a3a] outline-none bg-white">
+                  {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Assign To</p>
+                <select value={row.assignTo} onChange={e => updateRow(row.id, "assignTo", e.target.value)}
+                  className="w-full border border-[#e5e7eb] rounded-lg py-2 px-2 text-[13px] text-[#0a2a3a] outline-none bg-white">
+                  {ASSIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="mb-3">
+              <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-1">Tags</p>
+              <TagsCell tags={row.tags} onChange={v => updateRow(row.id, "tags", v)} />
+            </div>
+
+            {/* Special instructions */}
+            <div>
+              <input type="text" placeholder="📌 Special instructions (optional)..."
+                value={row.comments} onChange={e => updateRow(row.id, "comments", e.target.value)}
+                className="w-full border-b border-[#e5e7eb] py-2 text-[13px] italic text-[#6b7280] placeholder-[#b3b3b3] outline-none bg-transparent" />
+            </div>
+          </div>
+        ))}
+
+        {/* Add Task */}
+        <button onClick={addRow}
+          className="w-full border border-dashed border-[#e5e7eb] rounded-xl py-3 text-[#0d9488] text-[14px] bg-transparent cursor-pointer hover:border-[#0d9488]">
+          + Add Task
+        </button>
+
+        {/* General Notes */}
+        <div className="bg-white border border-[#e5e7eb] rounded-xl p-4">
+          <p className="text-[#6b7280] text-[10px] uppercase tracking-widest mb-2">General Notes (Optional)</p>
+          <textarea placeholder="Any notes for all volunteers today..."
+            value={generalNotes} onChange={e => setGeneralNotes(e.target.value)}
+            className="w-full border-b border-[#e5e7eb] py-2 text-[13px] italic text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent resize-none h-16" />
+        </div>
+      </div>
+
+      {/* Fixed bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e7eb] px-5 py-3 flex items-center justify-between z-10">
+        <p className="text-[#6b7280] text-[12px]">
+          {filledCount > 0 ? `${filledCount} task${filledCount > 1 ? "s" : ""} ready` : "Fill in at least one item"}
+        </p>
+        <button onClick={handleDone} disabled={filledCount === 0 || publishing}
+          className={`px-6 py-2.5 rounded-xl text-[14px] font-medium text-white border-none cursor-pointer ${filledCount > 0 && !publishing ? "bg-[#0a2a3a] hover:opacity-90" : "bg-[#d1d5db] cursor-not-allowed"}`}>
+          {publishing ? "Publishing…" : "Done — Publish"}
+        </button>
+      </div>
+    </div>
+
+    {/* ══════════════════════════════════
+        DESKTOP LAYOUT — lg (1024px) and up
+    ══════════════════════════════════ */}
+    <div className="hidden lg:flex min-h-screen">
 
       {/* ── Sidebar ── */}
       <div className="w-[240px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
@@ -661,6 +792,8 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
           </button>
         </div>
       </div>
+    </div>
+
     </div>
   );
 }
