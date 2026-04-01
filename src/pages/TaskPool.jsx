@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import TaskDetail from './TaskDetail'
-import { Search, MapPin, ArrowRight, User } from 'lucide-react'
+import { Search, MapPin, ArrowRight, Pin } from 'lucide-react'
 
 const GRAY = { dark: "#1e1e1e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB" }
 const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing"]
@@ -291,8 +291,8 @@ export default function TaskPool() {
               </div>
               {task.specialInstructions && (
                 <div className="flex items-center gap-1 mt-1">
-                  <User size={14} className="text-[#6b7280] shrink-0" />
-                  <p className="text-[#6b7280] text-[12px]">{task.specialInstructions}</p>
+                  <Pin size={14} className="text-[#6b7280] shrink-0" />
+                  <p className="text-[#6b7280] text-[12px] italic">{task.specialInstructions}</p>
                 </div>
               )}
               {task.comments && (
