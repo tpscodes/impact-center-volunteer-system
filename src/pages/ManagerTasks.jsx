@@ -1,7 +1,7 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, X } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
@@ -418,6 +418,7 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
   const [publishing, setPublishing] = useState(false);
   const [done, setDone] = useState(false);
   const [generalNotes, setGeneralNotes] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function updateRow(id, field, value) {
     setRows(rows => rows.map(r => r.id === id ? { ...r, [field]: value } : r));
@@ -493,8 +494,54 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
           <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
           <p className="text-white text-[20px] font-semibold mt-0.5">Create Tasks</p>
         </div>
-        <button className="text-white bg-transparent border-none cursor-pointer"><Menu size={24} /></button>
+        <button onClick={e => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+          className="text-white bg-transparent border-none cursor-pointer p-1">
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
+
+      {/* Mobile nav overlay */}
+      {mobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]" style={{ animation: "slideDown 0.25s ease-out forwards" }}>
+            {/* Top bar */}
+            <div className="px-6 py-5 flex items-center justify-between">
+              <div>
+                <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
+                <p className="text-white text-[18px] font-semibold mt-0.5">Create Tasks</p>
+              </div>
+              <button onClick={e => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                className="text-white bg-transparent border-none cursor-pointer p-1">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="w-10 h-0.5 bg-[#0d9488] mx-6 mb-2" />
+            {/* Nav items */}
+            <nav className="flex flex-col py-2">
+              {[
+                { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
+                { label: "Tasks",     active: true,  action: () => navigate("/manager-tasks") },
+                { label: "Volunteers",active: false, action: () => {} },
+                { label: "History",   active: false, action: () => navigate("/manager/history") },
+              ].map(item => (
+                <button key={item.label}
+                  onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                  className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${
+                    item.active ? "text-[#0d9488] border-l-[3px] border-[#0d9488]" : "text-[#757575] border-l-[3px] border-transparent"
+                  }`}>
+                  {item.label}
+                </button>
+              ))}
+              <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
+              <button onClick={() => { setMobileMenuOpen(false); navigate("/"); }}
+                className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer">
+                Logout
+              </button>
+            </nav>
+          </div>
+        </>
+      )}
 
       {/* Instruction */}
       <p className="text-[#6b7280] text-[13px] px-5 py-3 bg-white border-b border-[#e5e7eb]">
