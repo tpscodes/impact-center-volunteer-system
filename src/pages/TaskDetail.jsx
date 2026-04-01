@@ -1,7 +1,7 @@
 // TaskDetail.jsx — Prop-driven task detail for Experienced Volunteers
 // No hooks, no routing — rendered conditionally by TaskPool and MyTasks
 import { useState, useEffect } from 'react'
-import { Clock, Check, ClipboardList } from 'lucide-react'
+import { Check, ClipboardList } from 'lucide-react'
 
 // Live elapsed timer shown in the status bar when task is in progress
 function TaskTimer({ claimedAt }) {
@@ -73,18 +73,9 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
       </div>
 
       {/* Status bar — Dark Navy */}
-      <div className="bg-[#0a2a3a] px-6 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{statusLabel}</p>
-          <p className="text-white text-[18px] font-semibold">{task.name || task.item}</p>
-        </div>
-        <div className="flex items-center gap-2 text-[#6b7280] text-[13px]">
-          <Clock size={13} />
-          {isMyTask && task.claimedAt
-            ? <TaskTimer claimedAt={task.claimedAt} />
-            : <span>{task.estimatedTime || '—'}</span>
-          }
-        </div>
+      <div className="bg-[#0a2a3a] px-6 py-4">
+        <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{statusLabel}</p>
+        <p className="text-white text-[18px] font-semibold">{task.name || task.item}</p>
       </div>
 
       {/* Shift leader badge */}
