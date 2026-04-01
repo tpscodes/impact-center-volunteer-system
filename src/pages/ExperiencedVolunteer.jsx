@@ -222,7 +222,7 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
 // ── My Task Screen ───────────────────────────────────────────────────────────
 export function MyTask() {
   const navigate = useNavigate();
-  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks();
+  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks();
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
@@ -268,140 +268,184 @@ export function MyTask() {
   }
 
   return (
-    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      {/* Header — Dark Teal */}
+      <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
         <div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Experienced Volunteer</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>My Task</div>
+          <p className="text-[#ccedeb] text-[11px] uppercase tracking-widest font-normal">Experienced Volunteer</p>
+          <p className="text-white text-[22px] font-semibold leading-tight mt-1">My Task</p>
         </div>
-        <button onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
+        <button
+          onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }}
+          className="border border-white text-white px-4 py-2 rounded-lg text-base hover:opacity-80 bg-transparent cursor-pointer"
+        >
+          Exit
+        </button>
       </div>
 
-      <div style={{ padding: "20px 16px" }}>
+      {/* Status bar — Dark Navy */}
+      {myTask && (
+        <div className="bg-[#0a2a3a] px-6 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">In Progress</p>
+            <p className="text-white text-[18px] font-semibold">{myTask.name || myTask.item}</p>
+          </div>
+          <div className="flex items-center gap-2 text-[#6b7280] text-[13px] font-mono">
+            ⏱ {mins}:{secs}
+          </div>
+        </div>
+      )}
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 pb-20">
+
         {!myTask ? (
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{completing ? "✅" : "📭"}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: GRAY.dark, marginBottom: 4 }}>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="text-5xl mb-4">{completing ? "✅" : "📭"}</div>
+            <p className="text-[16px] font-bold text-[#0a2a3a] mb-2">
               {completing ? "Task Complete!" : "No active task"}
-            </div>
-            <div style={{ fontSize: 13, color: GRAY.soft, marginBottom: 20 }}>
+            </p>
+            <p className="text-[13px] text-[#6b7280] mb-6">
               {completing ? "Heading back to task pool…" : "Head back to pick a new one!"}
-            </div>
+            </p>
             {!completing && (
-              <button onClick={() => navigate("/experienced/tasks")}
-                style={{ padding: "12px 24px", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              <button
+                onClick={() => navigate("/experienced/tasks")}
+                className="px-6 py-3 bg-[#09665e] text-white rounded-xl text-[14px] font-semibold border-none cursor-pointer hover:opacity-90"
+              >
                 ← Back to Tasks
               </button>
             )}
           </div>
         ) : (
           <>
-            {/* Task card */}
-            <div style={{ background: "white", borderRadius: 14, border: `2px solid ${GRAY.dark}`, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ background: GRAY.dark, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>In Progress</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: "white" }}>{myTask.name}</div>
-                </div>
-                <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.7)" }}>⏱ {mins}:{secs}</span>
-              </div>
-
-              <div style={{ padding: "16px 18px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: myTask.comments ? 14 : 0 }}>
-                  {[["ACTION", myTask.action], ["ITEM", myTask.item], ["SOURCE", myTask.source], ["TO", myTask.destination], ["EST. TIME", myTask.estimatedTime]].filter(([, v]) => v).map(([label, val]) => (
-                    <div key={label}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-                      <div style={{ fontSize: 14, color: GRAY.dark, fontWeight: 600, marginTop: 2 }}>{val}</div>
-                    </div>
-                  ))}
-                </div>
-                {myTask.comments && (
-                  <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "10px 12px", borderLeft: `3px solid ${GRAY.light}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Special Instructions</div>
-                    <div style={{ fontSize: 13, color: GRAY.soft }}>{myTask.comments}</div>
-                  </div>
-                )}
-                {(myTask.tags || []).includes("Shift Leader") && (
-                  <div style={{ marginTop: 12, padding: "8px 12px", background: "#FFF7ED", borderRadius: 8, borderLeft: "3px solid #FF9500", fontSize: 12, color: "#FF9500", fontWeight: 700 }}>
-                    🟠 You are the Shift Leader — new volunteers can find you for help
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-              <button onClick={handleUnclaim} disabled={completing}
-                style={{ flex: 1, padding: "14px 0", background: completing ? "#D1D5DB" : "#EF4444", color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
-                Unclaim
-              </button>
-              <button onClick={handleComplete} disabled={completing}
-                style={{ flex: 2, padding: "14px 0", background: completing ? "#D1D5DB" : GRAY.dark, color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: completing ? "not-allowed" : "pointer" }}>
-                {completing ? "Marking complete…" : "✓ MARK COMPLETE"}
-              </button>
-            </div>
-
-            <button onClick={() => navigate("/experienced/tasks")}
-              style={{ width: "100%", padding: "12px 0", background: "white", color: GRAY.soft, border: `2px solid ${GRAY.border}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-              ← Back to Task Pool
-            </button>
-          </>
-        )}
-
-        {/* Shift Leader: new volunteer tasks panel — always visible when shift leader */}
-        {isShiftLeader && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#FF9500", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-              🟠 New Volunteer Tasks ({newVolTasks.length})
-            </div>
-            {newVolTasks.length === 0 ? (
-              <div style={{ background: "white", borderRadius: 12, border: `1.5px solid ${GRAY.border}`, padding: "14px 16px", fontSize: 13, color: GRAY.light, textAlign: "center" }}>
-                No new volunteers working right now
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {newVolTasks.map(t => {
-                  const isActive = t.status === "in-progress";
-                  const isIncomplete = t.status === "incomplete";
-                  return (
-                    <div key={t.id} style={{ background: "white", borderRadius: 12, border: `1.5px solid ${isActive ? "#FED7AA" : isIncomplete ? "#FECACA" : GRAY.border}`, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: GRAY.dark }}>{t.name}</div>
-                          <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "2px 7px", flexShrink: 0,
-                            background: isActive ? "#FFF7ED" : isIncomplete ? "#FEE2E2" : "#F0FDF4",
-                            color: isActive ? "#FF9500" : isIncomplete ? "#DC2626" : "#16A34A" }}>
-                            {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: GRAY.soft }}>📍 {t.destination}</div>
-                        <div style={{ fontSize: 11, color: GRAY.light, marginTop: 2 }}>
-                          {isActive ? (t.assignedName || "New Volunteer") : "Unassigned"} · {t.estimatedTime}
-                        </div>
-                      </div>
-                      {isActive && (
-                        <button
-                          onClick={() => markTaskIncomplete(t.id)}
-                          style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#EF4444", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}>
-                          Mark Incomplete
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Shift leader badge */}
+            {(myTask.tags || []).includes("Shift Leader") && (
+              <div className="px-4 py-3 bg-[#fff7ed] rounded-lg border-l-4 border-[#ff9500]">
+                <p className="text-[#ff9500] text-[13px] font-bold">🟠 You are the Shift Leader — new volunteers can find you for help</p>
               </div>
             )}
-          </div>
+
+            {/* Task details card */}
+            <div className="bg-white border border-[#e5e7eb] rounded-xl p-6">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination], ["Est. Time", myTask.estimatedTime ? `~${myTask.estimatedTime}` : null]].filter(([, v]) => v).map(([label, val]) => (
+                  <div key={label}>
+                    <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{label}</p>
+                    <p className="text-[#0a2a3a] text-[16px]">{val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {(myTask.specialInstructions || myTask.comments) && (
+                <div className="border-l-2 border-[#e5e7eb] pl-4 mt-6">
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Special Instructions</p>
+                  <p className="text-[#6b7280] text-[14px] italic leading-relaxed">
+                    {myTask.specialInstructions || myTask.comments}
+                  </p>
+                </div>
+              )}
+
+              {myTask.tags && myTask.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {myTask.tags.map(tag => (
+                    <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex">
+              <button
+                onClick={handleUnclaim}
+                disabled={completing}
+                className="flex-1 bg-[#dc2626] text-white py-4 rounded-l-xl text-[16px] font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
+              >
+                Unclaim
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={completing}
+                className="flex-1 bg-[#09665e] text-white py-4 rounded-r-xl text-[16px] font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
+              >
+                ✓ {completing ? "Saving…" : "Mark Complete"}
+              </button>
+            </div>
+
+            {/* Back link */}
+            <button
+              onClick={() => navigate("/experienced/tasks")}
+              className="text-center text-[#6b7280] text-[14px] py-2 hover:underline bg-transparent border-none cursor-pointer"
+            >
+              ← Back to Task Pool
+            </button>
+
+            {/* Shift Leader: new volunteer tasks panel */}
+            {isShiftLeader && (
+              <div className="mt-2">
+                <p className="text-[#ff9500] text-[11px] font-bold uppercase tracking-widest mb-3">
+                  🟠 New Volunteer Tasks ({newVolTasks.length})
+                </p>
+                {newVolTasks.length === 0 ? (
+                  <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-4 text-[13px] text-[#9ca3af] text-center">
+                    No new volunteers working right now
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {newVolTasks.map(t => {
+                      const isActive = t.status === "in-progress";
+                      const isIncomplete = t.status === "incomplete";
+                      return (
+                        <div key={t.id} className={`bg-white rounded-xl border px-4 py-3 flex items-center justify-between ${isActive ? "border-[#fed7aa]" : isIncomplete ? "border-[#fecaca]" : "border-[#e5e7eb]"}`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-[14px] font-semibold text-[#0a2a3a]">{t.name}</p>
+                              <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 ${isActive ? "bg-[#fff7ed] text-[#ff9500]" : isIncomplete ? "bg-[#fee2e2] text-[#dc2626]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                                {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-[#6b7280]">📍 {t.destination}</p>
+                            <p className="text-[11px] text-[#9ca3af] mt-1">
+                              {isActive ? (t.assignedName || "New Volunteer") : "Unassigned"} · {t.estimatedTime}
+                            </p>
+                          </div>
+                          {isActive && (
+                            <button
+                              onClick={() => markTaskIncomplete(t.id)}
+                              className="text-[12px] font-bold text-white bg-[#ef4444] border-none rounded-lg px-3 py-1.5 cursor-pointer shrink-0 ml-3"
+                            >
+                              Mark Incomplete
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${GRAY.border}`, display: "flex" }}>
-        <button onClick={() => navigate("/experienced/tasks")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: "pointer" }}>
-          📋 Available Tasks
+      {/* Bottom tab bar */}
+      <div className="bg-white border-t border-[#e5e7eb] h-14 flex items-center shrink-0">
+        <button
+          onClick={() => navigate("/experienced/tasks")}
+          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#6b7280] bg-transparent border-none cursor-pointer"
+        >
+          <span className="text-[18px]">📋</span>
+          <span className="text-[12px]">Available</span>
         </button>
-        <button style={{ flex: 1, padding: "14px 0", background: "none", border: "none", fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: "pointer", borderBottom: `2px solid ${GRAY.dark}` }}>
-          ✅ My Task
+        <button
+          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#09665e] border-b-2 border-[#09665e] bg-transparent border-l-0 border-r-0 border-t-0 cursor-default"
+        >
+          <span className="text-[18px]">✓</span>
+          <span className="text-[12px] font-medium">My task</span>
         </button>
       </div>
     </div>
