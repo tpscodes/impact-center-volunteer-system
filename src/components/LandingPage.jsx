@@ -1,90 +1,94 @@
 import { useNavigate } from 'react-router-dom'
+import { User, Users, UserPlus, ChevronRight } from 'lucide-react'
 
 export default function LandingPage() {
   const navigate = useNavigate()
 
-  const buttons = [
-    {
-      label: 'Operations Manager',
-      emoji: '🔒',
-      bg: '#374151',
-      hover: '#1F2937',
-      to: '/manager/login',
-    },
-    {
-      label: 'Experienced Volunteer',
-      emoji: '👤',
-      bg: '#6B7280',
-      hover: '#4B5563',
-      to: '/experienced',
-    },
-    {
-      label: 'New Volunteer',
-      emoji: '🆕',
-      bg: '#9CA3AF',
-      hover: '#6B7280',
-      to: '/new',
-    },
-  ]
-
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-      style={{ backgroundColor: '#F8F8FA' }}
-    >
-      {/* Header */}
-      <div className="text-center mb-10">
-        <h1
-          className="text-5xl font-extrabold tracking-widest uppercase"
-          style={{ color: '#1F497D' }}
-        >
-          IMPACT CENTER
-        </h1>
-        <p
-          className="mt-2 text-lg font-semibold tracking-wide uppercase"
-          style={{ color: '#1F497D', opacity: 0.7 }}
-        >
-          Volunteer Task Management
-        </p>
-        <div
-          className="mt-4 mx-auto h-1 w-24 rounded-full"
-          style={{ backgroundColor: '#1F497D', opacity: 0.3 }}
-        />
-      </div>
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
 
-      {/* Role Buttons */}
-      <div className="w-full flex flex-col gap-4" style={{ maxWidth: '400px' }}>
-        {buttons.map(({ label, emoji, bg, hover, to }) => (
-          <button
-            key={label}
-            onClick={() => navigate(to)}
-            className="w-full flex flex-col items-center justify-center rounded-2xl shadow-lg font-bold text-white transition-transform active:scale-95 cursor-pointer"
-            style={{
-              backgroundColor: bg,
-              minHeight: '100px',
-              fontSize: '1.25rem',
-              border: 'none',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = hover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = bg)}
-          >
-            <span className="text-3xl mb-1">{emoji}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* QR Code */}
-      <div className="mt-12 flex flex-col items-center gap-3">
+      {/* LEFT COLUMN — desktop only */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#F0FAFA] flex-col items-center justify-center p-16 min-h-screen">
+        <h1 className="text-4xl font-bold text-[#0A2A3A] text-center w-full mb-1">IMPACT CENTER</h1>
+        <p className="text-[#0D9488] text-base text-center w-full mb-4">Volunteer Task Management</p>
+        <div className="w-12 h-0.5 bg-[#0D9488] mb-10 mx-auto" />
         <img
-          src="/qr-code.png"
-          alt="Scan to access on mobile"
-          className="rounded-xl shadow-sm"
-          style={{ width: 140, height: 140, objectFit: 'contain' }}
+          src="/illustration-group.png"
+          alt="Volunteers"
+          className="w-[320px] h-auto my-8"
         />
-        <p className="text-sm font-medium" style={{ color: '#64748B' }}>
-          Scan to access on mobile
+        <p className="text-xl font-semibold text-[#0A2A3A] text-center leading-snug">
+          Coordinating volunteers,<br />one task at a time
         </p>
+        <div className="w-12 h-0.5 bg-[#0D9488] mt-6 mx-auto" />
+      </div>
+
+      {/* RIGHT COLUMN */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8 lg:px-16 py-12 min-h-screen">
+
+        {/* Mobile only header */}
+        <div className="lg:hidden text-center mb-6">
+          <h1 className="text-3xl font-normal text-[#1e1e1e] tracking-wide">IMPACT CENTER</h1>
+          <p className="text-base text-[#757575] mt-1">Volunteer Task Management</p>
+          <div className="w-14 h-0.5 bg-[#0D9488] mx-auto mt-3" />
+        </div>
+
+        {/* Mobile only illustration */}
+        <img
+          src="/illustration-group.png"
+          alt="Volunteers illustration"
+          className="lg:hidden w-[260px] h-auto mx-auto my-6"
+        />
+
+        {/* Welcome text */}
+        <h2 className="text-2xl font-semibold text-[#0A2A3A] text-center mb-2">Welcome</h2>
+        <p className="text-base text-[#6B7280] text-center mb-8">Select your role to get started.</p>
+
+        {/* Role cards */}
+        <div className="w-full max-w-[420px] flex flex-col gap-3">
+
+          <button
+            onClick={() => navigate('/manager/login')}
+            className="w-full flex items-center gap-6 bg-[#99dbd7] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <User size={28} className="text-[#1e1e1e] shrink-0" />
+            <div>
+              <p className="text-base font-semibold text-[#1e1e1e]">Operations Manager</p>
+              <p className="text-sm text-[#757575]">Manage tasks and volunteers</p>
+            </div>
+            <ChevronRight size={18} className="text-[#757575] ml-auto shrink-0" />
+          </button>
+
+          <button
+            onClick={() => navigate('/experienced')}
+            className="w-full flex items-center gap-6 bg-[#09665e] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <Users size={28} className="text-white shrink-0" />
+            <div>
+              <p className="text-base font-semibold text-[#f3f3f3]">Experienced Volunteer</p>
+              <p className="text-sm text-[#b3b3b3]">View and claim tasks</p>
+            </div>
+            <ChevronRight size={18} className="text-[#b3b3b3] ml-auto shrink-0" />
+          </button>
+
+          <button
+            onClick={() => navigate('/new')}
+            className="w-full flex items-center gap-6 bg-[#ccedeb] rounded-xl px-6 py-4 text-left hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <UserPlus size={28} className="text-[#1e1e1e] shrink-0" />
+            <div>
+              <p className="text-base font-semibold text-[#1e1e1e]">New Volunteer</p>
+              <p className="text-sm text-[#757575]">First time? Start here</p>
+            </div>
+            <ChevronRight size={18} className="text-[#757575] ml-auto shrink-0" />
+          </button>
+
+        </div>
+
+        {/* Footer */}
+        <p className="text-sm text-[#757575] text-center mt-10">Impact Center · Greenwood, IN</p>
+        <p className="hidden lg:block text-xs text-[#757575] mt-2">● No active session</p>
+
       </div>
     </div>
   )

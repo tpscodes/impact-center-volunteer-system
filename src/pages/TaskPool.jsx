@@ -3,19 +3,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import TaskDetail from './TaskDetail'
+import { Search, MapPin, ArrowRight, Pin } from 'lucide-react'
 
-const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
-
-const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Delivery", "Shift Leader", "Warm", "Cool", "Kitchen", "Clothing", "General"]
+const GRAY = { dark: "#1e1e1e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB" }
+const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sorting", "Produce"]
 
 export default function TaskPool() {
   const navigate = useNavigate()
   const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
   const [search, setSearch] = useState('')
-  const [activeTags, setActiveTags] = useState([])
-  const [pendingClaim, setPendingClaim] = useState(null) // task awaiting shift leader name
+  const [activeTag, setActiveTag] = useState('All')
+  const [pendingClaim, setPendingClaim] = useState(null)
   const [slName, setSlName] = useState('')
-  const [selectedTask, setSelectedTask] = useState(null) // task being viewed in detail
+  const [selectedTask, setSelectedTask] = useState(null)
 
   const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
@@ -25,30 +25,25 @@ export default function TaskPool() {
 
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === 'in-progress')
 
-  // In-progress tasks claimed by OTHER volunteers
   const claimedByOthers = tasks.filter(t =>
     t.status === 'in-progress' && t.assignedTo !== volunteerId &&
     !(t.assignedTo || '').startsWith('new-')
   )
 
-  // Shift leader: in-progress new volunteer tasks they can supervise
   const newVolInProgress = isShiftLeader
     ? tasks.filter(t => t.status === 'in-progress' && (t.assignedTo || '').startsWith('new-'))
     : []
 
-  // Incomplete tasks — claimable by any experienced volunteer
   let incompleteTasks = tasks.filter(t =>
     t.status === 'incomplete' &&
     (!t.assignedTo || t.assignedTo === 'experienced' || t.assignedTo === volunteerId || t.assignedTo === '')
   )
 
-  // Available tasks for experienced volunteers
   let available = tasks.filter(t =>
     t.status === 'available' &&
     (!t.assignedTo || t.assignedTo === 'experienced' || t.assignedTo === volunteerId)
   )
 
-  // Apply search + tag filters to available tasks
   if (search) {
     available = available.filter(t =>
       (t.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -62,18 +57,9 @@ export default function TaskPool() {
     )
   }
 
-  // Apply tag filter — show tasks matching ANY active tag
-  if (activeTags.length > 0) {
-    available = available.filter(t =>
-      activeTags.some(tag => (t.tags || []).includes(tag))
-    )
-    incompleteTasks = incompleteTasks.filter(t =>
-      activeTags.some(tag => (t.tags || []).includes(tag))
-    )
-  }
-
-  function toggleTag(tag) {
-    setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  if (activeTag !== 'All') {
+    available = available.filter(t => (t.tags || []).includes(activeTag))
+    incompleteTasks = incompleteTasks.filter(t => (t.tags || []).includes(activeTag))
   }
 
   async function handleClaim(task) {
@@ -100,27 +86,30 @@ export default function TaskPool() {
   )
   if (session !== null && session !== undefined && !isSessionActive) {
     return (
-      <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-        <div style={{ background: GRAY.mid, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
+        <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
           <div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Experienced Volunteer</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>Welcome, {volunteerName}</div>
+            <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
+            <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
           </div>
-          <button onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>Exit</button>
+          <button
+            onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
+          >
+            Exit
+          </button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, marginBottom: 8 }}>No active session right now</div>
-          <div style={{ fontSize: 15, color: GRAY.soft }}>Check back when the pantry opens</div>
+        <div className="flex flex-col items-center justify-center flex-1 py-20 px-8 text-center">
+          <div className="text-5xl mb-4">🔒</div>
+          <p className="text-xl font-bold text-[#1e1e1e] mb-2">No active session right now</p>
+          <p className="text-base text-[#757575]">Check back when the pantry opens</p>
         </div>
       </div>
     )
   }
 
-  // If a task is selected, show TaskDetail instead of pool
+  // TaskDetail overlay
   if (selectedTask) {
-    // Re-fetch from tasks to get latest status
     const liveTask = tasks.find(t => t.id === selectedTask.id) || selectedTask
     const isMyTask = liveTask.assignedTo === volunteerId && liveTask.status === 'in-progress'
     return (
@@ -134,11 +123,10 @@ export default function TaskPool() {
           onUnclaim={isMyTask ? async () => { await markTaskIncomplete(liveTask.id); setSelectedTask(null) } : undefined}
           onBack={() => setSelectedTask(null)}
         />
-        {/* Shift Leader modal rendered at root level so it appears above TaskDetail */}
         {pendingClaim && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 360 }}>
-              <div style={{ background: '#FF9500', padding: '18px 20px' }}>
+              <div style={{ background: '#09665e', padding: '18px 20px' }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Shift Leader Task</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginTop: 2 }}>What's your name?</div>
               </div>
@@ -153,13 +141,13 @@ export default function TaskPool() {
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter' && slName.trim()) handleSetShiftLeader() }}
                   style={{ width: '100%', padding: '12px 14px', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 16, color: GRAY.dark, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                  onFocus={e => e.target.style.borderColor = '#FF9500'}
+                  onFocus={e => e.target.style.borderColor = '#0d9488'}
                   onBlur={e => e.target.style.borderColor = '#E5E7EB'}
                 />
                 <button
                   onClick={handleSetShiftLeader}
                   disabled={!slName.trim()}
-                  style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#FF9500' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                  style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#09665e' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
                 >
                   Set as Shift Leader
                 </button>
@@ -178,216 +166,210 @@ export default function TaskPool() {
   }
 
   return (
-    <div style={{ background: GRAY.bg, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 80 }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Header */}
-      <div style={{ background: GRAY.mid, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
         <div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Experienced Volunteer</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>Welcome, {volunteerName}</div>
+          <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
+          <p className="text-[#f3f3f3] text-base font-semibold">{volunteerName}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="flex items-center gap-3">
           <div style={{ width: 7, height: 7, borderRadius: '50%', background: error ? '#EF4444' : synced ? '#86EFAC' : '#FCD34D' }} />
           <button
             onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
-          >Exit</button>
+            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base cursor-pointer bg-transparent"
+          >
+            Exit
+          </button>
         </div>
       </div>
 
-      {/* Active task banner */}
-      {myTask && (
-        <div style={{ background: GRAY.dark, margin: '16px 16px 0', borderRadius: 12, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>You're working on</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginTop: 2 }}>{myTask.name}</div>
-          </div>
-          <button onClick={() => navigate('/experienced/mytask')}
-            style={{ background: 'white', color: GRAY.dark, border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-            View →
-          </button>
-        </div>
-      )}
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="px-5 py-4 flex flex-col gap-4">
 
-      <div style={{ padding: '16px 16px 0' }}>
+        {/* Active task banner */}
+        {myTask && (
+          <div
+            onClick={() => navigate('/experienced/mytask')}
+            className="bg-[#0a2a3a] rounded-lg p-4 flex items-center justify-between cursor-pointer"
+          >
+            <div>
+              <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mb-1">You're working on</p>
+              <p className="text-white text-base font-semibold">{myTask.name}</p>
+            </div>
+            <button className="bg-white text-[#0a2a3a] text-sm font-bold px-3 py-2 rounded-lg border-none cursor-pointer">
+              View →
+            </button>
+          </div>
+        )}
+
         {/* Search bar */}
-        <div style={{ position: 'relative', marginBottom: 10 }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14 }}>🔍</span>
+        <div className="bg-white border border-[#d9d9d9] rounded-full px-4 py-3 flex items-center gap-2">
           <input
+            type="text"
+            placeholder="Search Task"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search tasks…"
-            style={{ width: '100%', padding: '10px 12px 10px 32px', border: `1.5px solid ${GRAY.border}`, borderRadius: 8, fontSize: 14, color: GRAY.dark, background: 'white', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+            className="flex-1 text-base text-[#1e1e1e] placeholder-[#b3b3b3] outline-none bg-transparent"
           />
+          <Search size={16} className="text-[#b3b3b3] shrink-0" />
         </div>
 
-        {/* Tag filter row */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-          {ALL_TAGS.map(tag => {
-            const active = activeTags.includes(tag)
-            return (
-              <button key={tag} onClick={() => toggleTag(tag)}
-                style={{
-                  flexShrink: 0,
-                  padding: '5px 12px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  border: `1.5px solid ${active ? GRAY.mid : GRAY.border}`,
-                  background: active ? GRAY.mid : 'white',
-                  color: active ? 'white' : GRAY.soft,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {tag}
-              </button>
-            )
-          })}
+        {/* Tag filters */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {TAG_FILTERS.map(tag => (
+            <button key={tag}
+              onClick={() => setActiveTag(tag)}
+              className={`px-3 py-1.5 rounded-lg text-[14px] font-semibold shrink-0 border-none cursor-pointer ${
+                activeTag === tag ? 'bg-[#09665e] text-[#f0fafa]' : 'bg-[#f0fafa] text-[#09665e]'
+              }`}>
+              {tag}
+            </button>
+          ))}
         </div>
 
-        {/* Incomplete tasks — at the top */}
+        {/* Incomplete tasks */}
         {incompleteTasks.length > 0 && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Incomplete — Needs Finishing ({incompleteTasks.length})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-              {incompleteTasks.map(t => (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTask(t)}
-                  style={{ background: '#FFF5F5', borderRadius: 12, border: '1.5px solid #FECACA', overflow: 'hidden', cursor: 'pointer' }}
-                >
-                  <div style={{ padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#DC2626', flex: 1 }}>{t.name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEE2E2', borderRadius: 20, padding: '2px 8px', marginLeft: 8 }}>Incomplete</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: GRAY.soft, marginBottom: 4 }}>{t.source} → {t.destination}</div>
-                    <div style={{ fontSize: 11, color: GRAY.light }}>{t.estimatedTime}</div>
-                    {t.rolledOver && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>Rolled over from {t.rolledOverFrom}</div>}
-                  </div>
-                  <div style={{ padding: '8px 16px', borderTop: '1px solid #FECACA', fontSize: 12, fontWeight: 700, color: '#DC2626' }}>
-                    Tap to claim and finish →
-                  </div>
+          <div>
+            <p className="text-[#900b09] text-base font-semibold mb-2">Incomplete ({incompleteTasks.length})</p>
+            {incompleteTasks.map(task => (
+              <div key={task.id} className="bg-[#fdefec] border border-[#757575] rounded-lg p-3 mb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[#900b09] text-base font-semibold">{task.name || task.item}</p>
+                  <span className="bg-[#fcb3ad] text-[#900b09] text-[14px] font-semibold px-2 py-1 rounded-lg shrink-0">
+                    Incomplete
+                  </span>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-          Available Tasks ({available.length})
-        </div>
-
-        {available.length === 0 && incompleteTasks.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: GRAY.light, fontSize: 14 }}>
-            {myTask
-              ? 'Complete your current task first!'
-              : (search || activeTags.length > 0)
-                ? 'No tasks match your filters.'
-                : 'No tasks available right now'}
+                <div className="flex items-center gap-1 mt-1">
+                  <MapPin size={14} className="text-[#6b7280] shrink-0" />
+                  <p className="text-[#6b7280] text-[12px]">{task.source}</p>
+                  {task.destination && <><ArrowRight size={14} className="text-[#6b7280] shrink-0" /><p className="text-[#6b7280] text-[12px]">{task.destination}</p></>}
+                </div>
+                {task.rolledOver && <p className="text-[12px] text-[#900b09] mt-1 font-semibold">Rolled over from {task.rolledOverFrom}</p>}
+                <div className="border-t border-[#e5e7eb] mt-2 pt-2">
+                  <button
+                    onClick={() => handleClaim(task)}
+                    className="flex items-center gap-1 text-[#0a2a3a] text-[12px] bg-transparent border-none cursor-pointer"
+                  >
+                    Tap to claim and finish <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Task cards — tap to view detail */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {available.map(t => (
-            <div
-              key={t.id}
-              onClick={() => setSelectedTask(t)}
-              style={{ background: 'white', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, overflow: 'hidden', cursor: 'pointer' }}
-            >
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: GRAY.dark, flex: 1 }}>{t.name}</div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700,
-                    color: t.priority === 'Urgent' ? '#EF4444' : t.priority === 'High' ? '#FF9500' : '#9CA3AF',
-                    background: t.priority === 'Urgent' ? '#FEE2E2' : t.priority === 'High' ? '#FFF7ED' : '#F3F4F6',
-                    borderRadius: 20, padding: '2px 8px', marginLeft: 8,
-                  }}>
-                    {t.priority || 'Normal'}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: GRAY.soft, marginBottom: 4 }}>{t.source} → {t.destination}</div>
-                <div style={{ fontSize: 11, color: GRAY.light }}>{t.estimatedTime}</div>
-                {t.comments && <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 6, fontStyle: 'italic' }}>📌 {t.comments}</div>}
+        {/* Available tasks */}
+        <div>
+          <p className="text-[#1e1e1e] text-base font-semibold mb-2">Available Tasks ({available.length})</p>
 
-                {/* Tags */}
-                {t.tags && t.tags.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                    {t.tags.map(tag => (
-                      <span key={tag} style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: GRAY.border, color: GRAY.mid }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+          {available.length === 0 && incompleteTasks.length === 0 && (
+            <p className="text-center text-[#9ca3af] text-[14px] py-10">
+              {myTask ? 'Complete your current task first!' :
+               (search || activeTag !== 'All') ? 'No tasks match your filters.' : 'No tasks available right now'}
+            </p>
+          )}
+
+          {available.map(task => (
+            <div key={task.id} className="bg-white border border-[#757575] rounded-lg p-3 mb-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[#303030] text-base font-semibold">{task.name || task.item}</p>
+                {task.priority && (
+                  <span className={`text-[14px] font-semibold px-2 py-1 rounded-lg shrink-0 ${
+                    task.priority === 'High'   ? 'bg-[#ffe8a3] text-[#682d03]' :
+                    task.priority === 'Urgent' ? 'bg-[#fcb3ad] text-[#900b09]' :
+                    'bg-[#e6e6e6] text-[#757575]'
+                  }`}>{task.priority}</span>
                 )}
               </div>
-              <div style={{ padding: '10px 16px', borderTop: `1px solid ${GRAY.border}`, fontSize: 12, fontWeight: 700, color: GRAY.soft }}>
-                Tap to view details →
+              <div className="flex items-center gap-1 mt-1">
+                <MapPin size={14} className="text-[#6b7280] shrink-0" />
+                <p className="text-[#6b7280] text-[12px]">{task.source}</p>
+                {task.destination && <><ArrowRight size={14} className="text-[#6b7280] shrink-0" /><p className="text-[#0a2a3a] text-[12px]">{task.destination}</p></>}
+              </div>
+              {task.specialInstructions && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Pin size={14} className="text-[#6b7280] shrink-0" />
+                  <p className="text-[#6b7280] text-[12px] italic">{task.specialInstructions}</p>
+                </div>
+              )}
+              {task.comments && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Pin size={14} className="text-[#6b7280] shrink-0" />
+                  <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                </div>
+              )}
+              {task.tags && task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {task.tags.map(tag => (
+                    <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="border-t border-[#e5e7eb] mt-2 pt-2">
+                <button
+                  onClick={() => handleClaim(task)}
+                  className="flex items-center gap-1 text-[#0a2a3a] text-[12px] bg-transparent border-none cursor-pointer"
+                >
+                  Tap to claim and finish <ArrowRight size={14} />
+                </button>
               </div>
             </div>
           ))}
         </div>
+
         {/* Claimed by others */}
         {claimedByOthers.length > 0 && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: GRAY.light, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 16, marginBottom: 8 }}>
-              In Progress ({claimedByOthers.length})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {claimedByOthers.map(t => (
-                <div key={t.id} style={{ background: '#F9FAFB', borderRadius: 12, border: `1.5px solid ${GRAY.border}`, padding: '12px 16px', opacity: 0.75 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: GRAY.soft }}>{t.name}</div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#E5E7EB', color: GRAY.soft, borderRadius: 20, padding: '2px 8px' }}>In Progress</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: GRAY.light }}>
-                    🙋 Claimed by <strong style={{ color: GRAY.soft }}>{t.assignedName || 'a volunteer'}</strong>
-                  </div>
+          <div>
+            <p className="text-[#757575] text-[12px] font-bold uppercase tracking-wider mb-2">In Progress ({claimedByOthers.length})</p>
+            {claimedByOthers.map(t => (
+              <div key={t.id} className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg p-3 mb-2 opacity-75">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[#6b7280] text-[14px] font-semibold">{t.name}</p>
+                  <span className="text-[12px] font-semibold bg-[#e5e7eb] text-[#6b7280] px-2 py-1 rounded-lg">In Progress</span>
                 </div>
-              ))}
-            </div>
-          </>
+                <p className="text-[#9ca3af] text-[12px]">🙋 Claimed by <strong className="text-[#6b7280]">{t.assignedName || 'a volunteer'}</strong></p>
+              </div>
+            ))}
+          </div>
         )}
 
-        {/* Shift leader: new volunteer tasks in progress */}
+        {/* Shift leader: new volunteer tasks */}
         {newVolInProgress.length > 0 && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#FF9500', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 20, marginBottom: 8 }}>
-              New Volunteer Tasks — In Progress ({newVolInProgress.length})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {newVolInProgress.map(t => (
-                <div key={t.id} style={{ background: '#FFFBF0', borderRadius: 12, border: '1.5px solid #FCD34D', padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: GRAY.dark }}>{t.name}</div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#FFF3E0', color: '#C2410C', borderRadius: 20, padding: '2px 8px' }}>In Progress</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: GRAY.soft }}>
-                    {t.claimedByName
-                      ? <>🙋 Claimed by <strong style={{ color: GRAY.dark }}>{t.claimedByName}</strong></>
-                      : 'Unassigned'}
-                  </div>
+          <div>
+            <p className="text-[#ff9500] text-[12px] font-bold uppercase tracking-wider mb-2">New Volunteer Tasks — In Progress ({newVolInProgress.length})</p>
+            {newVolInProgress.map(t => (
+              <div key={t.id} className="bg-[#fffbf0] border border-[#fcd34d] rounded-lg p-3 mb-2">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[#1e1e1e] text-[14px] font-semibold">{t.name}</p>
+                  <span className="text-[12px] font-semibold bg-[#fff3e0] text-[#c2410c] px-2 py-1 rounded-lg">In Progress</span>
                 </div>
-              ))}
-            </div>
-          </>
+                <p className="text-[#6b7280] text-[12px]">
+                  {t.claimedByName
+                    ? <>🙋 Claimed by <strong className="text-[#1e1e1e]">{t.claimedByName}</strong></>
+                    : 'Unassigned'}
+                </p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+      </div>
 
-      {/* Bottom nav */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: 'white', borderTop: `1px solid ${GRAY.border}`, display: 'flex' }}>
-        <button style={{ flex: 1, padding: '14px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 700, color: GRAY.dark, cursor: 'pointer', borderBottom: `2px solid ${GRAY.dark}` }}>
-          📋 Available ({available.length})
+      {/* Bottom tab bar */}
+      <div className="bg-[#ccedeb] border-t border-[#09665e] fixed bottom-0 left-0 right-0 h-14 flex">
+        <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
+          Available
         </button>
-        <button onClick={() => navigate('/experienced/mytask')}
-          style={{ flex: 1, padding: '14px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: GRAY.soft, cursor: 'pointer' }}>
-          ✅ My Task {myTask ? '(1)' : ''}
+        <button
+          onClick={() => navigate('/experienced/mytask')}
+          className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
+        >
+          My task {myTask ? '(1)' : ''}
         </button>
       </div>
 
@@ -395,8 +377,7 @@ export default function TaskPool() {
       {pendingClaim && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 360 }}>
-            {/* Orange header */}
-            <div style={{ background: '#FF9500', padding: '18px 20px' }}>
+            <div style={{ background: '#09665e', padding: '18px 20px' }}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Shift Leader Task</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginTop: 2 }}>What's your name?</div>
             </div>
@@ -411,13 +392,13 @@ export default function TaskPool() {
                 autoFocus
                 onKeyDown={e => { if (e.key === 'Enter' && slName.trim()) handleSetShiftLeader() }}
                 style={{ width: '100%', padding: '12px 14px', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 16, color: GRAY.dark, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                onFocus={e => e.target.style.borderColor = '#FF9500'}
+                onFocus={e => e.target.style.borderColor = '#0d9488'}
                 onBlur={e => e.target.style.borderColor = '#E5E7EB'}
               />
               <button
                 onClick={handleSetShiftLeader}
                 disabled={!slName.trim()}
-                style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#FF9500' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                style={{ width: '100%', marginTop: 12, padding: '13px 0', background: slName.trim() ? '#09665e' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: slName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
               >
                 Set as Shift Leader
               </button>

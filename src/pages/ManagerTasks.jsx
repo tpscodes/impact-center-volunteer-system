@@ -1,6 +1,8 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -170,6 +172,143 @@ function TagsCell({ tags, onChange }) {
       )}
     </div>
   );
+}
+
+// ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
+export default function ManagerTasks() {
+  const navigate = useNavigate()
+  const { tasks, deleteTask, markTaskIncomplete } = useSharedTasks()
+
+  const totalTasks = tasks.length
+  const activeTasks = tasks.filter(t => t.status === 'available').length
+  const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length
+  const doneTasks = tasks.filter(t => t.status === 'complete').length
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f5]" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* Header — Dark Navy */}
+      <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
+        <div>
+          <p className="text-[#0d9488] text-[11px] uppercase tracking-widest font-normal">
+            Operations Manager
+          </p>
+          <p className="text-white text-[22px] font-semibold leading-tight mt-1">
+            Tasks
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/manager/dashboard')}
+          className="flex items-center gap-2 border border-white text-white px-4 py-2 rounded-lg text-[13px] hover:opacity-80 bg-transparent cursor-pointer"
+        >
+          ← Dashboard
+        </button>
+      </div>
+
+      {/* Stats row — 4 cards */}
+      <div className="grid grid-cols-4 border-b border-[#e5e7eb]">
+        {[
+          { label: 'Total',       value: totalTasks },
+          { label: 'Active',      value: activeTasks },
+          { label: 'In Progress', value: inProgressTasks },
+          { label: 'Done',        value: doneTasks },
+        ].map(stat => (
+          <div key={stat.label}
+            className="bg-white py-5 flex flex-col items-center justify-center border-r border-[#e5e7eb] last:border-r-0">
+            <p className="text-[#0a2a3a] text-[28px] font-semibold">{stat.value}</p>
+            <p className="text-[#6b7280] text-[13px] mt-1">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Task list */}
+      <div className="flex flex-col pb-24">
+        {tasks.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-[#6b7280] text-base">No tasks yet. Create one below.</p>
+          </div>
+        ) : (
+          tasks.map(task => {
+            const statusCfg = {
+              available:     { label: 'Available',   bg: 'bg-[#e6e6e6]',              text: 'text-[#6b7280]' },
+              'in-progress': { label: 'In Progress', bg: 'bg-[#fff3e0]',              text: 'text-[#ff9500]' },
+              complete:      { label: 'Complete',    bg: 'bg-[#dcfce7]',              text: 'text-[#16a34a]' },
+              incomplete:    { label: 'Incomplete',  bg: 'bg-[#fee2e2]',              text: 'text-[#dc2626]' },
+            }[task.status] || { label: task.status, bg: 'bg-[#e6e6e6]', text: 'text-[#6b7280]' }
+
+            return (
+              <div key={task.id} className="bg-white border-b border-[#e5e7eb] px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[#0a2a3a] text-[16px] font-semibold">{task.name || task.item}</p>
+                  <span className={`px-3 py-1 rounded-lg text-[13px] font-medium ${statusCfg.bg} ${statusCfg.text}`}>
+                    {statusCfg.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 mt-1 flex-wrap">
+                  {task.destination && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#dc2626] text-[11px]">📍</span>
+                      <p className="text-[#6b7280] text-[13px]">{task.destination}</p>
+                    </div>
+                  )}
+                  {task.assignedTo === 'experienced' ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#6b7280] text-[11px]">👤</span>
+                      <p className="text-[#6b7280] text-[13px]">Experienced Vol</p>
+                    </div>
+                  ) : task.assignedTo === 'new' ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#6b7280] text-[11px]">👤</span>
+                      <p className="text-[#6b7280] text-[13px]">New Vol</p>
+                    </div>
+                  ) : task.assignedName ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#6b7280] text-[11px]">👥</span>
+                      <p className="text-[#6b7280] text-[13px]">{task.assignedName}</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#6b7280] text-[11px]">👥</span>
+                      <p className="text-[#6b7280] text-[13px]">Open</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3 mt-2">
+                  {task.status === 'in-progress' && (
+                    <button
+                      onClick={() => markTaskIncomplete(task.id)}
+                      className="text-[#ff9500] text-[13px] hover:underline bg-transparent border-none cursor-pointer p-0"
+                    >
+                      Mark Incomplete
+                    </button>
+                  )}
+                  {task.status !== 'complete' && (
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-[#dc2626] text-[13px] hover:underline bg-transparent border-none cursor-pointer p-0"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Create Tasks button — fixed bottom */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#f5f5f5] border-t border-[#e5e7eb]">
+        <button
+          onClick={() => navigate('/manager/create-task')}
+          className="w-full bg-[#0a2a3a] text-white py-4 rounded-xl text-[16px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer"
+        >
+          <Plus size={18} />
+          Create Tasks
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // ── Manager Tasks List Screen ─────────────────────────────────────────────────
