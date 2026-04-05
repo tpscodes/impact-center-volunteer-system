@@ -1,7 +1,7 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, X } from "lucide-react";
+import { Plus, Menu, X, MapPin, ChevronRight, Clock } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
@@ -177,135 +177,193 @@ function TagsCell({ tags, onChange }) {
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const { tasks, deleteTask, markTaskIncomplete } = useSharedTasks()
+  const { tasks, completedTasks, session, deleteTask, markTaskIncomplete } = useSharedTasks()
 
-  const totalTasks = tasks.length
-  const activeTasks = tasks.filter(t => t.status === 'available').length
+  const activeTasks = tasks.filter(t => t.status !== 'complete').length
   const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length
-  const doneTasks = tasks.filter(t => t.status === 'complete').length
+  const volunteersActive = [...new Set(tasks.filter(t => t.assignedTo).map(t => t.assignedTo))].length
+  const isSessionActive = session?.isActive
+
+  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* Header — Dark Navy */}
-      <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-[#0d9488] text-[11px] uppercase tracking-widest font-normal">
-            Operations Manager
-          </p>
-          <p className="text-white text-[22px] font-semibold leading-tight mt-1">
-            Tasks
-          </p>
+      {/* ── Sidebar ── */}
+      <div className="w-[220px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
+        {/* Logo */}
+        <div className="px-5 pt-7 pb-4">
+          <p className="text-white text-[14px] font-medium">IMPACT CENTER</p>
+          <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
+          <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
         </div>
-        <button
-          onClick={() => navigate('/manager/dashboard')}
-          className="flex items-center gap-2 border border-white text-white px-4 py-2 rounded-lg text-[13px] hover:opacity-80 bg-transparent cursor-pointer"
-        >
-          ← Dashboard
-        </button>
+        {/* Nav */}
+        <nav className="flex flex-col mt-2">
+          {[
+            { label: 'Dashboard', path: '/manager/dashboard', active: false },
+            { label: 'Tasks',     path: '/manager-tasks',     active: true  },
+            { label: 'Volunteers',path: null,                 active: false },
+            { label: 'History',   path: '/manager/history',   active: false },
+          ].map(item => (
+            <button key={item.label}
+              onClick={() => item.path && navigate(item.path)}
+              className={`w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none cursor-pointer transition-colors ${
+                item.active
+                  ? 'text-[#0d9488] border-l-[3px] border-[#0d9488]'
+                  : 'text-[#767676] border-l-[3px] border-transparent hover:text-[#b3b3b3]'
+              }`}>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        {/* User info */}
+        <div className="mt-auto px-4 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-[12px] font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
+            </div>
+          </div>
+          <button onClick={() => navigate('/')}
+            className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
+            Logout
+          </button>
+        </div>
       </div>
 
-      {/* Stats row — 4 cards */}
-      <div className="grid grid-cols-4 border-b border-[#e5e7eb]">
-        {[
-          { label: 'Total',       value: totalTasks },
-          { label: 'Active',      value: activeTasks },
-          { label: 'In Progress', value: inProgressTasks },
-          { label: 'Done',        value: doneTasks },
-        ].map(stat => (
-          <div key={stat.label}
-            className="bg-white py-5 flex flex-col items-center justify-center border-r border-[#e5e7eb] last:border-r-0">
-            <p className="text-[#0a2a3a] text-[28px] font-semibold">{stat.value}</p>
-            <p className="text-[#6b7280] text-[13px] mt-1">{stat.label}</p>
-          </div>
-        ))}
-      </div>
+      {/* ── Main content ── */}
+      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
 
-      {/* Task list */}
-      <div className="flex flex-col pb-24">
-        {tasks.length === 0 ? (
-          <div className="flex items-center justify-center py-20">
-            <p className="text-[#6b7280] text-base">No tasks yet. Create one below.</p>
+        {/* Top bar */}
+        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
+            Good Morning, Operations Manager
+          </h1>
+          <div className="flex items-center gap-4">
+            <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
+            {isSessionActive ? (
+              <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-[#34c759]" />
+                <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-[#9ca3af]" />
+                <span className="text-[#6b7280] text-[11px] font-medium">No Session</span>
+              </div>
+            )}
           </div>
-        ) : (
-          tasks.map(task => {
-            const statusCfg = {
-              available:     { label: 'Available',   bg: 'bg-[#e6e6e6]',              text: 'text-[#6b7280]' },
-              'in-progress': { label: 'In Progress', bg: 'bg-[#fff3e0]',              text: 'text-[#ff9500]' },
-              complete:      { label: 'Complete',    bg: 'bg-[#dcfce7]',              text: 'text-[#16a34a]' },
-              incomplete:    { label: 'Incomplete',  bg: 'bg-[#fee2e2]',              text: 'text-[#dc2626]' },
-            }[task.status] || { label: task.status, bg: 'bg-[#e6e6e6]', text: 'text-[#6b7280]' }
+        </div>
 
-            return (
-              <div key={task.id} className="bg-white border-b border-[#e5e7eb] px-6 py-4">
+        {/* Content area */}
+        <div className="flex flex-1 gap-6 p-6">
+
+          {/* Left column — stats + create button */}
+          <div className="w-[240px] shrink-0 flex flex-col gap-4">
+            <button onClick={() => navigate('/manager/create-task')}
+              className="w-full bg-[#09665e] text-white py-3 rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer">
+              <Plus size={16} />
+              Create Task
+            </button>
+            {[
+              { label: 'Active Tasks',       value: activeTasks,      color: '#0d9488' },
+              { label: 'In Progress',        value: inProgressTasks,  color: '#ff9500' },
+              { label: 'Completed Today',    value: completedTasks?.length || 0, color: '#34c759' },
+              { label: 'Volunteers Active',  value: volunteersActive, color: '#0a2a3a' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
+                <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
+                <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Right column — task cards grid */}
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 content-start">
+            {tasks.filter(t => t.status !== 'complete').map(task => (
+              <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex flex-col gap-2">
+
+                {/* Name + priority */}
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">{task.name || task.item}</p>
+                  {task.priority && (
+                    <span className={`text-[12px] font-semibold px-3 py-1 rounded-full shrink-0 ${
+                      task.priority === 'Urgent' || task.priority === 'urgent'
+                        ? 'bg-[#fff0f0] text-[#dc2626]'
+                        : task.priority === 'High' || task.priority === 'high'
+                        ? 'bg-[#fff3e0] text-[#ff9500]'
+                        : 'bg-[#f0f0f0] text-[#6b7280]'
+                    }`}>
+                      {task.priority}
+                    </span>
+                  )}
+                </div>
+
+                {/* Source → Destination */}
+                {(task.source || task.destination) && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <MapPin size={13} className="text-[#6b7280] shrink-0" />
+                    <p className="text-[#6b7280] text-[12px]">{task.source}</p>
+                    <ChevronRight size={13} className="text-[#6b7280]" />
+                    <p className="text-[#0a2a3a] text-[12px]">{task.destination}</p>
+                  </div>
+                )}
+
+                {/* Special instructions (comments field) */}
+                {task.comments && (
+                  <div className="flex items-center gap-1">
+                    <Clock size={13} className="text-[#6b7280] shrink-0" />
+                    <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {task.tags && task.tags.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {task.tags.map(tag => (
+                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-1 rounded-md">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t border-[#e5e7eb]" />
+
+                {/* Actions */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[#0a2a3a] text-[16px] font-semibold">{task.name || task.item}</p>
-                  <span className={`px-3 py-1 rounded-lg text-[13px] font-medium ${statusCfg.bg} ${statusCfg.text}`}>
-                    {statusCfg.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 mt-1 flex-wrap">
-                  {task.destination && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#dc2626] text-[11px]">📍</span>
-                      <p className="text-[#6b7280] text-[13px]">{task.destination}</p>
-                    </div>
-                  )}
-                  {task.assignedTo === 'experienced' ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#6b7280] text-[11px]">👤</span>
-                      <p className="text-[#6b7280] text-[13px]">Experienced Vol</p>
-                    </div>
-                  ) : task.assignedTo === 'new' ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#6b7280] text-[11px]">👤</span>
-                      <p className="text-[#6b7280] text-[13px]">New Vol</p>
-                    </div>
-                  ) : task.assignedName ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#6b7280] text-[11px]">👥</span>
-                      <p className="text-[#6b7280] text-[13px]">{task.assignedName}</p>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#6b7280] text-[11px]">👥</span>
-                      <p className="text-[#6b7280] text-[13px]">Open</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-3 mt-2">
-                  {task.status === 'in-progress' && (
-                    <button
-                      onClick={() => markTaskIncomplete(task.id)}
-                      className="text-[#ff9500] text-[13px] hover:underline bg-transparent border-none cursor-pointer p-0"
-                    >
-                      Mark Incomplete
-                    </button>
-                  )}
-                  {task.status !== 'complete' && (
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="text-[#dc2626] text-[13px] hover:underline bg-transparent border-none cursor-pointer p-0"
-                    >
-                      Remove
-                    </button>
-                  )}
+                  <div className="flex gap-3">
+                    {task.status === 'in-progress' && (
+                      <button onClick={() => markTaskIncomplete(task.id)}
+                        className="text-[#ff9500] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                        Mark Incomplete
+                      </button>
+                    )}
+                    {task.status !== 'complete' && (
+                      <button onClick={() => deleteTask(task.id)}
+                        className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <button onClick={() => navigate('/manager/tasks')}
+                    className="flex items-center gap-0.5 text-[#0a2a3a] text-[12px] hover:text-[#0d9488] bg-transparent border-none cursor-pointer p-0">
+                    View all <ChevronRight size={13} />
+                  </button>
                 </div>
               </div>
-            )
-          })
-        )}
-      </div>
+            ))}
 
-      {/* Create Tasks button — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#f5f5f5] border-t border-[#e5e7eb]">
-        <button
-          onClick={() => navigate('/manager/create-task')}
-          className="w-full bg-[#0a2a3a] text-white py-4 rounded-xl text-[16px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer"
-        >
-          <Plus size={18} />
-          Create Tasks
-        </button>
+            {tasks.filter(t => t.status !== 'complete').length === 0 && (
+              <div className="col-span-2 flex items-center justify-center py-20">
+                <p className="text-[#6b7280] text-base">No active tasks. Create one to get started.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
