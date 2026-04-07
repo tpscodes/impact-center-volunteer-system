@@ -202,7 +202,7 @@ export default function ManagerTasks() {
           {[
             { label: 'Dashboard', path: '/manager/dashboard', active: false },
             { label: 'Tasks',     path: '/manager-tasks',     active: true  },
-            { label: 'Volunteers',path: null,                 active: false },
+            { label: 'Volunteers',path: '/manager-volunteers', active: false },
             { label: 'History',   path: '/manager/history',   active: false },
           ].map(item => (
             <button key={item.label}
