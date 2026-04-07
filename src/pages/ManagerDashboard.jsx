@@ -18,16 +18,31 @@ function timeStrToMs(str) {
   return d.getTime();
 }
 
+const getPriorityStyle = (priority) => {
+  const p = priority?.toLowerCase();
+  if (p === 'urgent') return 'bg-[#fff0f0] text-[#dc2626]';
+  if (p === 'high') return 'bg-[#fff3e0] text-[#ff9500]';
+  return 'bg-[#f0f0f0] text-[#6b7280]';
+};
+
+const getStatusStyle = (status) => {
+  if (status === 'in-progress') return 'bg-[#fff3e0] text-[#ff9500]';
+  if (status === 'complete') return 'bg-[#f0fff4] text-[#34c759]';
+  if (status === 'incomplete') return 'bg-[#fff0f0] text-[#dc2626]';
+  return 'bg-[#e6e6e6] text-[#6b7280]';
+};
+
+const getStatusLabel = (status) => {
+  if (status === 'in-progress') return 'In Progress';
+  if (status === 'complete') return 'Complete';
+  if (status === 'incomplete') return 'Incomplete';
+  return 'Available';
+};
+
 function StatusBadge({ status }) {
-  const cfg = {
-    available:     { label: "Available",   bg: "#e6e6e6", color: "#757575" },
-    "in-progress": { label: "In Progress", bg: "rgba(255,149,0,0.15)", color: "#ff9500" },
-    complete:      { label: "Complete",    bg: "rgba(52,199,89,0.15)",  color: "#34c759" },
-    incomplete:    { label: "Incomplete",  bg: "rgba(220,38,38,0.15)", color: "#dc2626" },
-  }[status] || { label: status, bg: "#e6e6e6", color: "#757575" };
   return (
-    <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 8, padding: "3px 10px", fontSize: 14, fontWeight: 600 }}>
-      {cfg.label}
+    <span className={`text-[12px] font-medium px-3 py-1 rounded-lg ${getStatusStyle(status)}`}>
+      {getStatusLabel(status)}
     </span>
   );
 }
@@ -195,7 +210,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
                 {[
                   { label: "Dashboard", active: true,  action: () => {} },
                   { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
-                  { label: "Volunteers",active: false, action: () => {} },
+                  { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
                   { label: "History",   active: false, action: () => navigate("/manager/history") },
                 ].map(item => (
                   <button
@@ -348,104 +363,102 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
       <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]">
 
       {/* ── Sidebar ── */}
-      <div className="w-[240px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 overflow-y-auto z-20">
+      <div className="w-[220px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 overflow-y-auto z-20">
         {/* Logo */}
-        <div className="px-6 pt-8 pb-4">
-          <p className="text-white text-[20px] font-normal leading-tight">IMPACT CENTER</p>
-          <p className="text-[#0d9488] text-[14px] mt-1 leading-tight">Volunteer Task<br />Management</p>
-          <div className="w-[40px] h-[2px] bg-[#0d9488] mt-3" />
+        <div className="px-5 pt-7 pb-4">
+          <p className="text-white text-[14px] font-medium tracking-wide">IMPACT CENTER</p>
+          <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
+          <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col mt-4">
-          <div className="flex items-center border-l-[3px] border-[#0d9488] px-6 py-3">
-            <span className="text-[#0d9488] text-[16px] font-semibold">Dashboard</span>
-          </div>
-          {["Tasks", "Volunteers", "History"].map(item => (
-            <div key={item} className="flex items-center px-6 py-3 cursor-pointer hover:bg-white/5"
-              onClick={() => item === "History" ? navigate("/manager/history") : item === "Tasks" ? navigate("/manager-tasks") : undefined}>
-              <span className="text-[#767676] text-[16px] font-semibold">{item}</span>
-            </div>
+        <nav className="flex flex-col mt-2">
+          <button className="w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none cursor-pointer text-[#0d9488] border-l-[3px] border-[#0d9488]">
+            Dashboard
+          </button>
+          {[
+            { label: 'Tasks',     action: () => navigate("/manager-tasks") },
+            { label: 'Volunteers',action: () => navigate("/manager-volunteers") },
+            { label: 'History',   action: () => navigate("/manager/history") },
+          ].map(item => (
+            <button key={item.label} onClick={item.action}
+              className="w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none cursor-pointer text-[#767676] border-l-[3px] border-transparent hover:text-[#b3b3b3]">
+              {item.label}
+            </button>
           ))}
         </nav>
 
         {/* User info */}
         <div className="mt-auto px-4 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-              <span className="text-white text-sm font-semibold">JB</span>
+            <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-[12px] font-semibold">JB</span>
             </div>
             <div>
-              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
-              <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
             </div>
           </div>
-          <button onClick={() => navigate("/")} className="text-[#dc2626] text-[10px] mt-2 ml-[52px] hover:underline bg-transparent border-none cursor-pointer">
+          <button onClick={() => navigate("/")} className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
             Logout
           </button>
         </div>
       </div>
 
       {/* ── Main content ── */}
-      <div className="ml-[240px] flex-1 flex flex-col min-h-screen">
+      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
 
         {/* Top bar */}
-        <div className="bg-white border-b border-[#e5e7eb] h-[69px] flex items-center justify-between px-8 sticky top-0 z-10">
-          <h1 className="text-[24px] font-semibold text-[#1e1e1e] tracking-tight">
+        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
             Good Morning, Operations Manager
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-[#6b7280] text-[14px]">{todayStr}</span>
+            <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
             {isSessionActive ? (
-              <span className="bg-[#dcfce7] text-[#16a34a] text-[12px] font-semibold px-3 py-1.5 rounded-full">
-                ● Session Active
-              </span>
+              <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-[#34c759]" />
+                <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
+              </div>
             ) : (
-              <span className="bg-[#f3f4f6] text-[#6b7280] text-[12px] font-semibold px-3 py-1.5 rounded-full">
-                ○ No Session
-              </span>
+              <div className="flex items-center gap-1.5 border border-[#e5e7eb] rounded-full px-3 py-1">
+                <div className="w-2 h-2 rounded-full bg-[#6b7280]" />
+                <span className="text-[#6b7280] text-[11px]">No Session</span>
+              </div>
             )}
-            <div className="flex items-center gap-2">
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#ef4444" : synced ? "#34c759" : "#fcd34d" }} />
-              <span className="text-[12px] text-[#6b7280]">{error ? "Offline" : synced ? "Live" : "Syncing…"}</span>
-            </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex justify-end gap-3 px-8 py-4">
+        <div className="flex justify-end gap-3 px-6 py-4">
           {isSessionActive ? (
             <button onClick={() => setShowEndConfirm(true)}
-              className="border border-[#900b09] bg-[#fdd3d0] text-[#900b09] px-4 py-2 rounded-lg text-[14px] hover:opacity-90 cursor-pointer">
+              className="flex items-center gap-2 border border-[#dc2626] bg-[#fdd3d0] text-[#dc2626] px-4 py-2 rounded-lg text-[13px] hover:opacity-90 cursor-pointer border-none">
               End Session
             </button>
           ) : (
             <button onClick={() => { setModalType("open"); setShowModal(true); }}
-              className="border border-[#16a34a] bg-[#dcfce7] text-[#16a34a] px-4 py-2 rounded-lg text-[14px] hover:opacity-90 cursor-pointer">
+              className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 cursor-pointer border-none">
               ▶ Start Session
             </button>
           )}
-          <button onClick={() => navigate("/manager-tasks")}
-            className="bg-[#09665e] border border-[#09665e] text-[#f0fafa] px-4 py-2 rounded-lg text-[14px] flex items-center gap-2 hover:opacity-90 cursor-pointer">
-            Create Task <Plus size={16} />
-          </button>
-          <button onClick={onResetTasks}
-            className="border border-[#e5e7eb] bg-white text-[#6b7280] px-4 py-2 rounded-lg text-[14px] hover:opacity-90 cursor-pointer">
-            ↺ Reset
+          <button onClick={() => navigate("/manager/create-task")}
+            className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 cursor-pointer border-none">
+            <Plus size={14} /> Create Task
           </button>
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-4 gap-3 px-8 pb-4">
+        <div className="grid grid-cols-4 gap-3 px-6 pb-4">
           {[
             { label: "Active Tasks",      value: active.length,       color: "#0d9488" },
-            { label: "In Progress",       value: inProgress.length,   color: "#bf6a02" },
-            { label: "Completed Today",   value: completed.length,    color: "#0d9488" },
-            { label: "Volunteers Active", value: volunteersActive,     color: "#1e1e1e" },
+            { label: "In Progress",       value: inProgress.length,   color: "#ff9500" },
+            { label: "Completed Today",   value: completed.length,    color: "#34c759" },
+            { label: "Volunteers Active", value: volunteersActive,     color: "#0a2a3a" },
           ].map(m => (
-            <div key={m.label} className="bg-white border border-[#e5e7ea] rounded-lg p-4 h-[84px] flex flex-col justify-center gap-1">
-              <p className="text-[#6b7280] text-[14px] font-semibold">{m.label}</p>
-              <p className="text-[24px] font-semibold tracking-tight" style={{ color: m.color }}>{m.value}</p>
+            <div key={m.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
+              <p className="text-[#6b7280] text-[12px] mb-1">{m.label}</p>
+              <p className="text-[28px] font-semibold leading-none" style={{ color: m.color }}>{m.value}</p>
             </div>
           ))}
         </div>
@@ -478,7 +491,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
         )}
 
         {/* Task table */}
-        <div className="mx-8 mb-8 bg-white rounded-lg border border-black overflow-hidden">
+        <div className="mx-6 mb-8 bg-white rounded-lg border border-[#e5e7eb] overflow-hidden">
           {/* Table header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
             <h2 className="text-[24px] font-semibold text-[#1e1e1e] tracking-tight">Active Tasks</h2>
@@ -520,15 +533,22 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
             <div key={t.id}
               className={`grid px-6 py-3 border-t border-[#e5e7ea] items-center text-[14px] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"}`}
               style={{ gridTemplateColumns: "1fr 1fr 100px 1fr 120px 200px" }}>
-              <span className="text-[#0a2a3a] font-medium">{t.name || t.item}</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-[#0a2a3a] font-medium">{t.name || t.item}</span>
+                {t.tags && t.tags.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {t.tags.map(tag => (
+                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-0.5 rounded-md">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span className="text-[#6b7280]">{t.source || t.destination || "—"}</span>
               <span>
                 {t.priority && (
-                  <span className={`px-2 py-1 rounded-lg text-[12px] font-semibold ${
-                    t.priority === "Urgent" || t.priority === "High" ? "bg-[#ec221f] text-[#fee9e7]" :
-                    t.priority === "Normal" ? "bg-[#d9d9d9] text-[#1e1e1e]" :
-                    "bg-[#d9d9d9] text-[#1e1e1e]"
-                  }`}>{t.priority}</span>
+                  <span className={`text-[12px] font-semibold px-3 py-1 rounded-full ${getPriorityStyle(t.priority)}`}>
+                    {t.priority}
+                  </span>
                 )}
               </span>
               <span className="text-[#1e1e1e]">
