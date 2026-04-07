@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
+import { db } from "../firebase";
+import { ref, onValue } from "firebase/database";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -9,17 +11,29 @@ const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF
 export function VolunteerIdEntry() {
   const [id, setId] = useState("");
   const [error, setError] = useState("");
+  const [firebaseVolunteers, setFirebaseVolunteers] = useState(null);
   const navigate = useNavigate();
+
+  // Load the live volunteer roster from Firebase (populated by ManagerVolunteers)
+  useEffect(() => {
+    const unsub = onValue(ref(db, "volunteers"), (snap) => {
+      const data = snap.val();
+      if (data) setFirebaseVolunteers(Object.values(data));
+    });
+    return () => unsub();
+  }, []);
 
   function handleSubmit(e) {
     if (e) e.preventDefault();
     if (id.length < 4) { setError("Please enter all 4 digits."); return; }
-    const profile = VOLUNTEER_PROFILES.find(p => p.id === id);
+    // Check Firebase volunteers first, fall back to hardcoded profiles
+    const roster = firebaseVolunteers || VOLUNTEER_PROFILES;
+    const profile = roster.find(p => String(p.id) === String(id));
     if (!profile) {
       setError("ID not recognized. Please check with your session coordinator.");
       return;
     }
-    sessionStorage.setItem("volunteerId", profile.id);
+    sessionStorage.setItem("volunteerId", String(profile.id));
     sessionStorage.setItem("volunteerName", profile.name);
     navigate("/experienced/tasks");
   }
