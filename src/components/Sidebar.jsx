@@ -13,7 +13,7 @@ const DELIVERY_NAV = [
   { label: "Dashboard", path: "/manager-delivery",          icon: LayoutDashboard, disabled: false },
   { label: "Routes",    path: "/manager-delivery-routes",   icon: Truck,           disabled: false },
   { label: "Drivers",   path: "/manager-delivery-volunteers", icon: UserCheck,      disabled: false },
-  { label: "History",   path: "/manager-delivery-history",  icon: Clock,           disabled: true  },
+  { label: "History",   path: "/manager-delivery-history",  icon: Clock,           disabled: false },
 ];
 
 export default function Sidebar({ mode, activePath }) {

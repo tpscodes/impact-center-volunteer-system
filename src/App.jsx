@@ -18,6 +18,7 @@ import ManagerDelivery from "./pages/ManagerDelivery";
 import CreateDeliveryRoute from "./pages/CreateDeliveryRoute";
 import ManagerDeliveryRoutes from "./pages/ManagerDeliveryRoutes";
 import ManagerDeliveryVolunteers from "./pages/ManagerDeliveryVolunteers";
+import ManagerDeliveryHistory from "./pages/ManagerDeliveryHistory";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/create-delivery-route" element={<CreateDeliveryRoute />} />
         <Route path="/manager-delivery-routes" element={<ManagerDeliveryRoutes />} />
         <Route path="/manager-delivery-volunteers" element={<ManagerDeliveryVolunteers />} />
+        <Route path="/manager-delivery-history" element={<ManagerDeliveryHistory />} />
 
         {/* Digital board (Prof. Amy's screen) */}
         <Route path="/board" element={<DigitalBoardWrapper />} />
