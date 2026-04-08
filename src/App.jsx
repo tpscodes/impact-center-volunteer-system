@@ -16,6 +16,7 @@ import ManagerVolunteers from "./pages/ManagerVolunteers";
 import VolunteerModeSelect from "./pages/VolunteerModeSelect";
 import ManagerDelivery from "./pages/ManagerDelivery";
 import CreateDeliveryRoute from "./pages/CreateDeliveryRoute";
+import ManagerDeliveryRoutes from "./pages/ManagerDeliveryRoutes";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="/manager-volunteers" element={<ManagerVolunteers />} />
         <Route path="/manager-delivery" element={<ManagerDelivery />} />
         <Route path="/create-delivery-route" element={<CreateDeliveryRoute />} />
+        <Route path="/manager-delivery-routes" element={<ManagerDeliveryRoutes />} />
 
         {/* Digital board (Prof. Amy's screen) */}
         <Route path="/board" element={<DigitalBoardWrapper />} />
