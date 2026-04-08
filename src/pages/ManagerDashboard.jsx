@@ -1,6 +1,6 @@
 // ManagerDashboard.jsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "../firebase";
 import { ref, get } from "firebase/database";
 import { Plus, Menu, X } from "lucide-react";
@@ -51,6 +51,8 @@ const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E
 
 export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [mode, setMode] = useState(location.pathname.includes('delivery') ? 'delivery' : 'pantry');
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 
@@ -204,6 +206,18 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
 
               {/* Teal divider */}
               <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
+
+              {/* Mode toggle */}
+              <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
+                <button onClick={() => setMode('pantry')}
+                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                  Pantry
+                </button>
+                <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
+                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                  Delivery
+                </button>
+              </div>
 
               {/* Nav items */}
               <nav className="flex flex-col py-2">
@@ -369,6 +383,18 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
           <p className="text-white text-[14px] font-medium tracking-wide">IMPACT CENTER</p>
           <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
           <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
+        </div>
+
+        {/* Mode toggle */}
+        <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
+          <button onClick={() => setMode('pantry')}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+            Pantry
+          </button>
+          <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+            Delivery
+          </button>
         </div>
 
         {/* Nav */}
