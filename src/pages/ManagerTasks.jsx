@@ -1,6 +1,7 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
 import { Plus, Menu, X, MapPin, ChevronRight, Clock } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
@@ -177,8 +178,6 @@ function TagsCell({ tags, onChange }) {
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const [mode, setMode] = useState(location.pathname.includes('delivery') ? 'delivery' : 'pantry')
   const { tasks, completedTasks, session, deleteTask, markTaskIncomplete } = useSharedTasks()
 
   const activeTasks = tasks.filter(t => t.status !== 'complete').length
@@ -191,61 +190,7 @@ export default function ManagerTasks() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* ── Sidebar ── */}
-      <div className="w-[220px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
-        {/* Logo */}
-        <div className="px-5 pt-7 pb-4">
-          <p className="text-white text-[14px] font-medium">IMPACT CENTER</p>
-          <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
-          <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
-        </div>
-        {/* Mode toggle */}
-        <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
-          <button onClick={() => setMode('pantry')}
-            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
-            Pantry
-          </button>
-          <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
-            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
-            Delivery
-          </button>
-        </div>
-        {/* Nav */}
-        <nav className="flex flex-col mt-2">
-          {[
-            { label: 'Dashboard', path: '/manager/dashboard', active: false },
-            { label: 'Tasks',     path: '/manager-tasks',     active: true  },
-            { label: 'Volunteers',path: '/manager-volunteers', active: false },
-            { label: 'History',   path: '/manager/history',   active: false },
-          ].map(item => (
-            <button key={item.label}
-              onClick={() => item.path && navigate(item.path)}
-              className={`w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none cursor-pointer transition-colors ${
-                item.active
-                  ? 'text-[#0d9488] border-l-[3px] border-[#0d9488]'
-                  : 'text-[#767676] border-l-[3px] border-transparent hover:text-[#b3b3b3]'
-              }`}>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        {/* User info */}
-        <div className="mt-auto px-4 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-              <span className="text-white text-[12px] font-semibold">JB</span>
-            </div>
-            <div>
-              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
-              <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
-            </div>
-          </div>
-          <button onClick={() => navigate('/')}
-            className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
-            Logout
-          </button>
-        </div>
-      </div>
+      <Sidebar mode="pantry" activePath="/manager-tasks" />
 
       {/* ── Main content ── */}
       <div className="ml-[220px] flex-1 flex flex-col min-h-screen">

@@ -1,6 +1,7 @@
 // ManagerVolunteers.jsx — Experienced volunteer roster management
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
 import { Search, UserPlus, X, Menu, Check } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
@@ -33,10 +34,8 @@ function volunteersFromFirebase(snap) {
 
 export default function ManagerVolunteers() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [mode, setMode] = useState(location.pathname.includes('delivery') ? 'delivery' : 'pantry');
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -230,12 +229,11 @@ export default function ManagerVolunteers() {
               </div>
               {/* Mode toggle */}
               <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => setMode('pantry')}
-                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
                   Pantry
                 </button>
-                <button onClick={() => { setMode('delivery'); setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
                   Delivery
                 </button>
               </div>
@@ -359,60 +357,7 @@ export default function ManagerVolunteers() {
       <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* ── Sidebar ── */}
-        <div className="w-[220px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
-          <div className="px-5 pt-7 pb-4">
-            <p className="text-white text-[14px] font-medium tracking-wide">IMPACT CENTER</p>
-            <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
-            <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
-          </div>
-          {/* Mode toggle */}
-          <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
-            <button onClick={() => setMode('pantry')}
-              className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
-              Pantry
-            </button>
-            <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
-              className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
-              Delivery
-            </button>
-          </div>
-          <nav className="flex flex-col mt-2">
-            {[
-              { label: "Dashboard", path: "/manager/dashboard", active: false, enabled: true },
-              { label: "Tasks",     path: "/manager-tasks",      active: false, enabled: true },
-              { label: "Volunteers",path: "/manager-volunteers", active: true,  enabled: true },
-              { label: "History",   path: "/manager/history",    active: false, enabled: true },
-            ].map(item => (
-              <button key={item.label}
-                onClick={() => item.enabled && item.path && navigate(item.path)}
-                className={`w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none transition-colors ${
-                  item.active
-                    ? "text-[#0d9488] border-l-[3px] border-[#0d9488] cursor-default"
-                    : item.enabled
-                    ? "text-[#767676] border-l-[3px] border-transparent hover:text-[#b3b3b3] cursor-pointer"
-                    : "text-[#3a4a52] border-l-[3px] border-transparent cursor-not-allowed opacity-40"
-                }`}>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          <div className="mt-auto px-4 pb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                <span className="text-white text-[12px] font-semibold">JB</span>
-              </div>
-              <div>
-                <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
-                <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
-              </div>
-            </div>
-            <button onClick={() => navigate("/")}
-              className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
-              Logout
-            </button>
-          </div>
-        </div>
+        <Sidebar mode="pantry" activePath="/manager-volunteers" />
 
         {/* ── Main content ── */}
         <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
