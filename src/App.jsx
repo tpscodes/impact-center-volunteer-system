@@ -14,6 +14,8 @@ import NewVolunteerTasks from "./pages/NewVolunteerTasks";
 import TaskHistory from "./pages/TaskHistory";
 import ManagerVolunteers from "./pages/ManagerVolunteers";
 import VolunteerModeSelect from "./pages/VolunteerModeSelect";
+import ManagerDelivery from "./pages/ManagerDelivery";
+import CreateDeliveryRoute from "./pages/CreateDeliveryRoute";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -80,6 +82,8 @@ export default function App() {
         <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
         <Route path="/manager/history" element={<TaskHistory />} />
         <Route path="/manager-volunteers" element={<ManagerVolunteers />} />
+        <Route path="/manager-delivery" element={<ManagerDelivery />} />
+        <Route path="/create-delivery-route" element={<CreateDeliveryRoute />} />
 
         {/* Digital board (Prof. Amy's screen) */}
         <Route path="/board" element={<DigitalBoardWrapper />} />
