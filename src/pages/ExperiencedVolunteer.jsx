@@ -35,7 +35,11 @@ export function VolunteerIdEntry() {
     }
     sessionStorage.setItem("volunteerId", String(profile.id));
     sessionStorage.setItem("volunteerName", profile.name);
-    navigate("/experienced/tasks");
+    if (profile.isDriver === true) {
+      navigate("/volunteer-mode-select", { state: { volunteer: profile } });
+    } else {
+      navigate("/experienced/tasks");
+    }
   }
 
   return (
