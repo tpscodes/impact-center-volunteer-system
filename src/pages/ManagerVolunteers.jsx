@@ -1,7 +1,7 @@
 // ManagerVolunteers.jsx — Experienced volunteer roster management
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, UserPlus, X, Menu } from "lucide-react";
+import { Search, UserPlus, X, Menu, Check } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
@@ -42,6 +42,7 @@ export default function ManagerVolunteers() {
   const [newLastName, setNewLastName] = useState("");
   const [newId, setNewId] = useState("");
   const [error, setError] = useState("");
+  const [isDriver, setIsDriver] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Firebase real-time listener ────────────────────────────────────────────
@@ -99,6 +100,7 @@ export default function ManagerVolunteers() {
       name: fullName,
       active: false,
       lastActive: null,
+      isDriver,
     };
     const updated = [...volunteers, newVol];
     setVolunteers(updated);
@@ -108,17 +110,18 @@ export default function ManagerVolunteers() {
     setNewLastName("");
     setNewId("");
     setError("");
+    setIsDriver(false);
   }
 
   // ── Shared Add Volunteer Modal ─────────────────────────────────────────────
   const AddVolunteerModal = () => (
     <>
       <div className="fixed inset-0 bg-black/40 z-40"
-        onClick={() => { setShowAddModal(false); setError(""); }} />
+        onClick={() => { setShowAddModal(false); setError(""); setIsDriver(false); }} />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
         <div className="flex items-center justify-between mb-6">
           <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Experienced Volunteer</p>
-          <button onClick={() => { setShowAddModal(false); setError(""); }}
+          <button onClick={() => { setShowAddModal(false); setError(""); setIsDriver(false); }}
             className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
             <X size={20} />
           </button>
@@ -146,10 +149,33 @@ export default function ManagerVolunteers() {
               value={newId} onChange={e => setNewId(e.target.value)}
               className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
           </div>
+          {/* Role toggles */}
+          <div>
+            <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
+            <div className="flex gap-2">
+              {/* Pantry — always active, non-interactive */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ccedeb] text-[#09665e] text-[12px] font-medium cursor-not-allowed opacity-70 select-none">
+                <Check size={12} strokeWidth={2.5} />
+                Pantry
+              </div>
+              {/* Driver — toggleable */}
+              <button type="button"
+                onClick={() => setIsDriver(d => !d)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
+                  isDriver
+                    ? "bg-[#ccedeb] text-[#09665e]"
+                    : "bg-[#f0f0f0] text-[#6b7280]"
+                }`}>
+                {isDriver && <Check size={12} strokeWidth={2.5} />}
+                Driver
+              </button>
+            </div>
+          </div>
+
           {error && <p className="text-[#dc2626] text-[13px]">{error}</p>}
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { setShowAddModal(false); setError(""); }}
+          <button onClick={() => { setShowAddModal(false); setError(""); setIsDriver(false); }}
             className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
             Cancel
           </button>
