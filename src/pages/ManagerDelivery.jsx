@@ -1,33 +1,73 @@
-// ManagerDelivery.jsx — Delivery route management screen
+// ManagerDelivery.jsx — Delivery Dashboard (landing screen for Delivery mode)
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import { Plus, Menu, X, Truck, Clock, ChevronRight } from "lucide-react";
+import { Menu, X, Clock, Truck } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
+import Sidebar from "../components/Sidebar";
 
-const PRIORITY_STYLE = {
-  Urgent: "bg-[#fff0f0] text-[#dc2626]",
-  High:   "bg-[#fff3e0] text-[#ff9500]",
-  Normal: "bg-[#f0f0f0] text-[#6b7280]",
+// ── Utility functions ─────────────────────────────────────────────────────────
+const getPriorityStyle = (priority) => {
+  const p = priority?.toLowerCase();
+  if (p === "urgent") return "bg-[#fff0f0] text-[#dc2626]";
+  if (p === "high")   return "bg-[#fff3e0] text-[#ff9500]";
+  return "bg-[#f0f0f0] text-[#6b7280]";
 };
+const getStatusStyle = (status) => {
+  if (status === "inProgress") return "bg-[#fff3e0] text-[#ff9500]";
+  if (status === "complete")   return "bg-[#f0fff4] text-[#34c759]";
+  if (status === "incomplete") return "bg-[#fff0f0] text-[#dc2626]";
+  return "bg-[#e6e6e6] text-[#6b7280]";
+};
+const getStatusLabel = (status) => {
+  if (status === "inProgress") return "In Progress";
+  if (status === "complete")   return "Complete";
+  if (status === "incomplete") return "Incomplete";
+  return "Available";
+};
+
+// ── Date helpers ───────────────────────────────────────────────────────────────
+function getTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((day + 6) % 7)); // Monday
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6); // Sunday
+  return {
+    start: mon.toISOString().slice(0, 10),
+    end: sun.toISOString().slice(0, 10),
+  };
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+}
 
 export default function ManagerDelivery() {
   const navigate = useNavigate();
-  const [routes, setRoutes] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [period, setPeriod] = useState("today"); // 'today' | 'week'
+  const [routes, setRoutes] = useState([]);
+  const [drivers, setDrivers] = useState([]);
 
   const todayStr = new Date().toLocaleDateString("en-US", {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
-  // Live listener on deliveryRoutes/
+  // ── Firebase listeners ────────────────────────────────────────────────────
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
       const data = snap.val();
       if (data) {
-        const arr = Object.entries(data).map(([key, val]) => ({ ...val, _key: key }));
-        setRoutes(arr.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)));
+        setRoutes(Object.entries(data).map(([key, val]) => ({ ...val, _key: key })));
       } else {
         setRoutes([]);
       }
@@ -35,17 +75,179 @@ export default function ManagerDelivery() {
     return () => unsub();
   }, []);
 
-  const activeRoutes   = routes.filter(r => r.status === "available" || r.status === "claimed");
-  const claimedRoutes  = routes.filter(r => r.status === "claimed");
-  const todayRoutes    = routes.filter(r => r.date === new Date().toISOString().slice(0, 10));
+  useEffect(() => {
+    const unsub = onValue(ref(db, "volunteers"), (snap) => {
+      const data = snap.val();
+      if (data) {
+        setDrivers(Object.values(data).filter(v => v.isDriver === true));
+      } else {
+        setDrivers([]);
+      }
+    });
+    return () => unsub();
+  }, []);
 
-  // ── Mobile Nav Items ──────────────────────────────────────────────────────
-  const NAV_ITEMS = [
-    { label: "Dashboard", path: "/manager/dashboard" },
-    { label: "Tasks",     path: "/manager-tasks"      },
-    { label: "Volunteers",path: "/manager-volunteers"  },
-    { label: "History",   path: "/manager/history"     },
-  ];
+  // ── Filter routes by period ───────────────────────────────────────────────
+  const today = getTodayStr();
+  const week = getWeekRange();
+
+  const periodRoutes = routes.filter(r => {
+    if (!r.date) return false;
+    if (period === "today") return r.date === today;
+    return r.date >= week.start && r.date <= week.end;
+  });
+
+  const sortedRoutes = [...periodRoutes].sort((a, b) =>
+    (a.departureTime || "").localeCompare(b.departureTime || "")
+  );
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const totalRoutes  = periodRoutes.length;
+  const completed    = periodRoutes.filter(r => r.status === "complete").length;
+  const inProgress   = periodRoutes.filter(r => r.status === "inProgress").length;
+  const unassigned   = periodRoutes.filter(r => !r.claimedBy || (Array.isArray(r.claimedBy) ? r.claimedBy.length === 0 : Object.keys(r.claimedBy).length === 0)).length;
+
+  // ── Driver route counts ───────────────────────────────────────────────────
+  function driverRouteCount(driverId) {
+    return periodRoutes.filter(r => {
+      const cb = r.claimedBy;
+      if (!cb) return false;
+      if (Array.isArray(cb)) return cb.includes(String(driverId));
+      return Object.values(cb).includes(String(driverId));
+    }).length;
+  }
+
+  // ── Period toggle ─────────────────────────────────────────────────────────
+  const PeriodToggle = () => (
+    <div className="flex gap-1">
+      {[["today", "Today"], ["week", "This Week"]].map(([val, label]) => (
+        <button key={val} onClick={() => setPeriod(val)}
+          className={`rounded-full px-3 py-1 text-[12px] border-none cursor-pointer transition-colors ${
+            period === val
+              ? "bg-[#0d9488] text-white"
+              : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+          }`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  // ── Shared content sections ───────────────────────────────────────────────
+  const StatsRow = () => (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+      {[
+        { label: "Total Routes",  value: totalRoutes, color: "#0d9488"  },
+        { label: "Completed",     value: completed,   color: "#34c759"  },
+        { label: "In Progress",   value: inProgress,  color: "#ff9500"  },
+        { label: "Unassigned",    value: unassigned,  color: "#dc2626"  },
+      ].map(s => (
+        <div key={s.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
+          <p className="text-[#6b7280] text-[12px] mb-1">{s.label}</p>
+          <p className="text-[28px] font-semibold leading-none" style={{ color: s.color }}>{s.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  const RouteOverview = () => (
+    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[#0a2a3a] text-[15px] font-semibold">Route Overview</p>
+        <button onClick={() => navigate("/manager-delivery-routes")}
+          className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
+          View All
+        </button>
+      </div>
+
+      {sortedRoutes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10">
+          <Truck size={36} color="#ccedeb" />
+          <p className="text-[#0a2a3a] text-[14px] font-medium mt-3">No routes for this period</p>
+          <p className="text-[#6b7280] text-[12px] mt-1">Switch to Routes to add delivery routes</p>
+        </div>
+      ) : (
+        <div>
+          {sortedRoutes.slice(0, 5).map((route, i) => {
+            const claimed = Array.isArray(route.claimedBy)
+              ? route.claimedBy.length
+              : route.claimedBy ? Object.keys(route.claimedBy).length : 0;
+            const needed = route.driversNeeded || 1;
+            const slotsFilled = claimed >= needed;
+            return (
+              <div key={route._key}
+                className={`py-3 flex items-center gap-3 ${i < Math.min(sortedRoutes.length, 5) - 1 ? "border-b border-[#f3f4f6]" : ""}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#0a2a3a] text-[13px] font-medium truncate">{route.name}</p>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    {route.departureTime && (
+                      <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
+                        <Clock size={12} />
+                        {route.departureTime}
+                      </span>
+                    )}
+                    {route.vehicle && (
+                      <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
+                        <Truck size={12} />
+                        {route.vehicle}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-[12px] font-medium shrink-0 ${slotsFilled ? "text-[#0d9488]" : "text-[#dc2626]"}`}>
+                  {claimed}/{needed}
+                </span>
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-lg shrink-0 ${getStatusStyle(route.status)}`}>
+                  {getStatusLabel(route.status)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  const DriversSection = () => (
+    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[#0a2a3a] text-[15px] font-semibold">Active Drivers</p>
+        <button onClick={() => navigate("/manager-delivery-volunteers")}
+          className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
+          Manage Drivers
+        </button>
+      </div>
+
+      {drivers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8">
+          <p className="text-[#6b7280] text-[13px]">No drivers added yet</p>
+          <p className="text-[#6b7280] text-[12px] mt-1">Go to Drivers to add your first driver</p>
+        </div>
+      ) : (
+        <div>
+          {drivers.map((driver, i) => {
+            const count = driverRouteCount(driver.id);
+            const initials = getInitials(driver.name);
+            return (
+              <div key={driver.id}
+                className={`py-3 flex items-center gap-3 ${i < drivers.length - 1 ? "border-b border-[#f3f4f6]" : ""}`}>
+                <div className="w-7 h-7 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                  <span className="text-white text-[10px] font-semibold">{initials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#0a2a3a] text-[13px] font-medium">{driver.name}</p>
+                  <p className="text-[#6b7280] text-[12px]">{count > 0 ? `${count} route${count !== 1 ? "s" : ""}` : "No routes"}</p>
+                </div>
+                <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full shrink-0">
+                  Driver
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]"
@@ -54,13 +256,13 @@ export default function ManagerDelivery() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden flex flex-col min-h-screen pb-24">
+      <div className="lg:hidden min-h-screen flex flex-col">
 
-        {/* Mobile header */}
+        {/* Mobile top bar */}
         <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
             <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Delivery</p>
+            <p className="text-white text-[18px] font-semibold leading-tight">Delivery Dashboard</p>
           </div>
           <button onClick={() => setMobileMenuOpen(o => !o)}
             className="text-white bg-transparent border-none cursor-pointer p-1">
@@ -68,108 +270,71 @@ export default function ManagerDelivery() {
           </button>
         </div>
 
-        {/* Mobile hamburger overlay */}
+        {/* Mobile nav overlay */}
         {mobileMenuOpen && (
           <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
+            <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileMenuOpen(false)} />
+            <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]"
+              style={{ animation: "slideDown 0.25s ease-out forwards" }}>
+              <div className="px-8 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                    <span className="text-white text-sm font-semibold">JB</span>
+                  </div>
+                  <div>
+                    <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+                    <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+                  </div>
                 </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
+                <button onClick={() => setMobileMenuOpen(false)} className="text-white p-1 bg-transparent border-none cursor-pointer">
+                  <X size={24} />
                 </button>
               </div>
-              {/* Mode toggle */}
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+              <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
+              {/* Mode toggle — Delivery active */}
+              <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
                 <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
+                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
                   Pantry
                 </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
+                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
                   Delivery
                 </button>
               </div>
               <nav className="flex flex-col py-2">
-                {NAV_ITEMS.map(item => (
+                {[
+                  { label: "Dashboard",  active: true,  action: () => {} },
+                  { label: "Routes",     active: false, action: () => navigate("/manager-delivery-routes") },
+                  { label: "Drivers",    active: false, action: () => navigate("/manager-delivery-volunteers") },
+                  { label: "History",    active: false, action: () => {} },
+                ].map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className="w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none text-[#9ca3af] border-l-[3px] border-transparent">
+                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                    className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${
+                      item.active ? "text-[#0d9488] border-l-[3px] border-[#0d9488]" : "text-[#757575] border-l-[3px] border-transparent"
+                    }`}>
                     {item.label}
                   </button>
                 ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">JB</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => navigate("/")}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
+                <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
+                <button onClick={() => { setMobileMenuOpen(false); navigate("/"); }}
+                  className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer">
                   Logout
                 </button>
-              </div>
+              </nav>
             </div>
           </>
         )}
 
-        {/* Stats */}
-        <div className="px-4 pt-4 grid grid-cols-2 gap-3">
-          <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3">
-            <p className="text-[#6b7280] text-[11px] mb-1">Today's Routes</p>
-            <p className="text-[28px] font-semibold leading-none text-[#0d9488]">{todayRoutes.length}</p>
+        {/* Mobile content */}
+        <div className="px-4 py-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[#0a2a3a] text-[14px] font-semibold">{todayStr}</p>
+            <PeriodToggle />
           </div>
-          <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3">
-            <p className="text-[#6b7280] text-[11px] mb-1">Active Routes</p>
-            <p className="text-[28px] font-semibold leading-none text-[#ff9500]">{activeRoutes.length}</p>
-          </div>
-        </div>
-
-        {/* Route cards */}
-        <div className="px-4 pt-4 flex flex-col gap-3">
-          {routes.length === 0 ? (
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-12 text-center">
-              <Truck size={40} className="text-[#0d9488] mx-auto mb-3" />
-              <p className="text-[#0a2a3a] text-[15px] font-semibold mb-1">No delivery routes yet</p>
-              <p className="text-[#6b7280] text-[13px]">Create your first route to get started.</p>
-            </div>
-          ) : (
-            routes.map(route => (
-              <div key={route._key} className="bg-white border border-[#e5e7eb] rounded-xl p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="text-[#0a2a3a] text-[14px] font-semibold flex-1 pr-2">{route.name}</p>
-                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-lg shrink-0 ${PRIORITY_STYLE[route.priority] || PRIORITY_STYLE.Normal}`}>
-                    {route.priority || "Normal"}
-                  </span>
-                </div>
-                <p className="text-[#6b7280] text-[12px] mb-1">{route.source} → {route.destination}</p>
-                {route.departureTime && (
-                  <div className="flex items-center gap-1 text-[#6b7280] text-[11px]">
-                    <Clock size={11} />
-                    <span>Departs {route.departureTime}</span>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Fixed bottom Add button */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white border-t border-[#e5e7eb] z-20">
-          <button onClick={() => navigate("/create-delivery-route")}
-            className="w-full flex items-center justify-center gap-2 bg-[#09665e] text-white py-3 rounded-xl text-[15px] font-semibold border-none cursor-pointer active:opacity-80">
-            <Plus size={16} />
-            Add Route
-          </button>
+          <StatsRow />
+          <RouteOverview />
+          <DriversSection />
         </div>
       </div>
 
@@ -187,78 +352,20 @@ export default function ManagerDelivery() {
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
             <div>
               <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Delivery Routes</h1>
+              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Delivery Dashboard</h1>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-              <button onClick={() => navigate("/create-delivery-route")}
-                className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 border-none cursor-pointer">
-                <Plus size={14} />
-                Add Route
-              </button>
+              <PeriodToggle />
             </div>
           </div>
 
-          {/* Content */}
+          {/* Page content */}
           <div className="p-6 flex flex-col gap-5">
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: "Today's Routes",   value: todayRoutes.length,   color: "#0d9488" },
-                { label: "Active Routes",     value: activeRoutes.length,  color: "#ff9500" },
-                { label: "Claimed Routes",    value: claimedRoutes.length, color: "#34c759" },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
-                  <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
-                  <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Routes card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#e5e7eb]">
-                <p className="text-[#0a2a3a] text-[16px] font-semibold">Delivery Routes</p>
-              </div>
-
-              {routes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <Truck size={48} className="text-[#0d9488] mb-4" />
-                  <p className="text-[#0a2a3a] text-[16px] font-semibold mb-2">No delivery routes yet</p>
-                  <p className="text-[#6b7280] text-[13px]">Create your first route to get started.</p>
-                </div>
-              ) : (
-                <>
-                  {/* Column headers */}
-                  <div className="px-5 py-2 bg-[#f9fafb] border-b border-[#e5e7eb]">
-                    <div className="grid items-center" style={{ gridTemplateColumns: "2fr 1.2fr 1.4fr 90px 90px 90px" }}>
-                      {["ROUTE NAME", "VEHICLE", "PICKUP → DROP-OFF", "DEPARTURE", "DATE", "PRIORITY"].map(h => (
-                        <p key={h} className="text-[#6b7280] text-[11px] uppercase tracking-widest">{h}</p>
-                      ))}
-                    </div>
-                  </div>
-
-                  {routes.map((route) => (
-                    <div key={route._key}
-                      className="px-5 border-b border-[#e5e7eb] last:border-b-0 flex items-center"
-                      style={{ minHeight: 56 }}>
-                      <div className="grid items-center w-full" style={{ gridTemplateColumns: "2fr 1.2fr 1.4fr 90px 90px 90px" }}>
-                        <p className="text-[#0a2a3a] text-[14px] font-semibold truncate pr-3">{route.name}</p>
-                        <p className="text-[#6b7280] text-[12px] truncate pr-3">{route.vehicle || "—"}</p>
-                        <p className="text-[#6b7280] text-[12px] truncate pr-3">
-                          {route.source && route.destination ? `${route.source} → ${route.destination}` : route.source || route.destination || "—"}
-                        </p>
-                        <p className="text-[#6b7280] text-[12px]">{route.departureTime || "—"}</p>
-                        <p className="text-[#6b7280] text-[12px]">{route.date || "—"}</p>
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-lg ${PRIORITY_STYLE[route.priority] || PRIORITY_STYLE.Normal}`}>
-                          {route.priority || "Normal"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
+            <StatsRow />
+            <div className="grid grid-cols-2 gap-5">
+              <RouteOverview />
+              <DriversSection />
             </div>
           </div>
         </div>
