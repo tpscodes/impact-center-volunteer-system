@@ -1,6 +1,6 @@
 // ManagerTasks.jsx — Task list screen + bulk create task screen
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Menu, X, MapPin, ChevronRight, Clock } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
@@ -177,6 +177,8 @@ function TagsCell({ tags, onChange }) {
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [mode, setMode] = useState(location.pathname.includes('delivery') ? 'delivery' : 'pantry')
   const { tasks, completedTasks, session, deleteTask, markTaskIncomplete } = useSharedTasks()
 
   const activeTasks = tasks.filter(t => t.status !== 'complete').length
@@ -196,6 +198,17 @@ export default function ManagerTasks() {
           <p className="text-white text-[14px] font-medium">IMPACT CENTER</p>
           <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
           <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
+        </div>
+        {/* Mode toggle */}
+        <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
+          <button onClick={() => setMode('pantry')}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+            Pantry
+          </button>
+          <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+            Delivery
+          </button>
         </div>
         {/* Nav */}
         <nav className="flex flex-col mt-2">

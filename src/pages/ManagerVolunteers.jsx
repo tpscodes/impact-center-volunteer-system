@@ -1,6 +1,6 @@
 // ManagerVolunteers.jsx — Experienced volunteer roster management
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Search, UserPlus, X, Menu, Check } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
@@ -33,8 +33,10 @@ function volunteersFromFirebase(snap) {
 
 export default function ManagerVolunteers() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // ── State ──────────────────────────────────────────────────────────────────
+  const [mode, setMode] = useState(location.pathname.includes('delivery') ? 'delivery' : 'pantry');
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -226,6 +228,18 @@ export default function ManagerVolunteers() {
                   <X size={20} />
                 </button>
               </div>
+              {/* Mode toggle */}
+              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+                <button onClick={() => setMode('pantry')}
+                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                  Pantry
+                </button>
+                <button onClick={() => { setMode('delivery'); setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                  className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+                  Delivery
+                </button>
+              </div>
+
               <nav className="flex flex-col py-2">
                 {[
                   { label: "Dashboard", path: "/manager/dashboard", active: false },
@@ -351,6 +365,17 @@ export default function ManagerVolunteers() {
             <p className="text-white text-[14px] font-medium tracking-wide">IMPACT CENTER</p>
             <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
             <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
+          </div>
+          {/* Mode toggle */}
+          <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
+            <button onClick={() => setMode('pantry')}
+              className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'pantry' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+              Pantry
+            </button>
+            <button onClick={() => { setMode('delivery'); navigate('/manager-delivery'); }}
+              className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${mode === 'delivery' ? 'bg-[#09665e] text-white' : 'text-[#6b7280] hover:text-[#b3b3b3]'}`}>
+              Delivery
+            </button>
           </div>
           <nav className="flex flex-col mt-2">
             {[
