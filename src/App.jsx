@@ -13,6 +13,7 @@ import TaskPool from "./pages/TaskPool";
 import NewVolunteerTasks from "./pages/NewVolunteerTasks";
 import TaskHistory from "./pages/TaskHistory";
 import ManagerVolunteers from "./pages/ManagerVolunteers";
+import VolunteerModeSelect from "./pages/VolunteerModeSelect";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="/board" element={<DigitalBoardWrapper />} />
 
         {/* Experienced volunteer flow */}
+        <Route path="/volunteer-mode-select" element={<VolunteerModeSelect />} />
         <Route path="/experienced" element={<VolunteerIdEntry />} />
         <Route path="/experienced/tasks" element={<TaskPool />} />
         <Route path="/experienced/mytask" element={<MyTaskWrapper />} />
