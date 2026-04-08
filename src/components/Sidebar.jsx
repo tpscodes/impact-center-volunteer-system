@@ -12,7 +12,7 @@ const PANTRY_NAV = [
 const DELIVERY_NAV = [
   { label: "Dashboard", path: "/manager-delivery",          icon: LayoutDashboard, disabled: false },
   { label: "Routes",    path: "/manager-delivery-routes",   icon: Truck,           disabled: false },
-  { label: "Drivers",   path: "/manager-delivery-drivers",  icon: UserCheck,       disabled: true  },
+  { label: "Drivers",   path: "/manager-delivery-volunteers", icon: UserCheck,      disabled: false },
   { label: "History",   path: "/manager-delivery-history",  icon: Clock,           disabled: true  },
 ];
 
