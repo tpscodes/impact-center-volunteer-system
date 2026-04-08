@@ -221,14 +221,18 @@ export function useSharedTasks() {
     const newShiftLeader = isShiftLeaderTask ? null : slRef.current;
 
     // Build history entry
+    const now = new Date();
     const historyEntry = completedTask ? {
       id: completedTask.id,
       name: completedTask.name,
       tags: completedTask.tags || [],
+      source: completedTask.source || "",
+      destination: completedTask.destination || "",
       completedBy: completedBy || completedTask.claimedByName || completedTask.assignedName || completedTask.assignedTo || "Unknown",
       ...(completedTask.claimedByName ? { claimedByName: completedTask.claimedByName } : {}),
-      completedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-      completedAtMs: Date.now(),
+      completedAt: now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      completedAtMs: now.getTime(),
+      sessionDate: now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
     } : null;
 
     const newCompletedTasks = historyEntry
