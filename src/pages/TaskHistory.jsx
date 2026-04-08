@@ -1,131 +1,241 @@
 // TaskHistory.jsx — Operations Manager: completed task log
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, ChevronDown, ClipboardList } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
-const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
+const TODAY_LABEL = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+function isToday(ms) {
+  if (!ms) return false;
+  const d = new Date(ms);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+}
 
 export default function TaskHistory() {
   const navigate = useNavigate();
-  const { completedTasks, clearCompletedTasks, synced, error } = useSharedTasks();
+  const { completedTasks, synced, error, session } = useSharedTasks();
 
-  // Sort newest first using the ms timestamp
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("Today");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  // Sort newest first
   const sorted = [...completedTasks].sort((a, b) => (b.completedAtMs || 0) - (a.completedAtMs || 0));
 
-  async function handleClear() {
-    if (!window.confirm("Clear all task history? This cannot be undone.")) return;
-    await clearCompletedTasks();
-  }
+  // Apply date filter
+  const dateFiltered = dateFilter === "Today"
+    ? sorted.filter(t => isToday(t.completedAtMs))
+    : sorted;
+
+  // Apply search
+  const filtered = dateFiltered.filter(t => {
+    const q = searchQuery.toLowerCase();
+    return !q ||
+      t.name?.toLowerCase().includes(q) ||
+      t.completedBy?.toLowerCase().includes(q) ||
+      t.source?.toLowerCase().includes(q) ||
+      t.destination?.toLowerCase().includes(q);
+  });
+
+  // Stats
+  const todayCount = sorted.filter(t => isToday(t.completedAtMs)).length;
+  const uniqueSessions = new Set(sorted.map(t => t.sessionDate || "")).size;
+  const uniqueVolunteers = new Set(sorted.map(t => t.completedBy || "").filter(Boolean)).size;
+
+  // Session badge
+  const sessionBadge = session?.isActive
+    ? { label: "Session Active", dot: "#34C759" }
+    : { label: "No Active Session", dot: "#6B7280" };
 
   return (
-    <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#f5f5f5] flex"
+      style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* Header */}
-      <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => navigate("/manager/dashboard")}
-            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-          >
-            ← Back
-          </button>
-          <div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Operations Manager</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Task History</div>
-          </div>
+      {/* ── Sidebar ── */}
+      <div className="w-[220px] min-h-screen bg-[#0a2a3a] flex flex-col fixed left-0 top-0 z-20">
+        <div className="px-5 pt-7 pb-4">
+          <p className="text-white text-[14px] font-medium tracking-wide">IMPACT CENTER</p>
+          <p className="text-[#0d9488] text-[10px] mt-0.5">Volunteer Task Management</p>
+          <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Sync indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.1)", borderRadius: 20, padding: "4px 10px" }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D", animation: synced && !error ? "pulse 2s infinite" : "none" }} />
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{error ? "Offline" : synced ? "Live" : "Syncing…"}</span>
-          </div>
-          {sorted.length > 0 && (
-            <button
-              onClick={handleClear}
-              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.65)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              Clear History
+        <nav className="flex flex-col mt-2">
+          {[
+            { label: "Dashboard", path: "/manager/dashboard", active: false, enabled: true },
+            { label: "Tasks",     path: "/manager-tasks",      active: false, enabled: true },
+            { label: "Volunteers",path: "/manager-volunteers", active: false, enabled: true },
+            { label: "History",   path: "/manager/history",    active: true,  enabled: true },
+          ].map(item => (
+            <button key={item.label}
+              onClick={() => item.enabled && item.path && navigate(item.path)}
+              className={`w-full text-left px-5 py-3 text-[14px] font-semibold bg-transparent border-none transition-colors ${
+                item.active
+                  ? "text-[#0d9488] border-l-[3px] border-[#0d9488] cursor-default"
+                  : item.enabled
+                  ? "text-[#767676] border-l-[3px] border-transparent hover:text-[#b3b3b3] cursor-pointer"
+                  : "text-[#3a4a52] border-l-[3px] border-transparent cursor-not-allowed opacity-40"
+              }`}>
+              {item.label}
             </button>
-          )}
+          ))}
+        </nav>
+        <div className="mt-auto px-4 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-[12px] font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
+            </div>
+          </div>
+          <button onClick={() => navigate("/")}
+            className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
+            Logout
+          </button>
         </div>
       </div>
 
-      <div style={{ padding: "20px 20px 40px" }}>
+      {/* ── Main content ── */}
+      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
 
-        {/* Summary chip */}
-        {sorted.length > 0 && (
-          <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ background: GRAY.dark, color: "white", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>
-              {sorted.length} task{sorted.length !== 1 ? "s" : ""} completed
-            </span>
+        {/* Top bar */}
+        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+          <div>
+            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
+            <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Task History</h1>
           </div>
-        )}
-
-        {sorted.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: GRAY.dark, marginBottom: 6 }}>No completed tasks yet</div>
-            <div style={{ fontSize: 13, color: GRAY.light }}>Completed tasks will appear here once volunteers mark them done.</div>
+          {/* Session badge */}
+          <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-full px-3 py-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sessionBadge.dot }} />
+            <span className="text-[12px] font-medium text-[#6b7280]">{sessionBadge.label}</span>
           </div>
-        ) : (
-          <div style={{ background: "white", borderRadius: 12, border: `1px solid ${GRAY.border}`, overflow: "hidden" }}>
+        </div>
 
-            {/* Table header */}
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1.2fr 72px", padding: "10px 14px", background: GRAY.dark, gap: 8 }}>
-              {["TASK", "TAGS", "COMPLETED BY", "TIME"].map(h => (
-                <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: "0.06em" }}>{h}</div>
-              ))}
-            </div>
+        {/* Page content */}
+        <div className="p-6 flex flex-col gap-5">
 
-            {sorted.map((entry, i) => (
-              <div
-                key={`${entry.id}-${entry.completedAtMs || i}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1.5fr 1.2fr 72px",
-                  padding: "12px 14px",
-                  gap: 8,
-                  borderBottom: i < sorted.length - 1 ? `1px solid ${GRAY.border}` : "none",
-                  alignItems: "center",
-                  background: i % 2 === 0 ? "white" : "#FAFAFA",
-                }}
-              >
-                {/* Task name */}
-                <div style={{ fontSize: 13, fontWeight: 600, color: GRAY.dark, lineHeight: 1.3 }}>
-                  {entry.name}
-                </div>
-
-                {/* Tags as chips */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {(entry.tags || []).length > 0
-                    ? entry.tags.map(tag => (
-                        <span
-                          key={tag}
-                          style={{ background: "#F3F4F6", color: GRAY.soft, borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    : <span style={{ color: GRAY.light, fontSize: 12 }}>—</span>
-                  }
-                </div>
-
-                {/* Completed by */}
-                <div style={{ fontSize: 12, color: GRAY.soft, fontWeight: 500 }}>
-                  {entry.completedBy || "—"}
-                </div>
-
-                {/* Time completed */}
-                <div style={{ fontSize: 12, color: GRAY.light, fontWeight: 600, whiteSpace: "nowrap" }}>
-                  {entry.completedAt || "—"}
-                </div>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: "Tasks Completed Today", value: todayCount,       color: "#0d9488" },
+              { label: "Total Sessions",         value: uniqueSessions || 0, color: "#0a2a3a" },
+              { label: "Volunteers Participated",value: uniqueVolunteers, color: "#0d9488" },
+            ].map(stat => (
+              <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
+                <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
+                <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
               </div>
             ))}
           </div>
-        )}
-      </div>
 
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+          {/* History card */}
+          <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
+
+            {/* Card header */}
+            <div className="px-5 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
+              <p className="text-[#0a2a3a] text-[16px] font-semibold">Completed Tasks</p>
+
+              {/* Date filter dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterDropdown(o => !o)}
+                  className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 py-2 text-[13px] text-[#0a2a3a] font-medium bg-white cursor-pointer hover:border-[#0d9488] transition-colors"
+                  style={{ minWidth: 120 }}>
+                  <span className="flex-1 text-left">{dateFilter}</span>
+                  <ChevronDown size={14} className="text-[#0d9488] shrink-0" />
+                </button>
+                {showFilterDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowFilterDropdown(false)} />
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-[#e5e7eb] rounded-lg shadow-sm z-20 overflow-hidden" style={{ minWidth: 120 }}>
+                      {["Today", "All Time"].map(opt => (
+                        <button key={opt}
+                          onClick={() => { setDateFilter(opt); setShowFilterDropdown(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-[13px] border-none cursor-pointer transition-colors ${
+                            dateFilter === opt
+                              ? "bg-[#f0fafa] text-[#0d9488] font-medium"
+                              : "text-[#0a2a3a] hover:bg-[#f9fafb] font-normal bg-white"
+                          }`}>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Search bar */}
+            <div className="px-5 py-3 border-b border-[#e5e7eb]">
+              <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 bg-[#f9fafb]" style={{ height: 40 }}>
+                <Search size={14} className="text-[#b3b3b3] shrink-0" />
+                <input type="text"
+                  placeholder="Search completed tasks..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              /* Empty state */
+              <div className="flex flex-col items-center justify-center py-16">
+                <ClipboardList size={48} className="text-[#0d9488] mb-4" />
+                <p className="text-[#0a2a3a] text-[16px] font-semibold mb-2">No completed tasks yet</p>
+                <p className="text-[#6b7280] text-[13px] text-center max-w-[320px]">
+                  Completed tasks will appear here once volunteers mark them done.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Column headers */}
+                <div className="px-5 py-2 bg-[#f9fafb] border-b border-[#e5e7eb]">
+                  <div className="grid items-center" style={{ gridTemplateColumns: "2fr 1.4fr 1.6fr 100px 110px 90px" }}>
+                    {["TASK NAME", "COMPLETED BY", "LOCATION", "COMPLETED AT", "SESSION", "STATUS"].map(h => (
+                      <p key={h} className="text-[#6b7280] text-[11px] uppercase tracking-widest">{h}</p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Task rows */}
+                {filtered.map((entry, i) => {
+                  const location = entry.source && entry.destination
+                    ? `${entry.source} → ${entry.destination}`
+                    : entry.source || entry.destination || "—";
+                  return (
+                    <div key={`${entry.id}-${entry.completedAtMs || i}`}
+                      className="px-5 border-b border-[#e5e7eb] last:border-b-0 flex items-center"
+                      style={{ minHeight: 56 }}>
+                      <div className="grid items-center w-full" style={{ gridTemplateColumns: "2fr 1.4fr 1.6fr 100px 110px 90px" }}>
+                        {/* Task name */}
+                        <p className="text-[#0a2a3a] text-[14px] font-semibold truncate pr-3">{entry.name}</p>
+                        {/* Completed by */}
+                        <p className="text-[#6b7280] text-[13px] truncate pr-3">{entry.completedBy || "—"}</p>
+                        {/* Location */}
+                        <p className="text-[#6b7280] text-[12px] truncate pr-3">{location}</p>
+                        {/* Completed at */}
+                        <p className="text-[#6b7280] text-[12px]">{entry.completedAt || "—"}</p>
+                        {/* Session */}
+                        <p className="text-[#6b7280] text-[12px]">{entry.sessionDate || "—"}</p>
+                        {/* Status badge */}
+                        <div>
+                          <span className="text-[12px] font-medium px-2 py-1 rounded-xl bg-[#f0fff4] text-[#34c759]">
+                            Complete
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
