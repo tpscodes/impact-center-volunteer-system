@@ -134,266 +134,6 @@ function DriverInput({ value, occKey, field, drivers, onSave }) {
   );
 }
 
-// ── Left panel item ────────────────────────────────────────────────────────────
-// Defined outside main component — stable reference prevents unmount on selection change
-function LeftItem({ tmpl, selectedId, onSelect }) {
-  const active = tmpl.id === selectedId;
-  return (
-    <button
-      onClick={() => onSelect(tmpl.id)}
-      className={`w-full text-left px-4 py-3 border-b border-[#f3f4f6] bg-transparent border-none cursor-pointer
-        transition-colors ${active ? "bg-[#0d9488]" : "hover:bg-[#f9fafb]"}`}>
-      <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
-        {tmpl.name}
-      </p>
-      <p className={`text-[11px] capitalize mt-0.5 ${active ? "text-white" : "text-[#6b7280]"}`}>
-        {tmpl.dayOfWeek}
-      </p>
-    </button>
-  );
-}
-
-// ── Mobile template card ───────────────────────────────────────────────────────
-// Defined outside main component — stable reference
-function MobileCard({ tmpl }) {
-  return (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 mb-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[#0a2a3a] text-[14px] font-semibold">{tmpl.name}</p>
-        <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full capitalize">
-          {tmpl.dayOfWeek}
-        </span>
-      </div>
-      <div className="flex items-center gap-1 mb-1.5">
-        <MapPin size={13} color="#6b7280" className="shrink-0" />
-        <span className="text-[#6b7280] text-[12px]">{tmpl.source} → {tmpl.destination}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        {tmpl.departureTime && (
-          <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
-            <Clock size={13} color="#6b7280" />
-            {tmpl.departureTime}
-          </span>
-        )}
-        {tmpl.vehicle && (
-          <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
-            <Truck size={13} color="#6b7280" />
-            {tmpl.vehicle}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Right panel ────────────────────────────────────────────────────────────────
-// Defined outside main component — stable reference prevents full unmount/remount
-// on every selection change, eliminating the right-panel flicker
-function RightPanel({
-  selectedTemplate,
-  templateOccs,
-  monthGroups,
-  today,
-  drivers,
-  handleAddOccurrence,
-  handleAssignDriver,
-}) {
-  if (!selectedTemplate) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full py-20">
-        <Truck size={40} color="#ccedeb" />
-        <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">Select a route</p>
-        <p className="text-[#6b7280] text-[13px] mt-1">Choose a route from the left panel</p>
-      </div>
-    );
-  }
-
-  const t = selectedTemplate;
-  const driversNeeded = Number(t.driversNeeded) || 1;
-
-  const META = [
-    { icon: MapPin, color: "#6b7280",  label: "Pickup",         value: t.source },
-    { icon: MapPin, color: "#0d9488",  label: "Drop-off",       value: t.destination },
-    { icon: Clock,  color: "#6b7280",  label: "Departs",        value: t.departureTime },
-    { icon: Clock,  color: "#6b7280",  label: "Arrives",        value: t.arrivalTime },
-    { icon: Truck,  color: "#6b7280",  label: "Vehicle",        value: t.vehicle },
-    { icon: Users,  color: "#6b7280",  label: "Drivers needed", value: t.driversNeeded
-        ? `${t.driversNeeded} ${t.driversNeeded === 1 ? "driver" : "drivers"}` : null },
-  ].filter(m => m.value);
-
-  return (
-    <div className="flex flex-col">
-      {/* Section 1 — Fixed info */}
-      <div className="bg-white border-b border-[#e5e7eb] px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[#0a2a3a] text-[18px] font-semibold">{t.name}</p>
-            <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-3 py-1 rounded-full capitalize">
-              {t.dayOfWeek}
-            </span>
-          </div>
-          <button className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
-            <Pencil size={13} />
-            Edit
-          </button>
-        </div>
-
-        {/* Meta grid */}
-        <div className="grid grid-cols-3 gap-x-6 gap-y-3 mt-4">
-          {META.map(m => (
-            <div key={m.label}>
-              <div className="flex items-center gap-1 mb-0.5">
-                <m.icon size={13} style={{ color: m.color }} />
-                <span className="text-[#6b7280] text-[11px]">{m.label}</span>
-              </div>
-              <p className="text-[#0a2a3a] text-[13px] font-medium">{m.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Section 2 — Schedule table */}
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[#0a2a3a] text-[14px] font-semibold">Schedule</p>
-          <button onClick={handleAddOccurrence}
-            className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
-            + Add Occurrence
-          </button>
-        </div>
-
-        {templateOccs.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-[#6b7280] text-[13px]">No occurrences yet.</p>
-            <button onClick={handleAddOccurrence}
-              className="mt-2 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer underline">
-              Add the first one
-            </button>
-          </div>
-        ) : (
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr>
-                <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[110px] font-medium">Date</th>
-                <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 1</th>
-                {driversNeeded >= 2 && (
-                  <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 2</th>
-                )}
-                <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[90px] font-medium">Status</th>
-                <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[100px] font-medium">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthGroups.map(group => (
-                <>
-                  {/* Month header */}
-                  <tr key={`month-${group.month}`}>
-                    <td colSpan={driversNeeded >= 2 ? 5 : 4}
-                      className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
-                      {monthLabel(group.month + "-01")}
-                    </td>
-                  </tr>
-
-                  {group.occs.map(occ => {
-                    const isPast    = (occ.date || "") < today;
-                    const isSpecial = occ.isSpecial === true;
-
-                    if (isSpecial) {
-                      return (
-                        <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px] bg-[#fff0f0]">
-                          <td className="text-[#0a2a3a] text-[12px] pr-4">
-                            {formatDateShort(occ.date)}
-                          </td>
-                          <td colSpan={driversNeeded >= 2 ? 4 : 3}
-                            className="text-[#dc2626] text-[12px] font-medium text-center">
-                            {occ.specialNote || "Special day"}
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    const allFilled = driversNeeded >= 2
-                      ? (!!occ.driver1 && !!occ.driver2)
-                      : !!occ.driver1;
-
-                    return (
-                      <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
-                        {/* Date */}
-                        <td className={`text-[12px] pr-4 ${isPast ? "text-[#6b7280]" : "text-[#0a2a3a] font-medium"}`}>
-                          {formatDateShort(occ.date)}
-                        </td>
-
-                        {/* Driver 1 */}
-                        <td className="pr-3 py-1">
-                          {isPast ? (
-                            occ.driver1
-                              ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver1}</span>
-                              : <span className="text-[#6b7280]">—</span>
-                          ) : (
-                            <DriverInput
-                              value={occ.driver1}
-                              occKey={occ.id}
-                              field="driver1"
-                              drivers={drivers}
-                              onSave={handleAssignDriver}
-                            />
-                          )}
-                        </td>
-
-                        {/* Driver 2 */}
-                        {driversNeeded >= 2 && (
-                          <td className="pr-3 py-1">
-                            {isPast ? (
-                              occ.driver2
-                                ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver2}</span>
-                                : <span className="text-[#6b7280]">—</span>
-                            ) : (
-                              <DriverInput
-                                value={occ.driver2}
-                                occKey={occ.id}
-                                field="driver2"
-                                drivers={drivers}
-                                onSave={handleAssignDriver}
-                              />
-                            )}
-                          </td>
-                        )}
-
-                        {/* Status */}
-                        <td className="pr-3">
-                          {isPast ? (
-                            <span className={`text-[11px] font-medium ${
-                              occ.status === "complete"   ? "text-[#34c759]" :
-                              occ.status === "incomplete" ? "text-[#dc2626]" :
-                              "text-[#6b7280]"
-                            }`}>
-                              {occ.status === "complete" ? "Complete" :
-                               occ.status === "incomplete" ? "Incomplete" : "—"}
-                            </span>
-                          ) : (
-                            <span className={`text-[11px] ${allFilled ? "text-[#0d9488] font-medium" : "text-[#6b7280] italic"}`}>
-                              {allFilled ? "Assigned" : "Pending"}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Notes */}
-                        <td className="text-[#6b7280] text-[12px]">
-                          {occ.notes || ""}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryRoutes() {
   const navigate = useNavigate();
@@ -481,20 +221,28 @@ export default function ManagerDeliveryRoutes() {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
-  const MOBILE_NAV = [
-    { label: "Dashboard", path: "/manager-delivery",           active: false },
-    { label: "Routes",    path: "/manager-delivery-routes",    active: true  },
-    { label: "Drivers",   path: "/manager-delivery-volunteers",active: false },
-    { label: "History",   path: "/manager-delivery-history",   active: false },
-  ];
+  // Precompute driversNeeded so schedule table and header stay in sync
+  const driversNeeded = selectedTemplate ? Number(selectedTemplate.driversNeeded) || 1 : 1;
+
+  // Precompute META array for the route info grid
+  const META = selectedTemplate ? [
+    { icon: MapPin, color: "#6b7280",  label: "Pickup",         value: selectedTemplate.source },
+    { icon: MapPin, color: "#0d9488",  label: "Drop-off",       value: selectedTemplate.destination },
+    { icon: Clock,  color: "#6b7280",  label: "Departs",        value: selectedTemplate.departureTime },
+    { icon: Clock,  color: "#6b7280",  label: "Arrives",        value: selectedTemplate.arrivalTime },
+    { icon: Truck,  color: "#6b7280",  label: "Vehicle",        value: selectedTemplate.vehicle },
+    { icon: Users,  color: "#6b7280",  label: "Drivers needed", value: selectedTemplate.driversNeeded
+        ? `${selectedTemplate.driversNeeded} ${selectedTemplate.driversNeeded === 1 ? "driver" : "drivers"}` : null },
+  ].filter(m => m.value) : [];
 
   return (
-    <>
+    <div className="min-h-screen bg-[#f5f5f5]"
+      style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
       {/* ══════════════════════════════════════════════════════════════════════
-          MOBILE LAYOUT
+          MOBILE LAYOUT  (hidden on desktop)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col"
-        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+      <div className="lg:hidden min-h-screen flex flex-col">
 
         <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
@@ -532,7 +280,12 @@ export default function ManagerDeliveryRoutes() {
                 </button>
               </div>
               <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
+                {[
+                  { label: "Dashboard", path: "/manager-delivery",            active: false },
+                  { label: "Routes",    path: "/manager-delivery-routes",     active: true  },
+                  { label: "Drivers",   path: "/manager-delivery-volunteers", active: false },
+                  { label: "History",   path: "/manager-delivery-history",    active: false },
+                ].map(item => (
                   <button key={item.label}
                     onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
                     className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none ${
@@ -578,16 +331,42 @@ export default function ManagerDeliveryRoutes() {
               <p className="text-[#6b7280] text-[13px] mt-1">Templates load from Firebase automatically</p>
             </div>
           ) : (
-            sorted.map(tmpl => <MobileCard key={tmpl.id} tmpl={tmpl} />)
+            sorted.map(tmpl => (
+              <div key={tmpl.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#0a2a3a] text-[14px] font-semibold">{tmpl.name}</p>
+                  <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full capitalize">
+                    {tmpl.dayOfWeek}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <MapPin size={13} color="#6b7280" className="shrink-0" />
+                  <span className="text-[#6b7280] text-[12px]">{tmpl.source} → {tmpl.destination}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {tmpl.departureTime && (
+                    <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
+                      <Clock size={13} color="#6b7280" />
+                      {tmpl.departureTime}
+                    </span>
+                  )}
+                  {tmpl.vehicle && (
+                    <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
+                      <Truck size={13} color="#6b7280" />
+                      {tmpl.vehicle}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT
+          DESKTOP LAYOUT  (hidden on mobile)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
-        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+      <div className="hidden lg:flex min-h-screen">
 
         <Sidebar mode="delivery" activePath="/manager-delivery-routes" />
 
@@ -610,10 +389,10 @@ export default function ManagerDeliveryRoutes() {
             </div>
           </div>
 
-          {/* Master-detail */}
+          {/* Master-detail — flex row, fills remaining height */}
           <div className="flex flex-1 overflow-hidden">
 
-            {/* Left panel */}
+            {/* Left panel — always mounted, no key */}
             <div className="w-[220px] min-w-[220px] bg-white border-r border-[#e5e7eb] overflow-y-auto flex flex-col">
               <div className="px-4 py-3 border-b border-[#e5e7eb] shrink-0">
                 <p className="text-[12px] text-[#6b7280] uppercase tracking-widest">Routes</p>
@@ -623,32 +402,210 @@ export default function ManagerDeliveryRoutes() {
                   <p className="text-[#6b7280] text-[12px]">Loading templates…</p>
                 </div>
               ) : (
-                sorted.map(tmpl => (
-                  <LeftItem
-                    key={tmpl.id}
-                    tmpl={tmpl}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                  />
-                ))
+                sorted.map(tmpl => {
+                  const active = tmpl.id === selectedId;
+                  return (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => setSelectedId(tmpl.id)}
+                      className={`w-full text-left px-4 py-3 border-b border-[#f3f4f6] bg-transparent border-none
+                        cursor-pointer transition-colors ${active ? "bg-[#0d9488]" : "hover:bg-[#f9fafb]"}`}>
+                      <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
+                        {tmpl.name}
+                      </p>
+                      <p className={`text-[11px] capitalize mt-0.5 ${active ? "text-white" : "text-[#6b7280]"}`}>
+                        {tmpl.dayOfWeek}
+                      </p>
+                    </button>
+                  );
+                })
               )}
             </div>
 
-            {/* Right panel */}
+            {/* Right panel — always mounted, never null, no key */}
             <div className="flex-1 overflow-y-auto bg-[#f5f5f5]">
-              <RightPanel
-                selectedTemplate={selectedTemplate}
-                templateOccs={templateOccs}
-                monthGroups={monthGroups}
-                today={today}
-                drivers={drivers}
-                handleAddOccurrence={handleAddOccurrence}
-                handleAssignDriver={handleAssignDriver}
-              />
+              {!selectedTemplate ? (
+                <div className="flex flex-col items-center justify-center h-full py-20">
+                  <Truck size={40} color="#ccedeb" />
+                  <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">Select a route</p>
+                  <p className="text-[#6b7280] text-[13px] mt-1">Choose a route from the left panel</p>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {/* Section 1 — Fixed route info */}
+                  <div className="bg-white border-b border-[#e5e7eb] px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[#0a2a3a] text-[18px] font-semibold">{selectedTemplate.name}</p>
+                        <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-3 py-1 rounded-full capitalize">
+                          {selectedTemplate.dayOfWeek}
+                        </span>
+                      </div>
+                      <button className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
+                        <Pencil size={13} />
+                        Edit
+                      </button>
+                    </div>
+
+                    {/* Meta grid */}
+                    <div className="grid grid-cols-3 gap-x-6 gap-y-3 mt-4">
+                      {META.map(m => (
+                        <div key={m.label}>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <m.icon size={13} style={{ color: m.color }} />
+                            <span className="text-[#6b7280] text-[11px]">{m.label}</span>
+                          </div>
+                          <p className="text-[#0a2a3a] text-[13px] font-medium">{m.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 2 — Schedule table */}
+                  <div className="px-6 py-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[#0a2a3a] text-[14px] font-semibold">Schedule</p>
+                      <button onClick={handleAddOccurrence}
+                        className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
+                        + Add Occurrence
+                      </button>
+                    </div>
+
+                    {templateOccs.length === 0 ? (
+                      <div className="text-center py-10">
+                        <p className="text-[#6b7280] text-[13px]">No occurrences yet.</p>
+                        <button onClick={handleAddOccurrence}
+                          className="mt-2 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer underline">
+                          Add the first one
+                        </button>
+                      </div>
+                    ) : (
+                      <table className="w-full border-collapse text-left">
+                        <thead>
+                          <tr>
+                            <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[110px] font-medium">Date</th>
+                            <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 1</th>
+                            {driversNeeded >= 2 && (
+                              <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 2</th>
+                            )}
+                            <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[90px] font-medium">Status</th>
+                            <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[100px] font-medium">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {monthGroups.map(group => (
+                            <>
+                              {/* Month header row */}
+                              <tr key={`month-${group.month}`}>
+                                <td colSpan={driversNeeded >= 2 ? 5 : 4}
+                                  className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
+                                  {monthLabel(group.month + "-01")}
+                                </td>
+                              </tr>
+
+                              {group.occs.map(occ => {
+                                const isPast    = (occ.date || "") < today;
+                                const isSpecial = occ.isSpecial === true;
+
+                                if (isSpecial) {
+                                  return (
+                                    <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px] bg-[#fff0f0]">
+                                      <td className="text-[#0a2a3a] text-[12px] pr-4">
+                                        {formatDateShort(occ.date)}
+                                      </td>
+                                      <td colSpan={driversNeeded >= 2 ? 4 : 3}
+                                        className="text-[#dc2626] text-[12px] font-medium text-center">
+                                        {occ.specialNote || "Special day"}
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+
+                                const allFilled = driversNeeded >= 2
+                                  ? (!!occ.driver1 && !!occ.driver2)
+                                  : !!occ.driver1;
+
+                                return (
+                                  <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
+                                    {/* Date */}
+                                    <td className={`text-[12px] pr-4 ${isPast ? "text-[#6b7280]" : "text-[#0a2a3a] font-medium"}`}>
+                                      {formatDateShort(occ.date)}
+                                    </td>
+
+                                    {/* Driver 1 */}
+                                    <td className="pr-3 py-1">
+                                      {isPast ? (
+                                        occ.driver1
+                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver1}</span>
+                                          : <span className="text-[#6b7280]">—</span>
+                                      ) : (
+                                        <DriverInput
+                                          value={occ.driver1}
+                                          occKey={occ.id}
+                                          field="driver1"
+                                          drivers={drivers}
+                                          onSave={handleAssignDriver}
+                                        />
+                                      )}
+                                    </td>
+
+                                    {/* Driver 2 */}
+                                    {driversNeeded >= 2 && (
+                                      <td className="pr-3 py-1">
+                                        {isPast ? (
+                                          occ.driver2
+                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver2}</span>
+                                            : <span className="text-[#6b7280]">—</span>
+                                        ) : (
+                                          <DriverInput
+                                            value={occ.driver2}
+                                            occKey={occ.id}
+                                            field="driver2"
+                                            drivers={drivers}
+                                            onSave={handleAssignDriver}
+                                          />
+                                        )}
+                                      </td>
+                                    )}
+
+                                    {/* Status */}
+                                    <td className="pr-3">
+                                      {isPast ? (
+                                        <span className={`text-[11px] font-medium ${
+                                          occ.status === "complete"   ? "text-[#34c759]" :
+                                          occ.status === "incomplete" ? "text-[#dc2626]" :
+                                          "text-[#6b7280]"
+                                        }`}>
+                                          {occ.status === "complete" ? "Complete" :
+                                           occ.status === "incomplete" ? "Incomplete" : "—"}
+                                        </span>
+                                      ) : (
+                                        <span className={`text-[11px] ${allFilled ? "text-[#0d9488] font-medium" : "text-[#6b7280] italic"}`}>
+                                          {allFilled ? "Assigned" : "Pending"}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* Notes */}
+                                    <td className="text-[#6b7280] text-[12px]">
+                                      {occ.notes || ""}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
