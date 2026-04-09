@@ -142,8 +142,9 @@ export default function ManagerDeliveryRoutes() {
   const [volunteers,  setVolunteers]  = useState([]);
   const [selectedId,  setSelectedId]  = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const defaultSetRef = useRef(false);
 
-  // Firebase listeners
+  // Firebase listeners — all mounted once, empty deps
   useEffect(() => {
     return onValue(ref(db, "routeTemplates"), snap => {
       const data = snap.val();
@@ -155,7 +156,7 @@ export default function ManagerDeliveryRoutes() {
     return onValue(ref(db, "routeOccurrences"), snap => {
       const data = snap.val();
       setOccurrences(data
-        ? Object.entries(data).map(([key, val]) => ({ key, ...val }))
+        ? Object.entries(data).map(([id, val]) => ({ id, ...val }))
         : []);
     });
   }, []);
@@ -171,15 +172,21 @@ export default function ManagerDeliveryRoutes() {
   const templatesList = Object.entries(templates).map(([id, t]) => ({ id, ...t }));
   const sorted = sortTemplates(templatesList);
 
-  // Auto-select after templates load
+  // Auto-select the default route exactly once after templates first load
   useEffect(() => {
-    if (sorted.length === 0 || selectedId) return;
+    if (sorted.length === 0 || defaultSetRef.current) return;
+    defaultSetRef.current = true;
     const today = getTodayDayKey();
     const match = sorted.find(t => t.dayOfWeek === today) || sorted[0];
     if (match) setSelectedId(match.id);
   }, [templates]); // eslint-disable-line
 
-  const selectedTemplate = sorted.find(t => t.id === selectedId) || null;
+  // Derive selectedTemplate directly from the templates object — no extra state,
+  // no array scan — so it never flickers when templates re-fires from Firebase
+  const selectedTemplate = templates[selectedId]
+    ? { id: selectedId, ...templates[selectedId] }
+    : null;
+
   const drivers = volunteers.filter(v => v.isDriver === true);
 
   // Occurrences for selected template, sorted by date
@@ -338,7 +345,7 @@ export default function ManagerDeliveryRoutes() {
 
                       if (isSpecial) {
                         return (
-                          <tr key={occ.key} className="border-b border-[#f3f4f6] h-[44px] bg-[#fff0f0]">
+                          <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px] bg-[#fff0f0]">
                             <td className="text-[#0a2a3a] text-[12px] pr-4">
                               {formatDateShort(occ.date)}
                             </td>
@@ -355,7 +362,7 @@ export default function ManagerDeliveryRoutes() {
                         : !!occ.driver1;
 
                       return (
-                        <tr key={occ.key} className="border-b border-[#f3f4f6] h-[44px]">
+                        <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
                           {/* Date */}
                           <td className={`text-[12px] pr-4 ${isPast ? "text-[#6b7280]" : "text-[#0a2a3a] font-medium"}`}>
                             {formatDateShort(occ.date)}
@@ -370,7 +377,7 @@ export default function ManagerDeliveryRoutes() {
                             ) : (
                               <DriverInput
                                 value={occ.driver1}
-                                occKey={occ.key}
+                                occKey={occ.id}
                                 field="driver1"
                                 drivers={drivers}
                                 onSave={handleAssignDriver}
@@ -388,7 +395,7 @@ export default function ManagerDeliveryRoutes() {
                               ) : (
                                 <DriverInput
                                   value={occ.driver2}
-                                  occKey={occ.key}
+                                  occKey={occ.id}
                                   field="driver2"
                                   drivers={drivers}
                                   onSave={handleAssignDriver}
