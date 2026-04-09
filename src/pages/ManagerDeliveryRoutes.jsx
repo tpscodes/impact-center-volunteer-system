@@ -143,13 +143,14 @@ export default function ManagerDeliveryRoutes() {
   const [volunteers,  setVolunteers]  = useState([]);
   const [selectedId,  setSelectedId]  = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const defaultSetRef = useRef(false);
 
   // Firebase listeners — all mounted once, empty deps
   useEffect(() => {
     return onValue(ref(db, "routeTemplates"), snap => {
       const data = snap.val();
-      setTemplates(data || {});
+      // Never overwrite valid templates with a null/empty snapshot
+      // (can happen during StrictMode re-subscription or brief disconnects)
+      if (data) setTemplates(data);
     });
   }, []);
 
@@ -173,10 +174,11 @@ export default function ManagerDeliveryRoutes() {
   const templatesList = Object.entries(templates).map(([id, t]) => ({ id, ...t }));
   const sorted = sortTemplates(templatesList);
 
-  // Auto-select the default route exactly once after templates first load
+  // Auto-select the default route when templates load and nothing is selected yet.
+  // Uses !selectedId instead of a ref guard so StrictMode's unmount/remount cycle
+  // (which resets state but preserves refs) correctly re-triggers the selection.
   useEffect(() => {
-    if (sorted.length === 0 || defaultSetRef.current) return;
-    defaultSetRef.current = true;
+    if (sorted.length === 0 || selectedId) return;
     const today = getTodayDayKey();
     const match = sorted.find(t => t.dayOfWeek === today) || sorted[0];
     if (match) setSelectedId(match.id);
