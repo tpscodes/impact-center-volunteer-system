@@ -66,6 +66,7 @@ export default function DeliveryRouteDetail() {
   const [volunteers, setVolunteers] = useState([]);
   const [busy, setBusy] = useState(false);
 
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
     if (!initRoute?.key) return;
     const unsub = onValue(ref(db, `deliveryRoutes/${initRoute.key}`), (snap) => {
@@ -116,6 +117,7 @@ export default function DeliveryRouteDetail() {
     setBusy(true);
     try {
       const updated = [...claimed, volunteerId];
+      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
       await update(ref(db, `deliveryRoutes/${route.key}`), {
         claimedBy: updated,
         status: route.status === "available" ? "inProgress" : route.status,
@@ -130,6 +132,7 @@ export default function DeliveryRouteDetail() {
     setBusy(true);
     try {
       const updated = claimed.filter(v => v !== volunteerId && v !== volunteerName);
+      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
       await update(ref(db, `deliveryRoutes/${route.key}`), {
         claimedBy: updated,
         status: updated.length === 0 ? "available" : "inProgress",
@@ -144,7 +147,7 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      // Mark route complete in deliveryRoutes
+      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
       await update(ref(db, `deliveryRoutes/${route.key}`), {
         status: "complete",
       });

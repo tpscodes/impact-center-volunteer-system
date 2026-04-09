@@ -179,6 +179,7 @@ export default function ManagerDeliveryRoutes() {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   // Firebase listener
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
@@ -216,6 +217,7 @@ export default function ManagerDeliveryRoutes() {
 
   async function handleDelete(key) {
     if (!window.confirm("Delete this route? This cannot be undone.")) return;
+    // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
     await remove(ref(db, `deliveryRoutes/${key}`));
   }
 

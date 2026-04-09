@@ -142,6 +142,7 @@ export default function ManagerDeliveryHistory() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Firebase listeners
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
       const data = snap.val();

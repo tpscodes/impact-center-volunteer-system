@@ -118,6 +118,7 @@ export default function CreateDeliveryRoute() {
     }
 
     try {
+      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
       await Promise.all(dates.map(d => push(ref(db, "deliveryRoutes"), {
         name: routeName.trim(),
         source: source.trim(),
