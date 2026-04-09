@@ -1,4 +1,5 @@
 // DeliveryRouteDetail.jsx — Driver route detail + claim/complete flow
+// Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, MapPin, Clock, Truck, Package } from "lucide-react";
@@ -7,18 +8,32 @@ import { ref, onValue, set, update } from "firebase/database";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
-function claimedArray(claimedBy) {
-  if (!claimedBy) return [];
-  return Array.isArray(claimedBy) ? claimedBy : Object.values(claimedBy);
-}
-
 function formatTime(t) {
   if (!t) return "—";
+  // If already formatted (e.g. "10:15 AM"), pass through
+  if (/AM|PM/i.test(t)) return t;
+  // Convert "HH:MM" 24-hour to "H:MM AM/PM"
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
+
+// ── Merge helper ──────────────────────────────────────────────────────────────
+const mergeRouteData = (occurrence, template) => {
+  const t = template || {};
+  return {
+    ...occurrence,
+    name:          t.name          || "",
+    dayOfWeek:     t.dayOfWeek     || "",
+    source:        occurrence.overrideSource        || t.source        || "",
+    destination:   occurrence.overrideDestination   || t.destination   || "",
+    departureTime: occurrence.overrideDepartureTime || t.departureTime || "",
+    arrivalTime:   occurrence.overrideArrivalTime   || t.arrivalTime   || "",
+    vehicle:       occurrence.overrideVehicle       || t.vehicle       || "",
+    driversNeeded: occurrence.overrideDriversNeeded || t.driversNeeded || 1,
+  };
+};
 
 const getStatusStyle = (status) => {
   if (status === "inProgress")  return "bg-[#fff3e0] text-[#ff9500]";
@@ -51,63 +66,48 @@ export default function DeliveryRouteDetail() {
   const navigate  = useNavigate();
   const location  = useLocation();
 
-  const initRoute   = location.state?.route;
-  const volunteer   = location.state?.volunteer;
+  const initOccurrence = location.state?.occurrence;
+  const initTemplate   = location.state?.template;
+  const volunteer      = location.state?.volunteer;
 
   // Guard: missing context → back to task pool
   useEffect(() => {
-    if (!initRoute || !volunteer) {
+    if (!initOccurrence || !volunteer) {
       navigate("/delivery-task-pool", { replace: true });
     }
-  }, [initRoute, volunteer, navigate]);
+  }, [initOccurrence, volunteer, navigate]);
 
-  // Live route state synced from Firebase
-  const [route, setRoute] = useState(initRoute || null);
-  const [volunteers, setVolunteers] = useState([]);
+  // Live occurrence state synced from Firebase
+  const [occurrence, setOccurrence] = useState(initOccurrence || null);
   const [busy, setBusy] = useState(false);
 
-  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
-    if (!initRoute?.key) return;
-    const unsub = onValue(ref(db, `deliveryRoutes/${initRoute.key}`), (snap) => {
+    if (!initOccurrence?.id) return;
+    return onValue(ref(db, `routeOccurrences/${initOccurrence.id}`), snap => {
       const data = snap.val();
-      if (data) setRoute({ key: initRoute.key, ...data });
+      if (data) setOccurrence({ id: initOccurrence.id, ...data });
     });
-    return () => unsub();
-  }, [initRoute?.key]);
+  }, [initOccurrence?.id]);
 
-  // Volunteers (for resolving driver names in slots)
-  useEffect(() => {
-    const unsub = onValue(ref(db, "volunteers"), (snap) => {
-      const data = snap.val();
-      setVolunteers(data ? Object.values(data) : []);
-    });
-    return () => unsub();
-  }, []);
+  if (!occurrence || !volunteer) return null;
 
-  if (!route || !volunteer) return null;
-
-  const volunteerId   = volunteer.id;
   const volunteerName = volunteer.name;
 
-  const claimed  = claimedArray(route.claimedBy);
-  const needed   = Number(route.driversNeeded) || 1;
-  const isClaimed = claimed.some(v => v === volunteerId || v === volunteerName);
-  const isFull    = claimed.length >= needed && !isClaimed;
-  const isComplete = route.status === "complete";
+  // Merge occurrence with template for display
+  const route = mergeRouteData(occurrence, initTemplate);
+
+  const drivers   = Array.isArray(occurrence.drivers) ? occurrence.drivers : [];
+  const needed    = Number(route.driversNeeded) || 1;
+  const isClaimed  = drivers.includes(volunteerName);
+  const isFull     = drivers.length >= needed && !isClaimed;
+  const isComplete = occurrence.status === "complete";
 
   // Build slot display
-  function resolveName(val) {
-    if (val === volunteerId || val === volunteerName) return "You";
-    const found = volunteers.find(v => v.id === val || v.name === val);
-    return found ? found.name : (val || "Driver");
-  }
-
   const slots = Array.from({ length: needed }, (_, i) => {
-    const val = claimed[i];
+    const val = drivers[i];
     if (!val) return { type: "open" };
-    if (val === volunteerId || val === volunteerName) return { type: "me" };
-    return { type: "other", name: resolveName(val) };
+    if (val === volunteerName) return { type: "me" };
+    return { type: "other", name: val };
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -116,11 +116,10 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      const updated = [...claimed, volunteerId];
-      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
-      await update(ref(db, `deliveryRoutes/${route.key}`), {
-        claimedBy: updated,
-        status: route.status === "available" ? "inProgress" : route.status,
+      const updated = [...drivers, volunteerName];
+      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
+        drivers: updated,
+        status: occurrence.status === "available" || !occurrence.status ? "inProgress" : occurrence.status,
       });
     } finally {
       setBusy(false);
@@ -131,10 +130,9 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      const updated = claimed.filter(v => v !== volunteerId && v !== volunteerName);
-      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
-      await update(ref(db, `deliveryRoutes/${route.key}`), {
-        claimedBy: updated,
+      const updated = drivers.filter(v => v !== volunteerName);
+      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
+        drivers: updated,
         status: updated.length === 0 ? "available" : "inProgress",
       });
       navigate("/delivery-task-pool", { state: { volunteer } });
@@ -147,16 +145,19 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
-      await update(ref(db, `deliveryRoutes/${route.key}`), {
+      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
         status: "complete",
       });
-      // Copy to deliveryHistory
-      await set(ref(db, `deliveryHistory/${route.key}`), {
+      // Write to routeHistory for ManagerDeliveryHistory
+      await set(ref(db, `routeHistory/${occurrence.id}`), {
         ...route,
+        id:          occurrence.id,
+        templateId:  occurrence.templateId,
+        date:        occurrence.date,
+        drivers,
         status:      "complete",
         completedAt: Date.now(),
-        completedBy: volunteerId,
+        completedBy: volunteerName,
       });
       navigate("/delivery-task-pool", { state: { volunteer } });
     } finally {
@@ -187,18 +188,18 @@ export default function DeliveryRouteDetail() {
 
         {/* Section 1 — Header */}
         <p className="text-[#0a2a3a] text-[18px] font-semibold">{route.name}</p>
-        <span className={`inline-block mt-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${getStatusStyle(route.status)}`}>
-          {getStatusLabel(route.status)}
+        <span className={`inline-block mt-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${getStatusStyle(occurrence.status)}`}>
+          {getStatusLabel(occurrence.status)}
         </span>
 
         {/* Section 2 — Route info */}
         <div className="mt-4 space-y-3">
-          <InfoRow icon={MapPin} iconColor="#6b7280"  label="Pickup"   value={route.source} />
-          <InfoRow icon={MapPin} iconColor="#0d9488"  label="Drop-off" value={route.destination} />
-          <InfoRow icon={Package} iconColor="#6b7280" label="Items"    value={route.items} />
-          <InfoRow icon={Clock}  iconColor="#6b7280"  label="Departs"  value={formatTime(route.departureTime)} />
-          <InfoRow icon={Clock}  iconColor="#6b7280"  label="Arrives"  value={route.arrivalTime ? formatTime(route.arrivalTime) : null} />
-          <InfoRow icon={Truck}  iconColor="#6b7280"  label="Vehicle"  value={route.vehicle} />
+          <InfoRow icon={MapPin}  iconColor="#6b7280"  label="Pickup"    value={route.source} />
+          <InfoRow icon={MapPin}  iconColor="#0d9488"  label="Drop-off"  value={route.destination} />
+          <InfoRow icon={Package} iconColor="#6b7280"  label="Items"     value={route.items} />
+          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Departs"   value={formatTime(route.departureTime)} />
+          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Arrives"   value={route.arrivalTime ? formatTime(route.arrivalTime) : null} />
+          <InfoRow icon={Truck}   iconColor="#6b7280"  label="Vehicle"   value={route.vehicle} />
         </div>
 
         {/* Section 3 — Driver slots */}

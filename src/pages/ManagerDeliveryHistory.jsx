@@ -1,4 +1,5 @@
 // ManagerDeliveryHistory.jsx — Completed delivery routes log
+// Migrated to routeHistory/ — deliveryRoutes/ deprecated
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -34,11 +35,6 @@ function getMonthRange() {
   return { start, end };
 }
 
-function claimedArray(claimedBy) {
-  if (!claimedBy) return [];
-  return Array.isArray(claimedBy) ? claimedBy : Object.values(claimedBy);
-}
-
 // Format "2025-04-07" → "Mon, Apr 7"
 function formatDateShort(dateStr) {
   if (!dateStr) return "";
@@ -46,9 +42,10 @@ function formatDateShort(dateStr) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-// Format time "14:30" → "2:30 PM"
+// Format time — handles "10:15 AM" passthrough or "HH:MM" 24-hour conversion
 function formatTime(t) {
   if (!t) return "";
+  if (/AM|PM/i.test(t)) return t;
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
@@ -68,14 +65,9 @@ function getDateGroupLabel(dateStr) {
 }
 
 // ── Route card ────────────────────────────────────────────────────────────────
-function RouteCard({ route, volunteers }) {
-  const claimed = claimedArray(route.claimedBy);
-
-  // Resolve names: claimedBy entries may be IDs or names
-  const driverNames = claimed.map(val => {
-    const found = volunteers.find(v => v.id === val || v.name === val);
-    return found ? found.name : val;
-  }).filter(Boolean);
+function RouteCard({ route }) {
+  // drivers is an array of name strings written on completion
+  const driverNames = Array.isArray(route.drivers) ? route.drivers.filter(Boolean) : [];
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 mb-3">
@@ -135,36 +127,24 @@ export default function ManagerDeliveryHistory() {
   const navigate = useNavigate();
 
   const [routes,     setRoutes]     = useState([]);
-  const [volunteers, setVolunteers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate,    setFromDate]    = useState("");
   const [toDate,      setToDate]      = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Firebase listeners
-  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
+  // Firebase: routeHistory — written on completion by DeliveryRouteDetail
   useEffect(() => {
-    const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
+    return onValue(ref(db, "routeHistory"), snap => {
       const data = snap.val();
-      setRoutes(data ? Object.entries(data).map(([key, val]) => ({ key, ...val })) : []);
+      setRoutes(data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : []);
     });
-    return () => unsub();
   }, []);
 
-  useEffect(() => {
-    const unsub = onValue(ref(db, "volunteers"), (snap) => {
-      const data = snap.val();
-      setVolunteers(data ? Object.values(data) : []);
-    });
-    return () => unsub();
-  }, []);
+  // All records in routeHistory are complete; sort newest first
+  const completed = [...routes].sort((a, b) =>
+    b.date > a.date ? 1 : b.date < a.date ? -1 : 0
+  );
 
-  // Only completed routes, sorted newest first
-  const completed = routes
-    .filter(r => r.status === "complete")
-    .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
-
-  const todayStr               = getTodayStr();
   const { start: wkStart, end: wkEnd } = getWeekRange();
   const { start: moStart, end: moEnd } = getMonthRange();
 
@@ -182,10 +162,8 @@ export default function ManagerDeliveryHistory() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const nameMatch = r.name?.toLowerCase().includes(q);
-      const driverMatch = claimedArray(r.claimedBy).some(val => {
-        const vol = volunteers.find(v => v.id === val || v.name === val);
-        return (vol?.name || val).toLowerCase().includes(q);
-      });
+      const driverMatch = Array.isArray(r.drivers) &&
+        r.drivers.some(name => name?.toLowerCase().includes(q));
       if (!nameMatch && !driverMatch) return false;
     }
     return true;
@@ -213,10 +191,10 @@ export default function ManagerDeliveryHistory() {
   });
 
   const MOBILE_NAV = [
-    { label: "Dashboard", path: "/manager-delivery",           active: false },
-    { label: "Routes",    path: "/manager-delivery-routes",    active: false },
-    { label: "Drivers",   path: "/manager-delivery-volunteers",active: false },
-    { label: "History",   path: "/manager-delivery-history",   active: true  },
+    { label: "Dashboard", path: "/manager-delivery",            active: false },
+    { label: "Routes",    path: "/manager-delivery-routes",     active: false },
+    { label: "Drivers",   path: "/manager-delivery-volunteers", active: false },
+    { label: "History",   path: "/manager-delivery-history",    active: true  },
   ];
 
   const STATS = [
@@ -268,7 +246,7 @@ export default function ManagerDeliveryHistory() {
               {getDateGroupLabel(group.date)}
             </p>
             {group.routes.map(route => (
-              <RouteCard key={route.key} route={route} volunteers={volunteers} />
+              <RouteCard key={route.id} route={route} />
             ))}
           </div>
         ))

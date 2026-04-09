@@ -1,4 +1,5 @@
 // ManagerDelivery.jsx — Delivery Dashboard (landing screen for Delivery mode)
+// Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, X, Clock, Truck } from "lucide-react";
@@ -25,6 +26,22 @@ const getStatusLabel = (status) => {
   if (status === "complete")   return "Complete";
   if (status === "incomplete") return "Incomplete";
   return "Available";
+};
+
+// ── Merge helper ─────────────────────────────────────────────────────────────
+const mergeRouteData = (occurrence, templatesMap) => {
+  const template = templatesMap[occurrence.templateId] || {};
+  return {
+    ...occurrence,
+    name:          template.name          || "",
+    dayOfWeek:     template.dayOfWeek     || "",
+    source:        occurrence.overrideSource        || template.source        || "",
+    destination:   occurrence.overrideDestination   || template.destination   || "",
+    departureTime: occurrence.overrideDepartureTime || template.departureTime || "",
+    arrivalTime:   occurrence.overrideArrivalTime   || template.arrivalTime   || "",
+    vehicle:       occurrence.overrideVehicle       || template.vehicle       || "",
+    driversNeeded: occurrence.overrideDriversNeeded || template.driversNeeded || 1,
+  };
 };
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
@@ -56,7 +73,8 @@ export default function ManagerDelivery() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState("today"); // 'today' | 'week'
-  const [routes, setRoutes] = useState([]);
+  const [templates,   setTemplates]   = useState({});
+  const [occurrences, setOccurrences] = useState([]);
   const [drivers, setDrivers] = useState([]);
 
   const todayStr = new Date().toLocaleDateString("en-US", {
@@ -69,17 +87,17 @@ export default function ManagerDelivery() {
   }, []);
 
   // ── Firebase listeners ────────────────────────────────────────────────────
-  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
-    const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
-      const data = snap.val();
-      if (data) {
-        setRoutes(Object.entries(data).map(([key, val]) => ({ ...val, _key: key })));
-      } else {
-        setRoutes([]);
-      }
+    return onValue(ref(db, "routeTemplates"), snap => {
+      setTemplates(snap.val() || {});
     });
-    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    return onValue(ref(db, "routeOccurrences"), snap => {
+      const data = snap.val();
+      setOccurrences(data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : []);
+    });
   }, []);
 
   useEffect(() => {
@@ -94,33 +112,35 @@ export default function ManagerDelivery() {
     return () => unsub();
   }, []);
 
-  // ── Filter routes by period ───────────────────────────────────────────────
+  // ── Filter and merge routes by period ────────────────────────────────────
   const today = getTodayStr();
   const week = getWeekRange();
 
-  const periodRoutes = routes.filter(r => {
-    if (!r.date) return false;
-    if (period === "today") return r.date === today;
-    return r.date >= week.start && r.date <= week.end;
-  });
+  const periodMerged = occurrences
+    .filter(o => {
+      if (!o.date) return false;
+      if (period === "today") return o.date === today;
+      return o.date >= week.start && o.date <= week.end;
+    })
+    .map(o => mergeRouteData(o, templates));
 
-  const sortedRoutes = [...periodRoutes].sort((a, b) =>
+  const sortedRoutes = [...periodMerged].sort((a, b) =>
     (a.departureTime || "").localeCompare(b.departureTime || "")
   );
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const totalRoutes  = periodRoutes.length;
-  const completed    = periodRoutes.filter(r => r.status === "complete").length;
-  const inProgress   = periodRoutes.filter(r => r.status === "inProgress").length;
-  const unassigned   = periodRoutes.filter(r => !r.claimedBy || (Array.isArray(r.claimedBy) ? r.claimedBy.length === 0 : Object.keys(r.claimedBy).length === 0)).length;
+  const totalRoutes = periodMerged.length;
+  const completed   = periodMerged.filter(r => r.status === "complete").length;
+  const inProgress  = periodMerged.filter(r => r.status === "inProgress").length;
+  const unassigned  = periodMerged.filter(r =>
+    (!r.drivers || r.drivers.length === 0) && !r.isSpecial
+  ).length;
 
   // ── Driver route counts ───────────────────────────────────────────────────
-  function driverRouteCount(driverId) {
-    return periodRoutes.filter(r => {
-      const cb = r.claimedBy;
-      if (!cb) return false;
-      if (Array.isArray(cb)) return cb.includes(String(driverId));
-      return Object.values(cb).includes(String(driverId));
+  function driverRouteCount(driverName, driverId) {
+    return periodMerged.filter(r => {
+      const drvs = Array.isArray(r.drivers) ? r.drivers : [];
+      return drvs.includes(driverName) || drvs.includes(String(driverId));
     }).length;
   }
 
@@ -176,13 +196,11 @@ export default function ManagerDelivery() {
       ) : (
         <div>
           {sortedRoutes.slice(0, 5).map((route, i) => {
-            const claimed = Array.isArray(route.claimedBy)
-              ? route.claimedBy.length
-              : route.claimedBy ? Object.keys(route.claimedBy).length : 0;
+            const filled = Array.isArray(route.drivers) ? route.drivers.length : 0;
             const needed = route.driversNeeded || 1;
-            const slotsFilled = claimed >= needed;
+            const slotsFilled = filled >= needed;
             return (
-              <div key={route._key}
+              <div key={route.id}
                 className={`py-3 flex items-center gap-3 ${i < Math.min(sortedRoutes.length, 5) - 1 ? "border-b border-[#f3f4f6]" : ""}`}>
                 <div className="flex-1 min-w-0">
                   <p className="text-[#0a2a3a] text-[13px] font-medium truncate">{route.name}</p>
@@ -202,7 +220,7 @@ export default function ManagerDelivery() {
                   </div>
                 </div>
                 <span className={`text-[12px] font-medium shrink-0 ${slotsFilled ? "text-[#0d9488]" : "text-[#dc2626]"}`}>
-                  {claimed}/{needed}
+                  {filled}/{needed}
                 </span>
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-lg shrink-0 ${getStatusStyle(route.status)}`}>
                   {getStatusLabel(route.status)}
@@ -233,7 +251,7 @@ export default function ManagerDelivery() {
       ) : (
         <div>
           {drivers.map((driver, i) => {
-            const count = driverRouteCount(driver.id);
+            const count = driverRouteCount(driver.name, driver.id);
             const initials = getInitials(driver.name);
             return (
               <div key={driver.id}
