@@ -1,4 +1,5 @@
 // DeliveryTaskPool.jsx — Driver's view of today's delivery routes
+// Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, MapPin, Clock, Truck } from "lucide-react";
@@ -19,16 +20,31 @@ function getTodayDisplay() {
 
 function formatTime(t) {
   if (!t) return "";
+  // If already formatted (e.g. "10:15 AM"), pass through
+  if (/AM|PM/i.test(t)) return t;
+  // Convert "HH:MM" 24-hour to "H:MM AM/PM"
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-function claimedArray(claimedBy) {
-  if (!claimedBy) return [];
-  return Array.isArray(claimedBy) ? claimedBy : Object.values(claimedBy);
-}
+// ── Merge helper ──────────────────────────────────────────────────────────────
+const mergeRouteData = (occurrence, templatesMap) => {
+  const template = templatesMap[occurrence.templateId] || {};
+  return {
+    ...occurrence,
+    name:          template.name          || "",
+    dayOfWeek:     template.dayOfWeek     || "",
+    source:        occurrence.overrideSource        || template.source        || "",
+    destination:   occurrence.overrideDestination   || template.destination   || "",
+    departureTime: occurrence.overrideDepartureTime || template.departureTime || "",
+    arrivalTime:   occurrence.overrideArrivalTime   || template.arrivalTime   || "",
+    vehicle:       occurrence.overrideVehicle       || template.vehicle       || "",
+    driversNeeded: occurrence.overrideDriversNeeded || template.driversNeeded || 1,
+    _template:     template,
+  };
+};
 
 const getStatusStyle = (status) => {
   if (status === "inProgress")  return "bg-[#fff3e0] text-[#ff9500]";
@@ -45,26 +61,19 @@ const getStatusLabel = (status) => {
 };
 
 // ── Route card ────────────────────────────────────────────────────────────────
-function RouteCard({ route, volunteerId, volunteerName, volunteers, onTap }) {
-  const claimed   = claimedArray(route.claimedBy);
-  const needed    = Number(route.driversNeeded) || 1;
-  const isClaimed = claimed.some(v => v === volunteerId || v === volunteerName);
-  const isFull    = claimed.length >= needed && !isClaimed;
+function RouteCard({ route, volunteerName, onTap }) {
+  const drivers  = Array.isArray(route.drivers) ? route.drivers : [];
+  const needed   = Number(route.driversNeeded) || 1;
+  const isClaimed = drivers.includes(volunteerName);
+  const isFull    = drivers.length >= needed && !isClaimed;
   const isComplete = route.status === "complete";
-
-  // Resolve a claimedBy value to a display name
-  function resolveName(val) {
-    if (val === volunteerId || val === volunteerName) return "You";
-    const found = volunteers.find(v => v.id === val || v.name === val);
-    return found ? found.name : (val || "Driver");
-  }
 
   // Build slot array
   const slots = Array.from({ length: needed }, (_, i) => {
-    const val = claimed[i];
+    const val = drivers[i];
     if (!val) return { type: "open" };
-    if (val === volunteerId || val === volunteerName) return { type: "me" };
-    return { type: "other", name: resolveName(val) };
+    if (val === volunteerName) return { type: "me" };
+    return { type: "other", name: val };
   });
 
   const cardBase = "rounded-xl p-4 mx-4 mb-3 border transition-colors";
@@ -137,57 +146,60 @@ export default function DeliveryTaskPool() {
   const location  = useLocation();
   const volunteer = location.state?.volunteer;
 
-  const [routes,     setRoutes]     = useState([]);
-  const [volunteers, setVolunteers] = useState([]);
+  const [templates,   setTemplates]   = useState({});
+  const [occurrences, setOccurrences] = useState([]);
 
   // Guard: no volunteer context → back to id entry
   useEffect(() => {
     if (!volunteer) navigate("/experienced", { replace: true });
   }, [volunteer, navigate]);
 
-  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
-  // Firebase: today's delivery routes
+  // Firebase: routeTemplates
   useEffect(() => {
-    const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
-      const data = snap.val();
-      if (!data) { setRoutes([]); return; }
-      const today = getTodayStr();
-      const arr = Object.entries(data)
-        .map(([key, val]) => ({ key, ...val }))
-        .filter(r => r.date === today)
-        .sort((a, b) => (a.departureTime || "").localeCompare(b.departureTime || ""));
-      setRoutes(arr);
+    return onValue(ref(db, "routeTemplates"), snap => {
+      setTemplates(snap.val() || {});
     });
-    return () => unsub();
   }, []);
 
-  // Firebase: volunteers (for resolving driver names)
+  // Firebase: today's route occurrences
   useEffect(() => {
-    const unsub = onValue(ref(db, "volunteers"), (snap) => {
+    const today = getTodayStr();
+    return onValue(ref(db, "routeOccurrences"), snap => {
       const data = snap.val();
-      setVolunteers(data ? Object.values(data) : []);
+      if (!data) { setOccurrences([]); return; }
+      const arr = Object.entries(data)
+        .map(([id, val]) => ({ id, ...val }))
+        .filter(o => o.date === today);
+      setOccurrences(arr);
     });
-    return () => unsub();
   }, []);
 
   if (!volunteer) return null;
 
-  const volunteerId   = volunteer.id;
   const volunteerName = volunteer.name;
+
+  // Merge occurrences with templates and sort by departure time
+  const routes = occurrences
+    .map(o => mergeRouteData(o, templates))
+    .sort((a, b) => (a.departureTime || "").localeCompare(b.departureTime || ""));
 
   // Stats
   const available = routes.filter(r => {
-    const claimed = claimedArray(r.claimedBy);
-    return claimed.length < (Number(r.driversNeeded) || 1) && r.status !== "complete";
+    const drivers = Array.isArray(r.drivers) ? r.drivers : [];
+    return drivers.length < (Number(r.driversNeeded) || 1) && r.status !== "complete";
   }).length;
 
   const myClaimed = routes.filter(r =>
-    claimedArray(r.claimedBy).some(v => v === volunteerId || v === volunteerName)
+    Array.isArray(r.drivers) && r.drivers.includes(volunteerName)
   ).length;
 
   function handleRouteTap(route) {
     navigate("/delivery-route-detail", {
-      state: { route, volunteer },
+      state: {
+        occurrence: { id: route.id, ...route },
+        template:   route._template,
+        volunteer,
+      },
     });
   }
 
@@ -230,11 +242,9 @@ export default function DeliveryTaskPool() {
         ) : (
           routes.map(route => (
             <RouteCard
-              key={route.key}
+              key={route.id}
               route={route}
-              volunteerId={volunteerId}
               volunteerName={volunteerName}
-              volunteers={volunteers}
               onTap={handleRouteTap}
             />
           ))
