@@ -50,9 +50,11 @@ function nextOccurrenceDate(dayOfWeek, existingDates) {
 // Sort templates: by day order, then alphabetically by name
 function sortTemplates(templates) {
   return [...templates].sort((a, b) => {
-    const ai = DAY_ORDER.indexOf(a.dayOfWeek);
-    const bi = DAY_ORDER.indexOf(b.dayOfWeek);
-    if (ai !== bi) return ai - bi;
+    const ai = DAY_ORDER.indexOf(a.dayOfWeek ?? "");
+    const bi = DAY_ORDER.indexOf(b.dayOfWeek ?? "");
+    const aIdx = ai === -1 ? 9 : ai;
+    const bIdx = bi === -1 ? 9 : bi;
+    if (aIdx !== bIdx) return aIdx - bIdx;
     return (a.name || "").localeCompare(b.name || "");
   });
 }
@@ -135,7 +137,7 @@ function DriverInput({ value, occKey, field, drivers, onSave }) {
 export default function ManagerDeliveryRoutes() {
   const navigate = useNavigate();
 
-  const [templates,   setTemplates]   = useState([]);
+  const [templates,   setTemplates]   = useState({});
   const [occurrences, setOccurrences] = useState([]);
   const [volunteers,  setVolunteers]  = useState([]);
   const [selectedId,  setSelectedId]  = useState(null);
@@ -145,7 +147,7 @@ export default function ManagerDeliveryRoutes() {
   useEffect(() => {
     return onValue(ref(db, "routeTemplates"), snap => {
       const data = snap.val();
-      setTemplates(data ? Object.values(data) : []);
+      setTemplates(data || {});
     });
   }, []);
 
@@ -165,14 +167,17 @@ export default function ManagerDeliveryRoutes() {
     });
   }, []);
 
-  // Auto-select on template load
-  const sorted = sortTemplates(templates);
+  // Derive sorted list from templates object (preserves Firebase keys as id)
+  const templatesList = Object.entries(templates).map(([id, t]) => ({ id, ...t }));
+  const sorted = sortTemplates(templatesList);
+
+  // Auto-select after templates load
   useEffect(() => {
-    if (!sorted.length || selectedId) return;
+    if (sorted.length === 0 || selectedId) return;
     const today = getTodayDayKey();
     const match = sorted.find(t => t.dayOfWeek === today) || sorted[0];
     if (match) setSelectedId(match.id);
-  }, [sorted.length]); // eslint-disable-line
+  }, [templates]); // eslint-disable-line
 
   const selectedTemplate = sorted.find(t => t.id === selectedId) || null;
   const drivers = volunteers.filter(v => v.isDriver === true);
