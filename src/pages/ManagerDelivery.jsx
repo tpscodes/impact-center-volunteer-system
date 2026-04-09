@@ -5,6 +5,7 @@ import { Menu, X, Clock, Truck } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import seedRouteTemplates from "../utils/seedRouteTemplates";
 
 // ── Utility functions ─────────────────────────────────────────────────────────
 const getPriorityStyle = (priority) => {
@@ -62,7 +63,13 @@ export default function ManagerDelivery() {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
+  // ── Seed route templates once on mount ───────────────────────────────────
+  useEffect(() => {
+    seedRouteTemplates(db);
+  }, []);
+
   // ── Firebase listeners ────────────────────────────────────────────────────
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
       const data = snap.val();

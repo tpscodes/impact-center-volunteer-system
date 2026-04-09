@@ -145,6 +145,7 @@ export default function DeliveryTaskPool() {
     if (!volunteer) navigate("/experienced", { replace: true });
   }, [volunteer, navigate]);
 
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   // Firebase: today's delivery routes
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {

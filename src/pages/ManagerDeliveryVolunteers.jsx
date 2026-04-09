@@ -110,6 +110,7 @@ export default function ManagerDeliveryVolunteers() {
     return () => unsub();
   }, []);
 
+  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
     const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
       const data = snap.val();
