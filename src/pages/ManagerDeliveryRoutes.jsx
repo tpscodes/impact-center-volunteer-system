@@ -189,6 +189,12 @@ export default function ManagerDeliveryRoutes() {
     ? { id: selectedId, ...templates[selectedId] }
     : null;
 
+  console.log('RENDER', {
+    selectedId,
+    templatesCount: Object.keys(templates).length,
+    selectedTemplate: templates[selectedId] ? 'found' : 'missing',
+  });
+
   const drivers = volunteers.filter(v => v.isDriver === true);
 
   // Occurrences for selected template, sorted by date
