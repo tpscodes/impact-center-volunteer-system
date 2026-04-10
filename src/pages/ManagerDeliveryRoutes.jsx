@@ -737,26 +737,34 @@ export default function ManagerDeliveryRoutes() {
               <button
                 onClick={async () => {
                   if (!selectedTemplate) return;
-                  const updates = {
-                    overrideSource:        editFields.source        || null,
-                    overrideDestination:   editFields.destination   || null,
-                    overrideDepartureTime: editFields.departureTime || null,
-                    overrideArrivalTime:   editFields.arrivalTime   || null,
-                    overrideVehicle:       editFields.vehicle       || null,
-                    overrideDriversNeeded: editFields.driversNeeded || null,
-                  };
-                  if (editScope === "occurrence") {
-                    // Apply to selected occurrence only (if one is in view)
-                    const occToEdit = templateOccs[0];
-                    if (occToEdit) {
-                      await update(ref(db, `routeOccurrences/${occToEdit.id}`), updates);
-                    }
+
+                  if (editScope === "future") {
+                    // Write directly to the template — info panel reads from here,
+                    // and mergeRouteData in all other screens picks it up automatically
+                    await update(ref(db, `routeTemplates/${selectedId}`), {
+                      name:          editFields.name          || selectedTemplate.name,
+                      source:        editFields.source        || "",
+                      destination:   editFields.destination   || "",
+                      departureTime: editFields.departureTime || "",
+                      arrivalTime:   editFields.arrivalTime   || "",
+                      vehicle:       editFields.vehicle       || "",
+                      driversNeeded: editFields.driversNeeded || 1,
+                    });
                   } else {
-                    // Apply to all future (pending) occurrences for this template
-                    const pending = templateOccs.filter(o => o.status !== "complete" && o.status !== "incomplete");
-                    await Promise.all(
-                      pending.map(o => update(ref(db, `routeOccurrences/${o.id}`), updates))
+                    // "This occurrence only" — write overrides to the next pending occurrence
+                    const occToEdit = templateOccs.find(
+                      o => o.status !== "complete" && o.status !== "incomplete"
                     );
+                    if (occToEdit) {
+                      await update(ref(db, `routeOccurrences/${occToEdit.id}`), {
+                        overrideSource:        editFields.source        || null,
+                        overrideDestination:   editFields.destination   || null,
+                        overrideDepartureTime: editFields.departureTime || null,
+                        overrideArrivalTime:   editFields.arrivalTime   || null,
+                        overrideVehicle:       editFields.vehicle       || null,
+                        overrideDriversNeeded: editFields.driversNeeded || null,
+                      });
+                    }
                   }
                   setShowEditPopup(false);
                 }}
