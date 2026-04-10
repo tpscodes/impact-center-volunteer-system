@@ -735,7 +735,7 @@ export default function ManagerDeliveryRoutes() {
                 Cancel
               </button>
               <button
-                onClick={async () => {
+                onClick={() => {
                   if (!selectedTemplate) return;
 
                   // Build the update, keeping existing values as fallback
@@ -752,33 +752,34 @@ export default function ManagerDeliveryRoutes() {
                   };
 
                   if (editScope === "future") {
-                    // 1. Write to Firebase
-                    await update(ref(db, `routeTemplates/${selectedId}`), templateUpdate);
-                    // 2. Immediately patch local state so the UI updates right away
-                    //    without waiting for the Firebase onValue round-trip.
-                    //    This prevents the StrictMode re-subscription race where
-                    //    Firebase briefly fires back with pre-write server data.
-                    setTemplates({
-                      ..._cachedTemplates,
-                      [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
-                    });
+                    // Write to Firebase — on success patch local state and close popup
+                    update(ref(db, `routeTemplates/${selectedId}`), templateUpdate)
+                      .then(() => {
+                        setTemplates({
+                          ..._cachedTemplates,
+                          [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
+                        });
+                        setShowEditPopup(false);
+                      })
+                      .catch(err => console.error("Failed to save route template:", err));
                   } else {
                     // "This occurrence only" — write overrides to the next pending occurrence
                     const occToEdit = templateOccs.find(
                       o => o.status !== "complete" && o.status !== "incomplete"
                     );
                     if (occToEdit) {
-                      await update(ref(db, `routeOccurrences/${occToEdit.id}`), {
+                      update(ref(db, `routeOccurrences/${occToEdit.id}`), {
                         overrideSource:        editFields.source        || null,
                         overrideDestination:   editFields.destination   || null,
                         overrideDepartureTime: editFields.departureTime || null,
                         overrideArrivalTime:   editFields.arrivalTime   || null,
                         overrideVehicle:       editFields.vehicle       || null,
                         overrideDriversNeeded: editFields.driversNeeded || null,
-                      });
+                      })
+                        .then(() => setShowEditPopup(false))
+                        .catch(err => console.error("Failed to save route occurrence:", err));
                     }
                   }
-                  setShowEditPopup(false);
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-[#09665e] text-white text-[13px]
                            font-semibold border-none cursor-pointer hover:opacity-90">
