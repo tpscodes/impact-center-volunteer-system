@@ -431,8 +431,8 @@ export default function ManagerDeliveryRoutes() {
                     <button
                       key={tmpl.id}
                       onClick={() => setSelectedId(tmpl.id)}
-                      className={`w-full text-left px-4 py-3 border-b border-[#f3f4f6] bg-transparent border-none
-                        cursor-pointer transition-colors ${active ? "bg-[#0d9488]" : "hover:bg-[#f9fafb]"}`}>
+                      className={`w-full text-left px-4 py-3 border-b border-[#f3f4f6] border-none
+                        cursor-pointer transition-colors ${active ? "bg-[#0d9488]" : "bg-transparent hover:bg-[#f9fafb]"}`}>
                       <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
                         {tmpl.name}
                       </p>
