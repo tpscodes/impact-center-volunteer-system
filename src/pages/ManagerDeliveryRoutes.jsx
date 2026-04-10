@@ -134,15 +134,36 @@ function DriverInput({ value, occKey, field, drivers, onSave }) {
   );
 }
 
+// ── Module-level persistence ──────────────────────────────────────────────────
+// These survive React component remounts (StrictMode double-mount, router
+// re-renders, etc.) because they live in module scope, not component state.
+// selectedId: remembers which route the user last clicked so the right panel
+//   never flashes to "Select a route" on remount.
+// cachedTemplates: remembers the last loaded templates so the right panel has
+//   data immediately on remount — no waiting for Firebase to re-fire.
+let _persistedSelectedId = null;
+let _cachedTemplates     = {};
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryRoutes() {
   const navigate = useNavigate();
 
-  const [templates,   setTemplates]   = useState({});
-  const [occurrences, setOccurrences] = useState([]);
-  const [volunteers,  setVolunteers]  = useState([]);
-  const [selectedId,  setSelectedId]  = useState(null);
+  // Initialise state from module-level cache so remounts start with correct data
+  const [templates,   _setTemplates]   = useState(_cachedTemplates);
+  const [occurrences, setOccurrences]  = useState([]);
+  const [volunteers,  setVolunteers]   = useState([]);
+  const [selectedId,  _setSelectedId]  = useState(_persistedSelectedId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Wrap setters so module-level cache stays in sync
+  function setTemplates(data) {
+    _cachedTemplates = data;
+    _setTemplates(data);
+  }
+  function setSelectedId(id) {
+    _persistedSelectedId = id;
+    _setSelectedId(id);
+  }
 
   // Firebase listeners — all mounted once, empty deps
   useEffect(() => {
@@ -152,7 +173,7 @@ export default function ManagerDeliveryRoutes() {
       // (can happen during StrictMode re-subscription or brief disconnects)
       if (data) setTemplates(data);
     });
-  }, []);
+  }, []); // eslint-disable-line
 
   useEffect(() => {
     return onValue(ref(db, "routeOccurrences"), snap => {
@@ -188,12 +209,6 @@ export default function ManagerDeliveryRoutes() {
   const selectedTemplate = templates[selectedId]
     ? { id: selectedId, ...templates[selectedId] }
     : null;
-
-  console.log('RENDER', {
-    selectedId,
-    templatesCount: Object.keys(templates).length,
-    selectedTemplate: templates[selectedId] ? 'found' : 'missing',
-  });
 
   const drivers = volunteers.filter(v => v.isDriver === true);
 
