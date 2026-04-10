@@ -155,7 +155,6 @@ export default function ManagerDeliveryRoutes() {
   const [selectedId,  _setSelectedId]  = useState(_persistedSelectedId);
   const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
   const [showEditPopup,   setShowEditPopup]   = useState(false);
-  const [editScope,       setEditScope]       = useState("occurrence"); // "occurrence" | "future"
   const [editFields,      setEditFields]      = useState({});
 
   // Wrap setters so module-level cache stays in sync
@@ -478,7 +477,6 @@ export default function ManagerDeliveryRoutes() {
                             vehicle:       selectedTemplate.vehicle       || "",
                             driversNeeded: selectedTemplate.driversNeeded || 1,
                           });
-                          setEditScope("occurrence");
                           setShowEditPopup(true);
                         }}
                         className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
@@ -703,27 +701,6 @@ export default function ManagerDeliveryRoutes() {
                 </select>
               </div>
 
-              {/* Scope selector */}
-              <div>
-                <label className="text-[#6b7280] text-[12px] block mb-2">Apply changes to</label>
-                <div className="flex gap-3">
-                  {[
-                    { value: "occurrence", label: "This occurrence only" },
-                    { value: "future",     label: "All future occurrences" },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setEditScope(opt.value)}
-                      className={`flex-1 py-2 rounded-lg text-[12px] font-medium border cursor-pointer transition-colors ${
-                        editScope === opt.value
-                          ? "bg-[#0d9488] text-white border-[#0d9488]"
-                          : "bg-white text-[#6b7280] border-[#e5e7eb] hover:border-[#0d9488]"
-                      }`}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Actions */}
@@ -751,35 +728,16 @@ export default function ManagerDeliveryRoutes() {
                     driversNeeded: editFields.driversNeeded || t.driversNeeded || 1,
                   };
 
-                  if (editScope === "future") {
-                    // Write to Firebase — on success patch local state and close popup
-                    update(ref(db, `routeTemplates/${selectedId}`), templateUpdate)
-                      .then(() => {
-                        setTemplates({
-                          ..._cachedTemplates,
-                          [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
-                        });
-                        setShowEditPopup(false);
-                      })
-                      .catch(err => console.error("Failed to save route template:", err));
-                  } else {
-                    // "This occurrence only" — write overrides to the next pending occurrence
-                    const occToEdit = templateOccs.find(
-                      o => o.status !== "complete" && o.status !== "incomplete"
-                    );
-                    if (occToEdit) {
-                      update(ref(db, `routeOccurrences/${occToEdit.id}`), {
-                        overrideSource:        editFields.source        || null,
-                        overrideDestination:   editFields.destination   || null,
-                        overrideDepartureTime: editFields.departureTime || null,
-                        overrideArrivalTime:   editFields.arrivalTime   || null,
-                        overrideVehicle:       editFields.vehicle       || null,
-                        overrideDriversNeeded: editFields.driversNeeded || null,
-                      })
-                        .then(() => setShowEditPopup(false))
-                        .catch(err => console.error("Failed to save route occurrence:", err));
-                    }
-                  }
+                  // Write to Firebase — on success patch local state and close popup
+                  update(ref(db, `routeTemplates/${selectedId}`), templateUpdate)
+                    .then(() => {
+                      setTemplates({
+                        ..._cachedTemplates,
+                        [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
+                      });
+                      setShowEditPopup(false);
+                    })
+                    .catch(err => console.error("Failed to save route template:", err));
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-[#09665e] text-white text-[13px]
                            font-semibold border-none cursor-pointer hover:opacity-90">
