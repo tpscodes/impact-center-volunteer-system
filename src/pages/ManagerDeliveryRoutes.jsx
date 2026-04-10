@@ -738,17 +738,29 @@ export default function ManagerDeliveryRoutes() {
                 onClick={async () => {
                   if (!selectedTemplate) return;
 
+                  // Build the update, keeping existing values as fallback
+                  // so we never wipe a field the user didn't touch
+                  const t = selectedTemplate;
+                  const templateUpdate = {
+                    name:          editFields.name          || t.name          || "",
+                    source:        editFields.source        || t.source        || "",
+                    destination:   editFields.destination   || t.destination   || "",
+                    departureTime: editFields.departureTime || t.departureTime || "",
+                    arrivalTime:   editFields.arrivalTime   || t.arrivalTime   || "",
+                    vehicle:       editFields.vehicle       || t.vehicle       || "",
+                    driversNeeded: editFields.driversNeeded || t.driversNeeded || 1,
+                  };
+
                   if (editScope === "future") {
-                    // Write directly to the template — info panel reads from here,
-                    // and mergeRouteData in all other screens picks it up automatically
-                    await update(ref(db, `routeTemplates/${selectedId}`), {
-                      name:          editFields.name          || selectedTemplate.name,
-                      source:        editFields.source        || "",
-                      destination:   editFields.destination   || "",
-                      departureTime: editFields.departureTime || "",
-                      arrivalTime:   editFields.arrivalTime   || "",
-                      vehicle:       editFields.vehicle       || "",
-                      driversNeeded: editFields.driversNeeded || 1,
+                    // 1. Write to Firebase
+                    await update(ref(db, `routeTemplates/${selectedId}`), templateUpdate);
+                    // 2. Immediately patch local state so the UI updates right away
+                    //    without waiting for the Firebase onValue round-trip.
+                    //    This prevents the StrictMode re-subscription race where
+                    //    Firebase briefly fires back with pre-write server data.
+                    setTemplates({
+                      ..._cachedTemplates,
+                      [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
                     });
                   } else {
                     // "This occurrence only" — write overrides to the next pending occurrence
