@@ -153,7 +153,10 @@ export default function ManagerDeliveryRoutes() {
   const [occurrences, setOccurrences]  = useState([]);
   const [volunteers,  setVolunteers]   = useState([]);
   const [selectedId,  _setSelectedId]  = useState(_persistedSelectedId);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
+  const [showEditPopup,   setShowEditPopup]   = useState(false);
+  const [editScope,       setEditScope]       = useState("occurrence"); // "occurrence" | "future"
+  const [editFields,      setEditFields]      = useState({});
 
   // Wrap setters so module-level cache stays in sync
   function setTemplates(data) {
@@ -464,7 +467,21 @@ export default function ManagerDeliveryRoutes() {
                           {selectedTemplate.dayOfWeek}
                         </span>
                       </div>
-                      <button className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
+                      <button
+                        onClick={() => {
+                          setEditFields({
+                            name:          selectedTemplate.name          || "",
+                            source:        selectedTemplate.source        || "",
+                            destination:   selectedTemplate.destination   || "",
+                            departureTime: selectedTemplate.departureTime || "",
+                            arrivalTime:   selectedTemplate.arrivalTime   || "",
+                            vehicle:       selectedTemplate.vehicle       || "",
+                            driversNeeded: selectedTemplate.driversNeeded || 1,
+                          });
+                          setEditScope("occurrence");
+                          setShowEditPopup(true);
+                        }}
+                        className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
                         <Pencil size={13} />
                         Edit
                       </button>
@@ -629,6 +646,130 @@ export default function ManagerDeliveryRoutes() {
           </div>
         </div>
       </div>
+
+      {/* ── Edit Route Popup ─────────────────────────────────────────────── */}
+      {showEditPopup && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+          onClick={() => setShowEditPopup(false)}>
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] mx-4 p-6"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-[#0a2a3a] text-[16px] font-semibold">Edit Route</p>
+              <button
+                onClick={() => setShowEditPopup(false)}
+                className="text-[#6b7280] bg-transparent border-none cursor-pointer hover:text-[#0a2a3a] p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Fields */}
+            <div className="flex flex-col gap-4">
+              {[
+                { label: "Route Name",       field: "name",          type: "text"   },
+                { label: "Pickup Location",  field: "source",        type: "text"   },
+                { label: "Drop-off Location",field: "destination",   type: "text"   },
+                { label: "Departure Time",   field: "departureTime", type: "text",  placeholder: "e.g. 10:00 AM" },
+                { label: "Arrival Time",     field: "arrivalTime",   type: "text",  placeholder: "e.g. 11:30 AM" },
+                { label: "Vehicle",          field: "vehicle",       type: "text"   },
+              ].map(({ label, field, type, placeholder }) => (
+                <div key={field}>
+                  <label className="text-[#6b7280] text-[12px] block mb-1">{label}</label>
+                  <input
+                    type={type}
+                    value={editFields[field] || ""}
+                    placeholder={placeholder || ""}
+                    onChange={e => setEditFields(f => ({ ...f, [field]: e.target.value }))}
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-[13px]
+                               text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]"
+                  />
+                </div>
+              ))}
+
+              {/* Drivers Needed */}
+              <div>
+                <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
+                <select
+                  value={editFields.driversNeeded || 1}
+                  onChange={e => setEditFields(f => ({ ...f, driversNeeded: Number(e.target.value) }))}
+                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-[13px]
+                             text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white">
+                  <option value={1}>1 driver</option>
+                  <option value={2}>2 drivers</option>
+                  <option value={3}>3 drivers</option>
+                </select>
+              </div>
+
+              {/* Scope selector */}
+              <div>
+                <label className="text-[#6b7280] text-[12px] block mb-2">Apply changes to</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: "occurrence", label: "This occurrence only" },
+                    { value: "future",     label: "All future occurrences" },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setEditScope(opt.value)}
+                      className={`flex-1 py-2 rounded-lg text-[12px] font-medium border cursor-pointer transition-colors ${
+                        editScope === opt.value
+                          ? "bg-[#0d9488] text-white border-[#0d9488]"
+                          : "bg-white text-[#6b7280] border-[#e5e7eb] hover:border-[#0d9488]"
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEditPopup(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[#e5e7eb] text-[#6b7280]
+                           text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedTemplate) return;
+                  const updates = {
+                    overrideSource:        editFields.source        || null,
+                    overrideDestination:   editFields.destination   || null,
+                    overrideDepartureTime: editFields.departureTime || null,
+                    overrideArrivalTime:   editFields.arrivalTime   || null,
+                    overrideVehicle:       editFields.vehicle       || null,
+                    overrideDriversNeeded: editFields.driversNeeded || null,
+                  };
+                  if (editScope === "occurrence") {
+                    // Apply to selected occurrence only (if one is in view)
+                    const occToEdit = templateOccs[0];
+                    if (occToEdit) {
+                      await update(ref(db, `routeOccurrences/${occToEdit.id}`), updates);
+                    }
+                  } else {
+                    // Apply to all future (pending) occurrences for this template
+                    const pending = templateOccs.filter(o => o.status !== "complete" && o.status !== "incomplete");
+                    await Promise.all(
+                      pending.map(o => update(ref(db, `routeOccurrences/${o.id}`), updates))
+                    );
+                  }
+                  setShowEditPopup(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#09665e] text-white text-[13px]
+                           font-semibold border-none cursor-pointer hover:opacity-90">
+                Save
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
