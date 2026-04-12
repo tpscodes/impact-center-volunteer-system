@@ -1,18 +1,16 @@
 // DeliveryRouteDetail.jsx — Driver route detail + claim/complete flow
-// Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
+// Fetches fresh data by IDs to prevent stale state issues
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, MapPin, Clock, Truck, Package } from "lucide-react";
 import { db } from "../firebase";
-import { ref, onValue, set, update } from "firebase/database";
+import { ref, onValue, update, set } from "firebase/database";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function formatTime(t) {
   if (!t) return "—";
-  // If already formatted (e.g. "10:15 AM"), pass through
   if (/AM|PM/i.test(t)) return t;
-  // Convert "HH:MM" 24-hour to "H:MM AM/PM"
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
@@ -20,18 +18,18 @@ function formatTime(t) {
 }
 
 // ── Merge helper ──────────────────────────────────────────────────────────────
-const mergeRouteData = (occurrence, template) => {
-  const t = template || {};
+const mergeRouteData = (occurrence, templatesMap) => {
+  const template = templatesMap[occurrence.templateId] || {};
   return {
     ...occurrence,
-    name:          t.name          || "",
-    dayOfWeek:     t.dayOfWeek     || "",
-    source:        occurrence.overrideSource        || t.source        || "",
-    destination:   occurrence.overrideDestination   || t.destination   || "",
-    departureTime: occurrence.overrideDepartureTime || t.departureTime || "",
-    arrivalTime:   occurrence.overrideArrivalTime   || t.arrivalTime   || "",
-    vehicle:       occurrence.overrideVehicle       || t.vehicle       || "",
-    driversNeeded: occurrence.overrideDriversNeeded || t.driversNeeded || 1,
+    name:          template.name          || "",
+    dayOfWeek:     template.dayOfWeek     || "",
+    source:        occurrence.overrideSource        || template.source        || "",
+    destination:   occurrence.overrideDestination   || template.destination   || "",
+    departureTime: occurrence.overrideDepartureTime || template.departureTime || "",
+    arrivalTime:   occurrence.overrideArrivalTime   || template.arrivalTime   || "",
+    vehicle:       occurrence.overrideVehicle       || template.vehicle       || "",
+    driversNeeded: occurrence.overrideDriversNeeded || template.driversNeeded || 1,
   };
 };
 
@@ -63,63 +61,83 @@ function InfoRow({ icon: Icon, iconColor, label, value }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function DeliveryRouteDetail() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const initOccurrence = location.state?.occurrence;
-  const initTemplate   = location.state?.template;
-  const volunteer      = location.state?.volunteer;
+  const { occurrenceId, templateId, volunteer } = location.state || {};
 
   // Guard: missing context → back to task pool
   useEffect(() => {
-    if (!initOccurrence || !volunteer) {
+    if (!occurrenceId || !volunteer) {
       navigate("/delivery-task-pool", { replace: true });
     }
-  }, [initOccurrence, volunteer, navigate]);
+  }, [occurrenceId, volunteer, navigate]);
 
-  // Live occurrence state synced from Firebase
-  const [occurrence, setOccurrence] = useState(initOccurrence || null);
+  const [occurrence, setOccurrence] = useState(null);
+  const [template,   setTemplate]   = useState(null);
   const [busy, setBusy] = useState(false);
 
+  // Live occurrence from Firebase
   useEffect(() => {
-    if (!initOccurrence?.id) return;
-    return onValue(ref(db, `routeOccurrences/${initOccurrence.id}`), snap => {
-      const data = snap.val();
-      if (data) setOccurrence({ id: initOccurrence.id, ...data });
+    if (!occurrenceId) return;
+    return onValue(ref(db, `routeOccurrences/${occurrenceId}`), snap => {
+      setOccurrence(snap.exists() ? { id: occurrenceId, ...snap.val() } : null);
     });
-  }, [initOccurrence?.id]);
+  }, [occurrenceId]);
 
-  if (!occurrence || !volunteer) return null;
+  // Live template from Firebase
+  useEffect(() => {
+    if (!templateId) return;
+    return onValue(ref(db, `routeTemplates/${templateId}`), snap => {
+      setTemplate(snap.exists() ? { id: templateId, ...snap.val() } : null);
+    });
+  }, [templateId]);
+
+  if (!occurrenceId || !volunteer) return null;
+
+  // Loading state
+  if (!occurrence || !template) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f5] max-w-[390px] mx-auto flex items-center justify-center"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+        <p className="text-[#6b7280] text-[14px]">Loading…</p>
+      </div>
+    );
+  }
+
+  const merged = mergeRouteData(occurrence, { [templateId]: template });
 
   const volunteerName = volunteer.name;
-
-  // Merge occurrence with template for display
-  const route = mergeRouteData(occurrence, initTemplate);
-
-  const drivers   = Array.isArray(occurrence.drivers) ? occurrence.drivers : [];
-  const needed    = Number(route.driversNeeded) || 1;
+  const drivers    = Array.isArray(merged.drivers) ? merged.drivers : [];
+  const needed     = Number(merged.driversNeeded) || 1;
   const isClaimed  = drivers.includes(volunteerName);
-  const isFull     = drivers.length >= needed && !isClaimed;
-  const isComplete = occurrence.status === "complete";
+  const isFull     = drivers.length >= needed;
+  const isComplete = merged.status === "complete";
 
   // Build slot display
   const slots = Array.from({ length: needed }, (_, i) => {
     const val = drivers[i];
     if (!val) return { type: "open" };
     if (val === volunteerName) return { type: "me" };
-    return { type: "other", name: val };
+    return { type: "other", name: val.split(" ")[0] };
   });
+
+  function goBack() {
+    navigate("/delivery-task-pool", { state: { volunteer } });
+  }
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   async function handleClaim() {
     if (busy) return;
+    const currentDrivers = merged.drivers || [];
+    if (currentDrivers.length >= needed) return;
     setBusy(true);
     try {
-      const updated = [...drivers, volunteerName];
-      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
-        drivers: updated,
-        status: occurrence.status === "available" || !occurrence.status ? "inProgress" : occurrence.status,
+      const updatedDrivers = [...currentDrivers, volunteerName];
+      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+        drivers: updatedDrivers,
+        status:  "inProgress",
       });
     } finally {
       setBusy(false);
@@ -130,10 +148,10 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      const updated = drivers.filter(v => v !== volunteerName);
-      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
-        drivers: updated,
-        status: updated.length === 0 ? "available" : "inProgress",
+      const updatedDrivers = drivers.filter(d => d !== volunteerName);
+      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+        drivers: updatedDrivers,
+        status:  updatedDrivers.length === 0 ? "pending" : "inProgress",
       });
       navigate("/delivery-task-pool", { state: { volunteer } });
     } finally {
@@ -145,28 +163,18 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      await update(ref(db, `routeOccurrences/${occurrence.id}`), {
+      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
         status: "complete",
       });
-      // Write to routeHistory for ManagerDeliveryHistory
-      await set(ref(db, `routeHistory/${occurrence.id}`), {
-        ...route,
-        id:          occurrence.id,
-        templateId:  occurrence.templateId,
-        date:        occurrence.date,
-        drivers,
-        status:      "complete",
-        completedAt: Date.now(),
-        completedBy: volunteerName,
+      await set(ref(db, `routeHistory/${occurrenceId}`), {
+        ...merged,
+        completedAt:  Date.now(),
+        completedBy:  volunteerName,
       });
       navigate("/delivery-task-pool", { state: { volunteer } });
     } finally {
       setBusy(false);
     }
-  }
-
-  function goBack() {
-    navigate("/delivery-task-pool", { state: { volunteer } });
   }
 
   return (
@@ -187,19 +195,19 @@ export default function DeliveryRouteDetail() {
       <div className="bg-white rounded-2xl border border-[#e5e7eb] mx-4 mt-4 p-5">
 
         {/* Section 1 — Header */}
-        <p className="text-[#0a2a3a] text-[18px] font-semibold">{route.name}</p>
-        <span className={`inline-block mt-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${getStatusStyle(occurrence.status)}`}>
-          {getStatusLabel(occurrence.status)}
+        <p className="text-[#0a2a3a] text-[18px] font-semibold">{merged.name}</p>
+        <span className={`inline-block mt-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${getStatusStyle(merged.status)}`}>
+          {getStatusLabel(merged.status)}
         </span>
 
         {/* Section 2 — Route info */}
         <div className="mt-4 space-y-3">
-          <InfoRow icon={MapPin}  iconColor="#6b7280"  label="Pickup"    value={route.source} />
-          <InfoRow icon={MapPin}  iconColor="#0d9488"  label="Drop-off"  value={route.destination} />
-          <InfoRow icon={Package} iconColor="#6b7280"  label="Items"     value={route.items} />
-          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Departs"   value={formatTime(route.departureTime)} />
-          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Arrives"   value={route.arrivalTime ? formatTime(route.arrivalTime) : null} />
-          <InfoRow icon={Truck}   iconColor="#6b7280"  label="Vehicle"   value={route.vehicle} />
+          <InfoRow icon={MapPin}  iconColor="#6b7280"  label="Pickup"    value={merged.source} />
+          <InfoRow icon={MapPin}  iconColor="#0d9488"  label="Drop-off"  value={merged.destination} />
+          <InfoRow icon={Package} iconColor="#6b7280"  label="Items"     value={merged.items} />
+          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Departs"   value={formatTime(merged.departureTime)} />
+          <InfoRow icon={Clock}   iconColor="#6b7280"  label="Arrives"   value={merged.arrivalTime ? formatTime(merged.arrivalTime) : null} />
+          <InfoRow icon={Truck}   iconColor="#6b7280"  label="Vehicle"   value={merged.vehicle} />
         </div>
 
         {/* Section 3 — Driver slots */}
@@ -232,8 +240,8 @@ export default function DeliveryRouteDetail() {
           </button>
         )}
 
-        {/* State C — Route full */}
-        {!isComplete && isFull && (
+        {/* State C — Full, not claimed by me */}
+        {!isComplete && isFull && !isClaimed && (
           <button disabled
             className="w-full bg-[#e6e6e6] text-[#6b7280] rounded-xl py-3.5 text-[15px] cursor-not-allowed border-none">
             Route Full
