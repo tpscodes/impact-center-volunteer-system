@@ -156,6 +156,14 @@ export default function ManagerDeliveryRoutes() {
   const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
   const [showEditPopup,   setShowEditPopup]   = useState(false);
   const [editFields,      setEditFields]      = useState({});
+  const [showAddModal,    setShowAddModal]    = useState(false);
+  const [addStep,         setAddStep]         = useState(1);
+  const [newRoute,        setNewRoute]        = useState({
+    name: "", dayOfWeek: "", source: "", destination: "",
+    departureTime: "", arrivalTime: "", vehicle: "", driversNeeded: 1,
+    firstDate: "", repeatsWeekly: false, repeatUntil: "",
+  });
+  const [addErrors,       setAddErrors]       = useState({});
 
   // Wrap setters so module-level cache stays in sync
   function setTemplates(data) {
@@ -221,6 +229,112 @@ export default function ManagerDeliveryRoutes() {
 
   const today = getTodayStr();
   const monthGroups = groupByMonth(templateOccs);
+
+  // ── Add-modal helpers ─────────────────────────────────────────────────────
+  function closeAddModal() {
+    setShowAddModal(false);
+    setAddStep(1);
+    setNewRoute({ name:"", dayOfWeek:"", source:"", destination:"",
+      departureTime:"", arrivalTime:"", vehicle:"", driversNeeded:1,
+      firstDate:"", repeatsWeekly:false, repeatUntil:"" });
+    setAddErrors({});
+  }
+
+  function formatTimeTo12h(timeStr) {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+
+  function countOccurrences(firstDate, repeatUntil, dayOfWeek) {
+    const target = DAY_ORDER.indexOf(dayOfWeek);
+    let cur = new Date(firstDate + "T12:00:00");
+    const end = new Date(repeatUntil + "T12:00:00");
+    let count = 0;
+    while (cur <= end) {
+      const dow = (cur.getDay() + 6) % 7;
+      if (dow === target) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  }
+
+  function generateOccurrenceDates(firstDate, repeatUntil, dayOfWeek) {
+    if (!repeatUntil) return [firstDate];
+    const target = DAY_ORDER.indexOf(dayOfWeek);
+    let cur = new Date(firstDate + "T12:00:00");
+    const end = new Date(repeatUntil + "T12:00:00");
+    const dates = [];
+    while (cur <= end) {
+      const dow = (cur.getDay() + 6) % 7;
+      if (dow === target) dates.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return dates.length ? dates : [firstDate];
+  }
+
+  function validateStep(step) {
+    const errs = {};
+    if (step === 1) {
+      if (!newRoute.name.trim())    errs.name      = "Route name is required";
+      if (!newRoute.dayOfWeek)      errs.dayOfWeek = "Select a day of week";
+    }
+    if (step === 2) {
+      if (!newRoute.source.trim())      errs.source      = "Pickup location is required";
+      if (!newRoute.destination.trim()) errs.destination = "Drop-off location is required";
+      if (!newRoute.vehicle)            errs.vehicle     = "Vehicle is required";
+    }
+    if (step === 3) {
+      if (!newRoute.firstDate) errs.firstDate = "First occurrence date is required";
+      if (newRoute.repeatsWeekly) {
+        if (!newRoute.repeatUntil)                       errs.repeatUntil = "Repeat until date is required";
+        else if (newRoute.repeatUntil <= newRoute.firstDate) errs.repeatUntil = "Must be after first date";
+      }
+    }
+    setAddErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function handleSaveNewRoute() {
+    if (!validateStep(3)) return;
+    const templateId = `${newRoute.name.toLowerCase().replace(/\s+/g, "-")}-${newRoute.dayOfWeek}`;
+    const templateData = {
+      name:          newRoute.name,
+      dayOfWeek:     newRoute.dayOfWeek,
+      source:        newRoute.source,
+      destination:   newRoute.destination,
+      departureTime: formatTimeTo12h(newRoute.departureTime),
+      arrivalTime:   formatTimeTo12h(newRoute.arrivalTime),
+      vehicle:       newRoute.vehicle,
+      driversNeeded: newRoute.driversNeeded,
+      createdAt:     Date.now(),
+    };
+    const dates = newRoute.repeatsWeekly
+      ? generateOccurrenceDates(newRoute.firstDate, newRoute.repeatUntil, newRoute.dayOfWeek)
+      : [newRoute.firstDate];
+
+    update(ref(db, `routeTemplates/${templateId}`), templateData)
+      .then(() => Promise.all(
+        dates.map(dateStr => push(ref(db, "routeOccurrences"), {
+          templateId,
+          date:        dateStr,
+          drivers:     [],
+          status:      "pending",
+          isSpecial:   false,
+          specialNote: "",
+          notes:       "",
+          createdAt:   Date.now(),
+        }))
+      ))
+      .then(() => {
+        setTemplates({ ..._cachedTemplates, [templateId]: templateData });
+        setSelectedId(templateId);
+        closeAddModal();
+      })
+      .catch(err => console.error("Failed to create route:", err));
+  }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleAddOccurrence() {
@@ -343,7 +457,7 @@ export default function ManagerDeliveryRoutes() {
 
         <div className="px-4 py-4 flex flex-col gap-3 pb-8">
           <div className="flex justify-end">
-            <button onClick={() => navigate("/create-delivery-route")}
+            <button onClick={() => { setShowAddModal(true); setAddStep(1); }}
               className="flex items-center gap-1.5 bg-[#09665e] text-white px-3 py-2 rounded-lg text-[13px] font-medium border-none cursor-pointer">
               <Plus size={13} />
               Add Route
@@ -405,7 +519,7 @@ export default function ManagerDeliveryRoutes() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-[#6b7280] text-[13px]">{todayDisplay}</span>
-              <button onClick={() => navigate("/create-delivery-route")}
+              <button onClick={() => { setShowAddModal(true); setAddStep(1); }}
                 className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg
                            text-[13px] font-medium hover:opacity-90 border-none cursor-pointer">
                 <Plus size={14} />
@@ -748,6 +862,226 @@ export default function ManagerDeliveryRoutes() {
           </div>
         </div>
       )}
+
+      {/* ── Add Route Modal ──────────────────────────────────────────────── */}
+      {showAddModal && (() => {
+        const DAY_PILLS = [
+          { label: "Mon", value: "monday" },
+          { label: "Tue", value: "tuesday" },
+          { label: "Wed", value: "wednesday" },
+          { label: "Thu", value: "thursday" },
+          { label: "Fri", value: "friday" },
+        ];
+        const STEP_TITLES = { 1: "Route Basics", 2: "Route Details", 3: "First Schedule" };
+        const inputCls = (err) =>
+          `w-full border ${err ? "border-[#dc2626]" : "border-[#e5e7eb]"} rounded-lg px-3 py-2 text-[14px] text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white`;
+
+        const previewCount = newRoute.firstDate && newRoute.repeatsWeekly && newRoute.repeatUntil
+          ? countOccurrences(newRoute.firstDate, newRoute.repeatUntil, newRoute.dayOfWeek)
+          : 1;
+
+        return (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+            onClick={closeAddModal}>
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] w-full max-w-[480px] mx-4"
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
+                <div>
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-wide">
+                    Step {addStep} of 3
+                  </p>
+                  <p className="text-[#0a2a3a] text-[16px] font-semibold mt-0.5">
+                    {STEP_TITLES[addStep]}
+                  </p>
+                </div>
+                <button onClick={closeAddModal}
+                  className="text-[#6b7280] bg-transparent border-none cursor-pointer hover:text-[#0a2a3a] p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-1 bg-[#f0f0f0]">
+                <div className="h-1 bg-[#0d9488] transition-all duration-300"
+                  style={{ width: `${(addStep / 3) * 100}%` }} />
+              </div>
+
+              {/* Step content */}
+              <div className="px-6 py-5 space-y-4">
+
+                {/* ── Step 1 ── */}
+                {addStep === 1 && (
+                  <>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Route Name</label>
+                      <input
+                        type="text"
+                        value={newRoute.name}
+                        placeholder="e.g. Midwest, Wawa, 2nd Helpings"
+                        onChange={e => setNewRoute(r => ({ ...r, name: e.target.value }))}
+                        className={inputCls(addErrors.name)}
+                      />
+                      {addErrors.name && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.name}</p>}
+                    </div>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Day of Week</label>
+                      <div className="flex gap-2">
+                        {DAY_PILLS.map(d => (
+                          <button key={d.value}
+                            onClick={() => setNewRoute(r => ({ ...r, dayOfWeek: d.value }))}
+                            className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
+                              ${newRoute.dayOfWeek === d.value
+                                ? "bg-[#0d9488] text-white"
+                                : "bg-[#f0f0f0] text-[#6b7280]"}`}>
+                            {d.label}
+                          </button>
+                        ))}
+                      </div>
+                      {addErrors.dayOfWeek && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.dayOfWeek}</p>}
+                    </div>
+                  </>
+                )}
+
+                {/* ── Step 2 ── */}
+                {addStep === 2 && (
+                  <>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Pickup Location</label>
+                      <input type="text" value={newRoute.source}
+                        placeholder="Where are they picking up from?"
+                        onChange={e => setNewRoute(r => ({ ...r, source: e.target.value }))}
+                        className={inputCls(addErrors.source)} />
+                      {addErrors.source && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.source}</p>}
+                    </div>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Drop-off Location</label>
+                      <input type="text" value={newRoute.destination}
+                        placeholder="Where is it going?"
+                        onChange={e => setNewRoute(r => ({ ...r, destination: e.target.value }))}
+                        className={inputCls(addErrors.destination)} />
+                      {addErrors.destination && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.destination}</p>}
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-[#6b7280] text-[12px] block mb-1">Departure Time</label>
+                        <input type="time" value={newRoute.departureTime}
+                          onChange={e => setNewRoute(r => ({ ...r, departureTime: e.target.value }))}
+                          className={inputCls(false)} />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[#6b7280] text-[12px] block mb-1">Arrival Time</label>
+                        <input type="time" value={newRoute.arrivalTime}
+                          onChange={e => setNewRoute(r => ({ ...r, arrivalTime: e.target.value }))}
+                          className={inputCls(false)} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Vehicle</label>
+                      <select value={newRoute.vehicle}
+                        onChange={e => setNewRoute(r => ({ ...r, vehicle: e.target.value }))}
+                        className={inputCls(addErrors.vehicle)}>
+                        <option value="">Select vehicle…</option>
+                        <option>F650 26ft Box Truck</option>
+                        <option>16ft Small Box Truck</option>
+                        <option>IC Van</option>
+                        <option>Personal Vehicle</option>
+                        <option>Small/Large Box Truck</option>
+                      </select>
+                      {addErrors.vehicle && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.vehicle}</p>}
+                    </div>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
+                      <div className="flex gap-3">
+                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }].map(p => (
+                          <button key={p.value}
+                            onClick={() => setNewRoute(r => ({ ...r, driversNeeded: p.value }))}
+                            className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
+                              ${newRoute.driversNeeded === p.value
+                                ? "bg-[#0d9488] text-white"
+                                : "bg-[#f0f0f0] text-[#6b7280]"}`}>
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Step 3 ── */}
+                {addStep === 3 && (
+                  <>
+                    <div>
+                      <label className="text-[#6b7280] text-[12px] block mb-1">First Occurrence Date</label>
+                      <input type="date" value={newRoute.firstDate}
+                        onChange={e => setNewRoute(r => ({ ...r, firstDate: e.target.value }))}
+                        className={inputCls(addErrors.firstDate)} />
+                      <p className="text-[#6b7280] text-[11px] mt-1">This will be the first entry in the schedule table</p>
+                      {addErrors.firstDate && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.firstDate}</p>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#0a2a3a] text-[13px] font-medium">Repeat Weekly</span>
+                      <button
+                        onClick={() => setNewRoute(r => ({ ...r, repeatsWeekly: !r.repeatsWeekly }))}
+                        className={`relative w-11 h-6 rounded-full border-none cursor-pointer transition-colors
+                          ${newRoute.repeatsWeekly ? "bg-[#0d9488]" : "bg-[#e5e7eb]"}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform
+                          ${newRoute.repeatsWeekly ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+                    {newRoute.repeatsWeekly && (
+                      <div>
+                        <label className="text-[#6b7280] text-[12px] block mb-1">Repeat Until</label>
+                        <input type="date" value={newRoute.repeatUntil}
+                          onChange={e => setNewRoute(r => ({ ...r, repeatUntil: e.target.value }))}
+                          className={inputCls(addErrors.repeatUntil)} />
+                        {addErrors.repeatUntil && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.repeatUntil}</p>}
+                      </div>
+                    )}
+                    {newRoute.firstDate && (
+                      <div className="bg-[#f0fafa] border border-[#ccedeb] rounded-lg px-4 py-3 mt-2">
+                        <p className="text-[#09665e] text-[12px]">
+                          {newRoute.repeatsWeekly && newRoute.repeatUntil
+                            ? `${previewCount} occurrence${previewCount !== 1 ? "s" : ""} will be created from ${formatDateShort(newRoute.firstDate)} to ${formatDateShort(newRoute.repeatUntil)}`
+                            : `1 occurrence will be created on ${formatDateShort(newRoute.firstDate)}`}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-[#e5e7eb] flex justify-between">
+                {addStep === 1 ? (
+                  <button onClick={closeAddModal}
+                    className="px-5 py-2 rounded-lg border border-[#e5e7eb] text-[#6b7280] text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
+                    Cancel
+                  </button>
+                ) : (
+                  <button onClick={() => { setAddErrors({}); setAddStep(s => s - 1); }}
+                    className="px-5 py-2 rounded-lg border border-[#e5e7eb] text-[#6b7280] text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
+                    ← Back
+                  </button>
+                )}
+                {addStep < 3 ? (
+                  <button onClick={() => { if (validateStep(addStep)) setAddStep(s => s + 1); }}
+                    className="px-5 py-2 rounded-lg bg-[#09665e] text-white text-[13px] border-none cursor-pointer hover:opacity-90">
+                    Next →
+                  </button>
+                ) : (
+                  <button onClick={handleSaveNewRoute}
+                    className="px-5 py-2 rounded-lg bg-[#09665e] text-white text-[13px] font-medium border-none cursor-pointer hover:opacity-90">
+                    Create Route
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
