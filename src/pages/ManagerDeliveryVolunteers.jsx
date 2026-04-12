@@ -86,6 +86,89 @@ function DriverCard({ vol, weekCount, onRemoveTag, onRemove }) {
   );
 }
 
+// ── Add Driver Modal (defined OUTSIDE main component to prevent remounting) ───
+function AddDriverModal({ newFirstName, setNewFirstName, newLastName, setNewLastName,
+  newId, setNewId, isPantry, setIsPantry, modalError, onClose, onSubmit }) {
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                      bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Driver</p>
+          <button onClick={onClose}
+            className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
+              <input type="text" placeholder="First Name" autoFocus
+                value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
+                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+            </div>
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
+              <input type="text" placeholder="Last Name"
+                value={newLastName} onChange={e => setNewLastName(e.target.value)}
+                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
+              Volunteer ID (last 4 digits of phone number)
+            </p>
+            <input type="text" placeholder="4 digits" maxLength={4}
+              value={newId} onChange={e => setNewId(e.target.value)}
+              className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                         text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
+            <div className="flex gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                              bg-[#ccedeb] text-[#09665e] text-[12px] font-medium
+                              cursor-not-allowed select-none">
+                <Check size={12} strokeWidth={2.5} />
+                Driver
+              </div>
+              <button type="button" onClick={() => setIsPantry(p => !p)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px]
+                            font-medium border-none cursor-pointer transition-colors
+                            ${isPantry ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"}`}>
+                {isPantry && <Check size={12} strokeWidth={2.5} />}
+                Pantry
+              </button>
+            </div>
+          </div>
+
+          {modalError && <p className="text-[#dc2626] text-[13px]">{modalError}</p>}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
+                       text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
+            Cancel
+          </button>
+          <button onClick={onSubmit}
+            className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px]
+                       font-medium hover:opacity-90 border-none cursor-pointer">
+            Add Driver
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryVolunteers() {
   const navigate = useNavigate();
@@ -429,85 +512,16 @@ export default function ManagerDeliveryVolunteers() {
         </div>
       </div>
 
-      {/* ── Add Driver modal ── */}
       {showAddModal && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={closeModal} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                          bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Driver</p>
-              <button onClick={closeModal}
-                className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4 mb-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
-                  <input type="text" placeholder="First Name"
-                    value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-                </div>
-                <div>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
-                  <input type="text" placeholder="Last Name"
-                    value={newLastName} onChange={e => setNewLastName(e.target.value)}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
-                  Volunteer ID (last 4 digits of phone number)
-                </p>
-                <input type="text" placeholder="4 digits" maxLength={4}
-                  value={newId} onChange={e => setNewId(e.target.value)}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                             text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-              </div>
-
-              {/* Role pills */}
-              <div>
-                <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
-                <div className="flex gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                                  bg-[#ccedeb] text-[#09665e] text-[12px] font-medium
-                                  cursor-not-allowed select-none">
-                    <Check size={12} strokeWidth={2.5} />
-                    Driver
-                  </div>
-                  <button type="button" onClick={() => setIsPantry(p => !p)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px]
-                                font-medium border-none cursor-pointer transition-colors
-                                ${isPantry ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"}`}>
-                    {isPantry && <Check size={12} strokeWidth={2.5} />}
-                    Pantry
-                  </button>
-                </div>
-              </div>
-
-              {modalError && <p className="text-[#dc2626] text-[13px]">{modalError}</p>}
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={closeModal}
-                className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
-                           text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={handleAddDriver}
-                className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px]
-                           font-medium hover:opacity-90 border-none cursor-pointer">
-                Add Driver
-              </button>
-            </div>
-          </div>
-        </>
+        <AddDriverModal
+          newFirstName={newFirstName}   setNewFirstName={setNewFirstName}
+          newLastName={newLastName}     setNewLastName={setNewLastName}
+          newId={newId}                 setNewId={setNewId}
+          isPantry={isPantry}           setIsPantry={setIsPantry}
+          modalError={modalError}
+          onClose={closeModal}
+          onSubmit={handleAddDriver}
+        />
       )}
     </>
   );
