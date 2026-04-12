@@ -1,6 +1,6 @@
 // ManagerDelivery.jsx — Delivery Dashboard (landing screen for Delivery mode)
 // Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, X, Clock, Truck } from "lucide-react";
 import { db } from "../firebase";
@@ -71,6 +71,7 @@ function getInitials(name) {
 
 export default function ManagerDelivery() {
   const navigate = useNavigate();
+  const hasSeeded = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState("today"); // 'today' | 'week'
   const [templates,   setTemplates]   = useState({});
@@ -81,8 +82,13 @@ export default function ManagerDelivery() {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
-  // ── Seed route templates once on mount ───────────────────────────────────
+  // ── Seed route templates once per session ────────────────────────────────
+  // hasSeeded ref prevents StrictMode's double-invoke from running the seed
+  // twice, which would let both get() calls see an empty DB before either
+  // set() completes, causing the second run to overwrite the first.
   useEffect(() => {
+    if (hasSeeded.current) return;
+    hasSeeded.current = true;
     seedRouteTemplates(db);
   }, []);
 
