@@ -5,7 +5,7 @@ import {
   Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil,
 } from "lucide-react";
 import { db } from "../firebase";
-import { ref, onValue, update, push } from "firebase/database";
+import { ref, onValue, update, push, set } from "firebase/database";
 import Sidebar from "../components/Sidebar";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -297,43 +297,64 @@ export default function ManagerDeliveryRoutes() {
     return Object.keys(errs).length === 0;
   }
 
-  function handleSaveNewRoute() {
-    if (!validateStep(3)) return;
-    const templateId = `${newRoute.name.toLowerCase().replace(/\s+/g, "-")}-${newRoute.dayOfWeek}`;
-    const templateData = {
-      name:          newRoute.name,
-      dayOfWeek:     newRoute.dayOfWeek,
-      source:        newRoute.source,
-      destination:   newRoute.destination,
-      departureTime: formatTimeTo12h(newRoute.departureTime),
-      arrivalTime:   formatTimeTo12h(newRoute.arrivalTime),
-      vehicle:       newRoute.vehicle,
-      driversNeeded: newRoute.driversNeeded,
-      createdAt:     Date.now(),
-    };
-    const dates = newRoute.repeatsWeekly
-      ? generateOccurrenceDates(newRoute.firstDate, newRoute.repeatUntil, newRoute.dayOfWeek)
-      : [newRoute.firstDate];
+  async function handleSaveNewRoute() {
+    try {
+      console.log("Creating route...", newRoute);
 
-    update(ref(db, `routeTemplates/${templateId}`), templateData)
-      .then(() => Promise.all(
-        dates.map(dateStr => push(ref(db, "routeOccurrences"), {
+      const templateId = newRoute.name.toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "") + "-" + newRoute.dayOfWeek;
+
+      await set(ref(db, `routeTemplates/${templateId}`), {
+        name:          newRoute.name,
+        dayOfWeek:     newRoute.dayOfWeek,
+        source:        newRoute.source,
+        destination:   newRoute.destination,
+        departureTime: newRoute.departureTime,
+        arrivalTime:   newRoute.arrivalTime,
+        vehicle:       newRoute.vehicle,
+        driversNeeded: newRoute.driversNeeded,
+        createdAt:     Date.now(),
+      });
+
+      const dates = [];
+      if (newRoute.repeatsWeekly && newRoute.repeatUntil) {
+        let current = new Date(newRoute.firstDate);
+        const until = new Date(newRoute.repeatUntil);
+        while (current <= until) {
+          dates.push(current.toISOString().split("T")[0]);
+          current.setDate(current.getDate() + 7);
+        }
+      } else {
+        dates.push(newRoute.firstDate);
+      }
+
+      for (const date of dates) {
+        await push(ref(db, "routeOccurrences"), {
           templateId,
-          date:        dateStr,
+          date,
           drivers:     [],
           status:      "pending",
           isSpecial:   false,
           specialNote: "",
           notes:       "",
           createdAt:   Date.now(),
-        }))
-      ))
-      .then(() => {
-        setTemplates({ ..._cachedTemplates, [templateId]: templateData });
-        setSelectedId(templateId);
-        closeAddModal();
-      })
-      .catch(err => console.error("Failed to create route:", err));
+        });
+      }
+
+      setShowAddModal(false);
+      setAddStep(1);
+      setNewRoute({
+        name: "", dayOfWeek: "", source: "", destination: "",
+        departureTime: "", arrivalTime: "", vehicle: "",
+        driversNeeded: 1, firstDate: "", repeatsWeekly: false, repeatUntil: "",
+      });
+      setAddErrors({});
+      setSelectedId(templateId);
+
+    } catch (error) {
+      console.error("Error creating route:", error);
+    }
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
