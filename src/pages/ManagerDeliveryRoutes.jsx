@@ -164,6 +164,7 @@ export default function ManagerDeliveryRoutes() {
     firstDate: "", repeatsWeekly: false, repeatUntil: "",
   });
   const [addErrors,       setAddErrors]       = useState({});
+  const [pendingSelectId, setPendingSelectId] = useState(null);
 
   // Wrap setters so module-level cache stays in sync
   function setTemplates(data) {
@@ -214,6 +215,15 @@ export default function ManagerDeliveryRoutes() {
     const match = sorted.find(t => t.dayOfWeek === today) || sorted[0];
     if (match) setSelectedId(match.id);
   }, [templates]); // eslint-disable-line
+
+  // Once a newly-created template arrives in state, select it.
+  // Avoids selecting an ID that doesn't exist in templates yet.
+  useEffect(() => {
+    if (pendingSelectId && templates[pendingSelectId]) {
+      setSelectedId(pendingSelectId);
+      setPendingSelectId(null);
+    }
+  }, [templates, pendingSelectId]); // eslint-disable-line
 
   // Derive selectedTemplate directly from the templates object (O(1) lookup)
   const selectedTemplate = templates[selectedId]
@@ -350,7 +360,7 @@ export default function ManagerDeliveryRoutes() {
         driversNeeded: 1, firstDate: "", repeatsWeekly: false, repeatUntil: "",
       });
       setAddErrors({});
-      setSelectedId(templateId);
+      setPendingSelectId(templateId);
 
     } catch (error) {
       console.error("Error creating route:", error);
