@@ -151,7 +151,7 @@ export default function DeliveryTaskPool() {
 
   // Guard: no volunteer context → back to id entry
   useEffect(() => {
-    if (!volunteer) navigate("/experienced", { replace: true });
+    if (!volunteer) navigate("/volunteer-id", { replace: true });
   }, [volunteer, navigate]);
 
   // Firebase: routeTemplates
@@ -169,7 +169,7 @@ export default function DeliveryTaskPool() {
       if (!data) { setOccurrences([]); return; }
       const arr = Object.entries(data)
         .map(([id, val]) => ({ id, ...val }))
-        .filter(o => o.date === today);
+        .filter(o => o.date === today && !o.isSpecial);
       setOccurrences(arr);
     });
   }, []);
@@ -204,7 +204,7 @@ export default function DeliveryTaskPool() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] max-w-[390px] mx-auto flex flex-col"
+    <div className="min-h-screen bg-[#f5f5f5] max-w-[480px] mx-auto flex flex-col"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Top bar */}
@@ -218,14 +218,14 @@ export default function DeliveryTaskPool() {
       </div>
 
       {/* Stats pills */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
+      <div className="bg-white border-b border-[#e5e7eb] px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {[
           `${routes.length} Routes Today`,
           `${available} Available`,
           `${myClaimed} Claimed`,
         ].map(label => (
           <span key={label}
-            className="bg-white border border-[#e5e7eb] rounded-full px-3 py-1 text-[12px] text-[#6b7280] shrink-0">
+            className="bg-[#f0fafa] border border-[#ccedeb] rounded-full px-3 py-1 text-[12px] text-[#09665e] font-medium shrink-0">
             {label}
           </span>
         ))}
