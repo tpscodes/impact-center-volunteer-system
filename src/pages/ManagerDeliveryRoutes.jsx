@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil,
+  Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil, MoreHorizontal, Trash2,
 } from "lucide-react";
 import { db } from "../firebase";
-import { ref, onValue, update, push, set } from "firebase/database";
+import { ref, onValue, update, push, set, remove } from "firebase/database";
 import Sidebar from "../components/Sidebar";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -165,6 +165,8 @@ export default function ManagerDeliveryRoutes() {
   });
   const [addErrors,       setAddErrors]       = useState({});
   const [pendingSelectId, setPendingSelectId] = useState(null);
+  const [openMenuId,      setOpenMenuId]      = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Wrap setters so module-level cache stays in sync
   function setTemplates(data) {
@@ -367,7 +369,31 @@ export default function ManagerDeliveryRoutes() {
     }
   }
 
+  // Close ⋯ menu when clicking anywhere outside
+  useEffect(() => {
+    const handleClick = () => setOpenMenuId(null);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
+  async function handleDeleteRoute(templateId) {
+    try {
+      await remove(ref(db, `routeTemplates/${templateId}`));
+      const occurrencesToDelete = occurrences.filter(o => o.templateId === templateId);
+      for (const occ of occurrencesToDelete) {
+        await remove(ref(db, `routeOccurrences/${occ.id}`));
+      }
+      if (selectedId === templateId) {
+        const remaining = sorted.filter(t => t.id !== templateId);
+        setSelectedId(remaining[0]?.id || null);
+      }
+      setDeleteConfirmId(null);
+    } catch (error) {
+      console.error("Error deleting route:", error);
+    }
+  }
+
   async function handleAddOccurrence() {
     if (!selectedTemplate) return;
     const dates = templateOccs.map(o => o.date).filter(Boolean);
@@ -575,18 +601,50 @@ export default function ManagerDeliveryRoutes() {
                 sorted.map(tmpl => {
                   const active = tmpl.id === selectedId;
                   return (
-                    <button
-                      key={tmpl.id}
-                      onClick={() => setSelectedId(tmpl.id)}
-                      className={`w-full text-left px-4 py-3 border-b border-[#f3f4f6] border-none
-                        cursor-pointer transition-colors ${active ? "bg-[#0d9488]" : "bg-transparent hover:bg-[#f9fafb]"}`}>
-                      <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
-                        {tmpl.name}
-                      </p>
-                      <p className={`text-[11px] capitalize mt-0.5 ${active ? "text-white" : "text-[#6b7280]"}`}>
-                        {tmpl.dayOfWeek}
-                      </p>
-                    </button>
+                    <div key={tmpl.id} className="relative group">
+                      {/* Route item */}
+                      <div
+                        onClick={() => setSelectedId(tmpl.id)}
+                        className={`px-4 py-3 cursor-pointer border-b border-[#f3f4f6] transition-colors
+                          ${active ? "bg-[#0d9488]" : "hover:bg-[#f9fafb]"}`}>
+                        <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
+                          {tmpl.name}
+                        </p>
+                        <p className={`text-[11px] capitalize mt-0.5 ${active ? "text-white" : "text-[#6b7280]"}`}>
+                          {tmpl.dayOfWeek}
+                        </p>
+                      </div>
+
+                      {/* ⋯ button — visible on hover */}
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === tmpl.id ? null : tmpl.id);
+                        }}
+                        className={`absolute right-2 top-1/2 -translate-y-1/2
+                          w-6 h-6 flex items-center justify-center rounded
+                          opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer
+                          ${active ? "text-white hover:bg-[#0b7a70]" : "text-[#6b7280] hover:bg-[#f0f0f0]"}`}>
+                        <MoreHorizontal size={14} />
+                      </button>
+
+                      {/* Dropdown */}
+                      {openMenuId === tmpl.id && (
+                        <div className="absolute right-2 top-10 z-30 bg-white
+                          border border-[#e5e7eb] rounded-lg shadow-md py-1 w-[140px]">
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDeleteConfirmId(tmpl.id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-[13px]
+                              text-[#dc2626] hover:bg-[#fff0f0] bg-transparent border-none cursor-pointer">
+                            Delete Route
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               )}
@@ -890,6 +948,41 @@ export default function ManagerDeliveryRoutes() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ────────────────────────────────────── */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+          onClick={() => setDeleteConfirmId(null)}>
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] w-full max-w-[360px] mx-4 p-6"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <Trash2 size={32} color="#dc2626" className="mb-3" />
+              <p className="text-[#0a2a3a] text-[16px] font-semibold">Delete Route?</p>
+              <p className="text-[#6b7280] text-[13px] mt-2">
+                This will permanently delete{" "}
+                <span className="font-medium text-[#0a2a3a]">
+                  {templates[deleteConfirmId]?.name || "this route"}
+                </span>{" "}
+                and all its scheduled occurrences. This cannot be undone.
+              </p>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 bg-white border border-[#e5e7eb] text-[#6b7280]
+                  rounded-xl py-2.5 text-[13px] cursor-pointer hover:border-[#0d9488]">
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteRoute(deleteConfirmId)}
+                className="flex-1 bg-[#dc2626] text-white rounded-xl py-2.5
+                  text-[13px] font-medium border-none cursor-pointer hover:bg-[#b91c1c]">
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
