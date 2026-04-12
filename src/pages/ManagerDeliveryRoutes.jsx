@@ -1,5 +1,5 @@
 // ManagerDeliveryRoutes.jsx — Master-detail route template + schedule view
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil,
@@ -677,9 +677,9 @@ export default function ManagerDeliveryRoutes() {
                         </thead>
                         <tbody>
                           {monthGroups.map(group => (
-                            <>
+                            <React.Fragment key={group.month}>
                               {/* Month header row */}
-                              <tr key={`month-${group.month}`}>
+                              <tr>
                                 <td colSpan={driversNeeded >= 2 ? 5 : 4}
                                   className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
                                   {monthLabel(group.month + "-01")}
@@ -776,7 +776,7 @@ export default function ManagerDeliveryRoutes() {
                                   </tr>
                                 );
                               })}
-                            </>
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
