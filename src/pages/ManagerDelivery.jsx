@@ -50,15 +50,18 @@ function getTodayStr() {
 }
 function getWeekRange() {
   const now = new Date();
-  const day = now.getDay(); // 0=Sun
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - ((day + 6) % 7)); // Monday
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6); // Sunday
+  const end = new Date(now);
+  end.setDate(now.getDate() + 6);
   return {
-    start: mon.toISOString().slice(0, 10),
-    end: sun.toISOString().slice(0, 10),
+    start: now.toISOString().slice(0, 10),
+    end:   end.toISOString().slice(0, 10),
   };
+}
+function getMonthRange() {
+  const now = new Date();
+  const start = now.toISOString().slice(0, 10);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  return { start, end };
 }
 
 function getInitials(name) {
@@ -73,7 +76,7 @@ export default function ManagerDelivery() {
   const navigate = useNavigate();
   const hasSeeded = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [period, setPeriod] = useState("today"); // 'today' | 'week'
+  const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
   const [templates,   setTemplates]   = useState({});
   const [occurrences, setOccurrences] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -120,12 +123,14 @@ export default function ManagerDelivery() {
 
   // ── Filter and merge routes by period ────────────────────────────────────
   const today = getTodayStr();
-  const week = getWeekRange();
+  const week  = getWeekRange();
+  const month = getMonthRange();
 
   const periodMerged = occurrences
     .filter(o => {
       if (!o.date) return false;
       if (period === "today") return o.date === today;
+      if (period === "month") return o.date >= month.start && o.date <= month.end;
       return o.date >= week.start && o.date <= week.end;
     })
     .map(o => mergeRouteData(o, templates));
@@ -153,7 +158,7 @@ export default function ManagerDelivery() {
   // ── Period toggle ─────────────────────────────────────────────────────────
   const PeriodToggle = () => (
     <div className="flex gap-1">
-      {[["today", "Today"], ["week", "This Week"]].map(([val, label]) => (
+      {[["today", "Today"], ["week", "This Week"], ["month", "This Month"]].map(([val, label]) => (
         <button key={val} onClick={() => setPeriod(val)}
           className={`rounded-full px-3 py-1 text-[12px] border-none cursor-pointer transition-colors ${
             period === val

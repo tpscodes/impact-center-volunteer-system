@@ -1,6 +1,6 @@
 // VolunteerModeSelect.jsx — Driver volunteers choose Pantry vs Delivery
 import { useNavigate, useLocation } from "react-router-dom";
-import { ClipboardList, Truck } from "lucide-react";
+import { ClipboardList, Truck, ChevronLeft } from "lucide-react";
 import { useEffect } from "react";
 
 export default function VolunteerModeSelect() {
@@ -10,7 +10,7 @@ export default function VolunteerModeSelect() {
 
   // Guard: if no volunteer in state, redirect back to ID entry
   useEffect(() => {
-    if (!volunteer) navigate("/volunteer-id", { replace: true });
+    if (!volunteer) navigate("/experienced", { replace: true });
   }, [volunteer, navigate]);
 
   if (!volunteer) return null;
@@ -23,8 +23,16 @@ export default function VolunteerModeSelect() {
 
       <div className="w-full max-w-[390px] flex flex-col">
 
+        {/* Top bar */}
+        <div className="px-4 pt-4 pb-2 flex items-center">
+          <button onClick={() => navigate("/experienced")}
+            className="text-[#0a2a3a] bg-transparent border-none cursor-pointer p-1 -ml-1">
+            <ChevronLeft size={22} />
+          </button>
+        </div>
+
         {/* Greeting */}
-        <div className="pt-10 pb-6 px-4 text-center">
+        <div className="pt-4 pb-6 px-4 text-center">
           <p className="text-[#0a2a3a] text-[18px] font-semibold">Hi, {firstName}!</p>
           <p className="text-[#6b7280] text-[14px] mt-1">What are you doing today?</p>
         </div>
@@ -34,7 +42,7 @@ export default function VolunteerModeSelect() {
 
           {/* Pantry card */}
           <button
-            onClick={() => navigate("/task-pool", { state: { volunteer } })}
+            onClick={() => navigate("/experienced/tasks")}
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
             <ClipboardList size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Pantry Operations</p>
