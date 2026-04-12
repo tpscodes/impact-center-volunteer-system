@@ -10,7 +10,7 @@ export default function VolunteerModeSelect() {
 
   // Guard: if no volunteer in state, redirect back to ID entry
   useEffect(() => {
-    if (!volunteer) navigate("/experienced", { replace: true });
+    if (!volunteer) navigate("/volunteer-id", { replace: true });
   }, [volunteer, navigate]);
 
   if (!volunteer) return null;
@@ -34,7 +34,7 @@ export default function VolunteerModeSelect() {
 
           {/* Pantry card */}
           <button
-            onClick={() => navigate("/experienced/tasks")}
+            onClick={() => navigate("/task-pool", { state: { volunteer } })}
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
             <ClipboardList size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Pantry Operations</p>
@@ -43,7 +43,7 @@ export default function VolunteerModeSelect() {
 
           {/* Delivery card */}
           <button
-            onClick={() => navigate("/delivery-task-pool")}
+            onClick={() => navigate("/delivery-task-pool", { state: { volunteer } })}
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
             <Truck size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Delivery Routes</p>
