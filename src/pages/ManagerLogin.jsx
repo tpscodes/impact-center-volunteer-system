@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { db } from '../firebase'
+import { ref, get } from 'firebase/database'
 
 const VALID_USERNAME = 'admin'
-const VALID_PASSWORD = 'admin'
 
 export default function ManagerLogin() {
   const navigate = useNavigate()
@@ -11,20 +12,23 @@ export default function ManagerLogin() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    // Simulate a brief auth delay
-    setTimeout(() => {
-      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+    try {
+      const snap = await get(ref(db, 'appSettings/auth/password'))
+      const storedPassword = snap.exists() ? snap.val() : 'admin'
+      if (username === VALID_USERNAME && password === storedPassword) {
         navigate('/manager/dashboard')
       } else {
         setError('Invalid username or password.')
         setLoading(false)
       }
-    }, 400)
+    } catch {
+      setError('Login failed. Please try again.')
+      setLoading(false)
+    }
   }
 
   return (
