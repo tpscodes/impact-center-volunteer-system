@@ -72,34 +72,36 @@ function groupByMonth(occs) {
 }
 
 // ── Driver input with autocomplete ───────────────────────────────────────────
-// Defined outside main component — stable reference, no remount on parent render
+// Defined outside main component — stable reference, no remount on parent render.
+// Pill vs input is driven PURELY by the value prop — no useEffect sync needed.
+// editing only tracks whether the manager explicitly clicked a filled pill to
+// reassign; it defaults false so a freshly-claimed slot shows its pill instantly.
 function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSave }) {
-  const [editing,  setEditing]  = useState(!value);
-  const [inputVal, setInputVal] = useState(value || "");
+  const [editing,  setEditing]  = useState(false);
+  const [inputVal, setInputVal] = useState("");
   const [showDrop, setShowDrop] = useState(false);
   const inputRef = useRef(null);
-
-  // Keep in sync if value changes externally (e.g. volunteer claims the slot)
-  useEffect(() => {
-    setInputVal(value || "");
-    setEditing(!value);
-  }, [value]);
 
   const filtered = drivers.filter(d =>
     !inputVal || d.name?.toLowerCase().includes(inputVal.toLowerCase())
   );
 
   async function save(name) {
-    setInputVal(name);
+    setInputVal("");
     setShowDrop(false);
     setEditing(false);
     await onSave(occKey, driverIndex, name, currentDrivers);
   }
 
-  if (!editing && value) {
+  // Show pill when a driver is assigned AND manager hasn't clicked to reassign
+  if (value && !editing) {
     return (
       <span
-        onClick={() => { setEditing(true); setTimeout(() => inputRef.current?.focus(), 0); }}
+        onClick={() => {
+          setEditing(true);
+          setInputVal(value);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
         className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 inline-block">
         {value}
       </span>
@@ -113,7 +115,7 @@ function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSa
         value={inputVal}
         onChange={e => { setInputVal(e.target.value); setShowDrop(true); }}
         onFocus={() => setShowDrop(true)}
-        onBlur={() => setTimeout(() => setShowDrop(false), 180)}
+        onBlur={() => { setTimeout(() => setShowDrop(false), 180); setEditing(false); }}
         placeholder="Assign driver..."
         className="w-full border border-[#e5e7eb] rounded-lg px-2 py-1 text-[12px]
                    text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]"
@@ -809,7 +811,6 @@ export default function ManagerDeliveryRoutes() {
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
                                         <DriverInput
-                                          key={`${occ.id}-d0-${!!driver0}`}
                                           value={driver0}
                                           occKey={occ.id}
                                           driverIndex={0}
@@ -829,7 +830,6 @@ export default function ManagerDeliveryRoutes() {
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
                                           <DriverInput
-                                            key={`${occ.id}-d1-${!!driver1}`}
                                             value={driver1}
                                             occKey={occ.id}
                                             driverIndex={1}
