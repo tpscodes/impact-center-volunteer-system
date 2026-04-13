@@ -73,13 +73,13 @@ function groupByMonth(occs) {
 
 // ── Driver input with autocomplete ───────────────────────────────────────────
 // Defined outside main component — stable reference, no remount on parent render
-function DriverInput({ value, occKey, field, drivers, onSave }) {
+function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSave }) {
   const [editing,  setEditing]  = useState(!value);
   const [inputVal, setInputVal] = useState(value || "");
   const [showDrop, setShowDrop] = useState(false);
   const inputRef = useRef(null);
 
-  // Keep in sync if value changes externally
+  // Keep in sync if value changes externally (e.g. volunteer claims the slot)
   useEffect(() => {
     setInputVal(value || "");
     setEditing(!value);
@@ -93,7 +93,7 @@ function DriverInput({ value, occKey, field, drivers, onSave }) {
     setInputVal(name);
     setShowDrop(false);
     setEditing(false);
-    await onSave(occKey, field, name);
+    await onSave(occKey, driverIndex, name, currentDrivers);
   }
 
   if (!editing && value) {
@@ -401,16 +401,24 @@ export default function ManagerDeliveryRoutes() {
     await push(ref(db, "routeOccurrences"), {
       templateId: selectedTemplate.id,
       date:       newDate,
-      driver1:    "",
-      driver2:    "",
+      drivers:    [],
       status:     "pending",
       notes:      "",
       isSpecial:  false,
     });
   }
 
-  async function handleAssignDriver(occKey, field, name) {
-    await update(ref(db, `routeOccurrences/${occKey}`), { [field]: name });
+  // Writes to drivers[] array so manager assigns and volunteer claims
+  // use the same field — preserves other slots via update() not set()
+  async function handleDriverAssign(occurrenceId, driverIndex, value, currentDrivers) {
+    const updatedDrivers = [...(currentDrivers || [])];
+    updatedDrivers[driverIndex] = value;
+    const filledSlots = updatedDrivers.filter(d => d && d.trim()).length;
+    const newStatus = filledSlots >= driversNeeded ? "inProgress" : "pending";
+    await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+      drivers: updatedDrivers,
+      status:  newStatus,
+    });
   }
 
   const todayDisplay = new Date().toLocaleDateString("en-US", {
@@ -762,9 +770,11 @@ export default function ManagerDeliveryRoutes() {
                                   );
                                 }
 
-                                const allFilled = driversNeeded >= 2
-                                  ? (!!occ.driver1 && !!occ.driver2)
-                                  : !!occ.driver1;
+                                // Read from drivers[] array — shared with volunteer claim flow
+                                const occDrivers  = Array.isArray(occ.drivers) ? occ.drivers : [];
+                                const driver0     = occDrivers[0] || "";
+                                const driver1     = occDrivers[1] || "";
+                                const slotsFilled = occDrivers.filter(d => d && d.trim()).length;
 
                                 return (
                                   <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
@@ -776,16 +786,17 @@ export default function ManagerDeliveryRoutes() {
                                     {/* Driver 1 */}
                                     <td className="pr-3 py-1">
                                       {isPast ? (
-                                        occ.driver1
-                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver1}</span>
+                                        driver0
+                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver0}</span>
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
                                         <DriverInput
-                                          value={occ.driver1}
+                                          value={driver0}
                                           occKey={occ.id}
-                                          field="driver1"
+                                          driverIndex={0}
+                                          currentDrivers={occDrivers}
                                           drivers={drivers}
-                                          onSave={handleAssignDriver}
+                                          onSave={handleDriverAssign}
                                         />
                                       )}
                                     </td>
@@ -794,22 +805,23 @@ export default function ManagerDeliveryRoutes() {
                                     {driversNeeded >= 2 && (
                                       <td className="pr-3 py-1">
                                         {isPast ? (
-                                          occ.driver2
-                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver2}</span>
+                                          driver1
+                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver1}</span>
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
                                           <DriverInput
-                                            value={occ.driver2}
+                                            value={driver1}
                                             occKey={occ.id}
-                                            field="driver2"
+                                            driverIndex={1}
+                                            currentDrivers={occDrivers}
                                             drivers={drivers}
-                                            onSave={handleAssignDriver}
+                                            onSave={handleDriverAssign}
                                           />
                                         )}
                                       </td>
                                     )}
 
-                                    {/* Status */}
+                                    {/* Status — reads live from occ.status + occ.drivers */}
                                     <td className="pr-3">
                                       {isPast ? (
                                         <span className={`text-[11px] font-medium ${
@@ -820,10 +832,16 @@ export default function ManagerDeliveryRoutes() {
                                           {occ.status === "complete" ? "Complete" :
                                            occ.status === "incomplete" ? "Incomplete" : "—"}
                                         </span>
+                                      ) : occ.status === "complete" ? (
+                                        <span className="text-[11px] font-medium text-[#34c759]">Complete</span>
+                                      ) : occ.status === "inProgress" ? (
+                                        <span className="text-[11px] font-medium text-[#ff9500]">In Progress</span>
+                                      ) : slotsFilled >= driversNeeded ? (
+                                        <span className="text-[11px] font-medium text-[#0d9488]">Assigned</span>
+                                      ) : slotsFilled > 0 ? (
+                                        <span className="text-[11px] font-medium text-[#ff9500]">Partial</span>
                                       ) : (
-                                        <span className={`text-[11px] ${allFilled ? "text-[#0d9488] font-medium" : "text-[#6b7280] italic"}`}>
-                                          {allFilled ? "Assigned" : "Pending"}
-                                        </span>
+                                        <span className="text-[11px] text-[#6b7280] italic">Pending</span>
                                       )}
                                     </td>
 
