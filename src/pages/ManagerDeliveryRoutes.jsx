@@ -770,8 +770,14 @@ export default function ManagerDeliveryRoutes() {
                                   );
                                 }
 
-                                // Read from drivers[] array — shared with volunteer claim flow
-                                const occDrivers  = Array.isArray(occ.drivers) ? occ.drivers : [];
+                                // Normalize drivers — Firebase RTDB can return arrays as
+                                // plain objects ({0:"name"}) so handle both cases
+                                const rawDrivers  = occ.drivers;
+                                const occDrivers  = Array.isArray(rawDrivers)
+                                  ? rawDrivers
+                                  : rawDrivers && typeof rawDrivers === "object"
+                                  ? Object.values(rawDrivers)
+                                  : [];
                                 const driver0     = occDrivers[0] || "";
                                 const driver1     = occDrivers[1] || "";
                                 const slotsFilled = occDrivers.filter(d => d && d.trim()).length;
@@ -791,6 +797,7 @@ export default function ManagerDeliveryRoutes() {
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
                                         <DriverInput
+                                          key={`${occ.id}-d0-${!!driver0}`}
                                           value={driver0}
                                           occKey={occ.id}
                                           driverIndex={0}
@@ -810,6 +817,7 @@ export default function ManagerDeliveryRoutes() {
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
                                           <DriverInput
+                                            key={`${occ.id}-d1-${!!driver1}`}
                                             value={driver1}
                                             occKey={occ.id}
                                             driverIndex={1}
