@@ -200,7 +200,8 @@ export default function ManagerDeliveryRoutes() {
   useEffect(() => {
     return onValue(ref(db, "volunteers"), snap => {
       const data = snap.val();
-      setVolunteers(data ? Object.values(data) : []);
+      // Use Object.entries so the Firebase key is preserved as vol.id
+      setVolunteers(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
     });
   }, []);
 
@@ -399,22 +400,33 @@ export default function ManagerDeliveryRoutes() {
     const dates = templateOccs.map(o => o.date).filter(Boolean);
     const newDate = nextOccurrenceDate(selectedTemplate.dayOfWeek, dates);
     await push(ref(db, "routeOccurrences"), {
-      templateId: selectedTemplate.id,
-      date:       newDate,
-      drivers:    [],
-      status:     "pending",
-      notes:      "",
-      isSpecial:  false,
+      templateId:  selectedTemplate.id,
+      date:        newDate,
+      drivers:     [],
+      status:      "pending",
+      notes:       "",
+      specialNote: "",
+      isSpecial:   false,
+      createdAt:   Date.now(),
     });
   }
 
   // Writes to drivers[] array so manager assigns and volunteer claims
   // use the same field — preserves other slots via update() not set()
   async function handleDriverAssign(occurrenceId, driverIndex, value, currentDrivers) {
-    const updatedDrivers = [...(currentDrivers || [])];
+    // Normalize: Firebase RTDB may return arrays as plain objects
+    const normalized = Array.isArray(currentDrivers)
+      ? currentDrivers
+      : currentDrivers && typeof currentDrivers === "object"
+      ? Object.values(currentDrivers)
+      : [];
+    const updatedDrivers = [...normalized];
     updatedDrivers[driverIndex] = value;
-    const filledSlots = updatedDrivers.filter(d => d && d.trim()).length;
-    const newStatus = filledSlots >= driversNeeded ? "inProgress" : "pending";
+    // Safely count filled slots — guard against non-string entries
+    const filledSlots = updatedDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
+    // Read driversNeeded fresh from template to avoid stale closure
+    const tmplNeeded = Number(templates[selectedId]?.driversNeeded) || driversNeeded;
+    const newStatus = filledSlots >= tmplNeeded ? "inProgress" : "pending";
     await update(ref(db, `routeOccurrences/${occurrenceId}`), {
       drivers: updatedDrivers,
       status:  newStatus,
@@ -780,7 +792,7 @@ export default function ManagerDeliveryRoutes() {
                                   : [];
                                 const driver0     = occDrivers[0] || "";
                                 const driver1     = occDrivers[1] || "";
-                                const slotsFilled = occDrivers.filter(d => d && d.trim()).length;
+                                const slotsFilled = occDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
 
                                 return (
                                   <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
@@ -944,25 +956,26 @@ export default function ManagerDeliveryRoutes() {
                 onClick={() => {
                   if (!selectedTemplate) return;
 
-                  // Build the update, keeping existing values as fallback
-                  // so we never wipe a field the user didn't touch
-                  const t = selectedTemplate;
+                  // editFields is initialised with all current values so use
+                  // them directly — avoids || swallowing empty strings when
+                  // the user intentionally clears an optional field
+                  const capturedId = selectedId;
                   const templateUpdate = {
-                    name:          editFields.name          || t.name          || "",
-                    source:        editFields.source        || t.source        || "",
-                    destination:   editFields.destination   || t.destination   || "",
-                    departureTime: editFields.departureTime || t.departureTime || "",
-                    arrivalTime:   editFields.arrivalTime   || t.arrivalTime   || "",
-                    vehicle:       editFields.vehicle       || t.vehicle       || "",
-                    driversNeeded: editFields.driversNeeded || t.driversNeeded || 1,
+                    name:          editFields.name,
+                    source:        editFields.source,
+                    destination:   editFields.destination,
+                    departureTime: editFields.departureTime,
+                    arrivalTime:   editFields.arrivalTime,
+                    vehicle:       editFields.vehicle,
+                    driversNeeded: editFields.driversNeeded || 1,
                   };
 
                   // Write to Firebase — on success patch local state and close popup
-                  update(ref(db, `routeTemplates/${selectedId}`), templateUpdate)
+                  update(ref(db, `routeTemplates/${capturedId}`), templateUpdate)
                     .then(() => {
                       setTemplates({
                         ..._cachedTemplates,
-                        [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
+                        [capturedId]: { ..._cachedTemplates[capturedId], ...templateUpdate },
                       });
                       setShowEditPopup(false);
                     })
@@ -1144,7 +1157,7 @@ export default function ManagerDeliveryRoutes() {
                     <div>
                       <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
                       <div className="flex gap-3">
-                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }].map(p => (
+                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }, { label: "3 Drivers", value: 3 }].map(p => (
                           <button key={p.value}
                             onClick={() => setNewRoute(r => ({ ...r, driversNeeded: p.value }))}
                             className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
