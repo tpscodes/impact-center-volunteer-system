@@ -751,6 +751,9 @@ export default function ManagerDeliveryRoutes() {
                             {driversNeeded >= 2 && (
                               <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 2</th>
                             )}
+                            {driversNeeded >= 3 && (
+                              <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 3</th>
+                            )}
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[90px] font-medium">Status</th>
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[100px] font-medium">Notes</th>
                           </tr>
@@ -760,7 +763,7 @@ export default function ManagerDeliveryRoutes() {
                             <React.Fragment key={group.month}>
                               {/* Month header row */}
                               <tr>
-                                <td colSpan={driversNeeded >= 2 ? 5 : 4}
+                                <td colSpan={driversNeeded >= 3 ? 6 : driversNeeded >= 2 ? 5 : 4}
                                   className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
                                   {monthLabel(group.month + "-01")}
                                 </td>
@@ -776,7 +779,7 @@ export default function ManagerDeliveryRoutes() {
                                       <td className="text-[#0a2a3a] text-[12px] pr-4">
                                         {formatDateShort(occ.date)}
                                       </td>
-                                      <td colSpan={driversNeeded >= 2 ? 4 : 3}
+                                      <td colSpan={driversNeeded >= 3 ? 5 : driversNeeded >= 2 ? 4 : 3}
                                         className="text-[#dc2626] text-[12px] font-medium text-center">
                                         {occ.specialNote || "Special day"}
                                       </td>
@@ -794,6 +797,7 @@ export default function ManagerDeliveryRoutes() {
                                   : [];
                                 const driver0     = occDrivers[0] || "";
                                 const driver1     = occDrivers[1] || "";
+                                const driver2     = occDrivers[2] || "";
                                 const slotsFilled = occDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
 
                                 return (
@@ -811,6 +815,7 @@ export default function ManagerDeliveryRoutes() {
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
                                         <DriverInput
+                                          key={`${occ.id}-0-${!!driver0}`}
                                           value={driver0}
                                           occKey={occ.id}
                                           driverIndex={0}
@@ -830,9 +835,31 @@ export default function ManagerDeliveryRoutes() {
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
                                           <DriverInput
+                                            key={`${occ.id}-1-${!!driver1}`}
                                             value={driver1}
                                             occKey={occ.id}
                                             driverIndex={1}
+                                            currentDrivers={occDrivers}
+                                            drivers={drivers}
+                                            onSave={handleDriverAssign}
+                                          />
+                                        )}
+                                      </td>
+                                    )}
+
+                                    {/* Driver 3 */}
+                                    {driversNeeded >= 3 && (
+                                      <td className="pr-3 py-1">
+                                        {isPast ? (
+                                          driver2
+                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver2}</span>
+                                            : <span className="text-[#6b7280]">—</span>
+                                        ) : (
+                                          <DriverInput
+                                            key={`${occ.id}-2-${!!driver2}`}
+                                            value={driver2}
+                                            occKey={occ.id}
+                                            driverIndex={2}
                                             currentDrivers={occDrivers}
                                             drivers={drivers}
                                             onSave={handleDriverAssign}
