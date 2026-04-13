@@ -86,9 +86,29 @@ function DriverCard({ vol, weekCount, onRemoveTag, onRemove }) {
   );
 }
 
-// ── Add Driver Modal (defined OUTSIDE main component to prevent remounting) ───
-function AddDriverModal({ newFirstName, setNewFirstName, newLastName, setNewLastName,
-  newId, setNewId, isPantry, setIsPantry, modalError, onClose, onSubmit }) {
+// ── Add Driver Modal ──────────────────────────────────────────────────────────
+// State lives here so typing never causes the parent component to re-render,
+// preventing the input focus loss bug on every keystroke.
+function AddDriverModal({ volunteers, onClose, onAdd }) {
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName,  setNewLastName]  = useState("");
+  const [newId,        setNewId]        = useState("");
+  const [isPantry,     setIsPantry]     = useState(false);
+  const [modalError,   setModalError]   = useState("");
+
+  async function handleSubmit() {
+    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
+    if (!fullName) { setModalError("Name is required"); return; }
+    if (!newId || newId.length !== 4 || !/^\d{4}$/.test(newId)) {
+      setModalError("Volunteer ID must be exactly 4 digits"); return;
+    }
+    if (volunteers.some(v => v.id === newId)) {
+      setModalError("A volunteer with this ID already exists"); return;
+    }
+    await onAdd({ fullName, id: newId, isPantry });
+    onClose();
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
@@ -158,7 +178,7 @@ function AddDriverModal({ newFirstName, setNewFirstName, newLastName, setNewLast
                        text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
             Cancel
           </button>
-          <button onClick={onSubmit}
+          <button onClick={handleSubmit}
             className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px]
                        font-medium hover:opacity-90 border-none cursor-pointer">
             Add Driver
@@ -177,11 +197,6 @@ export default function ManagerDeliveryVolunteers() {
   const [routes,     setRoutes]     = useState([]);
   const [searchQuery,    setSearchQuery]    = useState("");
   const [showAddModal,   setShowAddModal]   = useState(false);
-  const [newFirstName,   setNewFirstName]   = useState("");
-  const [newLastName,    setNewLastName]    = useState("");
-  const [newId,          setNewId]          = useState("");
-  const [isPantry,       setIsPantry]       = useState(false);
-  const [modalError,     setModalError]     = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Firebase listeners
@@ -245,34 +260,15 @@ export default function ManagerDeliveryVolunteers() {
     await remove(ref(db, `volunteers/${vol.id}`));
   }
 
-  function closeModal() {
-    setShowAddModal(false);
-    setNewFirstName("");
-    setNewLastName("");
-    setNewId("");
-    setIsPantry(false);
-    setModalError("");
-  }
-
-  async function handleAddDriver() {
-    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
-    if (!fullName) { setModalError("Name is required"); return; }
-    if (!newId || newId.length !== 4 || !/^\d{4}$/.test(newId)) {
-      setModalError("Volunteer ID must be exactly 4 digits"); return;
-    }
-    if (volunteers.some(v => v.id === newId)) {
-      setModalError("A volunteer with this ID already exists"); return;
-    }
-    const newVol = {
-      id:         newId,
+  async function handleAddDriver({ fullName, id, isPantry }) {
+    await set(ref(db, `volunteers/${id}`), {
+      id,
       name:       fullName,
       active:     false,
       lastActive: null,
       isDriver:   true,
       ...(isPantry ? { isPantry: true } : {}),
-    };
-    await set(ref(db, `volunteers/${newId}`), newVol);
-    closeModal();
+    });
   }
 
   const todayDisplay = new Date().toLocaleDateString("en-US", {
@@ -514,13 +510,9 @@ export default function ManagerDeliveryVolunteers() {
 
       {showAddModal && (
         <AddDriverModal
-          newFirstName={newFirstName}   setNewFirstName={setNewFirstName}
-          newLastName={newLastName}     setNewLastName={setNewLastName}
-          newId={newId}                 setNewId={setNewId}
-          isPantry={isPantry}           setIsPantry={setIsPantry}
-          modalError={modalError}
-          onClose={closeModal}
-          onSubmit={handleAddDriver}
+          volunteers={volunteers}
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddDriver}
         />
       )}
     </>
