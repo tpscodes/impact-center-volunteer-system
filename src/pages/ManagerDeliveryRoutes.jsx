@@ -413,6 +413,10 @@ export default function ManagerDeliveryRoutes() {
     });
   }
 
+  async function handleDeleteOccurrence(occurrenceId) {
+    await remove(ref(db, `routeOccurrences/${occurrenceId}`));
+  }
+
   // Writes to drivers[] array so manager assigns and volunteer claims
   // use the same field — preserves other slots via update() not set()
   async function handleDriverAssign(occurrenceId, driverIndex, value, currentDrivers) {
@@ -756,6 +760,7 @@ export default function ManagerDeliveryRoutes() {
                             )}
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[90px] font-medium">Status</th>
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[100px] font-medium">Notes</th>
+                            <th className="pb-2 w-[28px]" />
                           </tr>
                         </thead>
                         <tbody>
@@ -763,7 +768,7 @@ export default function ManagerDeliveryRoutes() {
                             <React.Fragment key={group.month}>
                               {/* Month header row */}
                               <tr>
-                                <td colSpan={driversNeeded >= 3 ? 6 : driversNeeded >= 2 ? 5 : 4}
+                                <td colSpan={driversNeeded >= 3 ? 7 : driversNeeded >= 2 ? 6 : 5}
                                   className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
                                   {monthLabel(group.month + "-01")}
                                 </td>
@@ -779,9 +784,17 @@ export default function ManagerDeliveryRoutes() {
                                       <td className="text-[#0a2a3a] text-[12px] pr-4">
                                         {formatDateShort(occ.date)}
                                       </td>
-                                      <td colSpan={driversNeeded >= 3 ? 5 : driversNeeded >= 2 ? 4 : 3}
+                                      <td colSpan={driversNeeded >= 3 ? 6 : driversNeeded >= 2 ? 5 : 4}
                                         className="text-[#dc2626] text-[12px] font-medium text-center">
                                         {occ.specialNote || "Special day"}
+                                      </td>
+                                      <td className="py-1 text-right pr-1">
+                                        <button
+                                          onClick={() => handleDeleteOccurrence(occ.id)}
+                                          className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
+                                          title="Delete occurrence">
+                                          <X size={13} />
+                                        </button>
                                       </td>
                                     </tr>
                                   );
@@ -895,6 +908,16 @@ export default function ManagerDeliveryRoutes() {
                                     {/* Notes */}
                                     <td className="text-[#6b7280] text-[12px]">
                                       {occ.notes || ""}
+                                    </td>
+
+                                    {/* Delete */}
+                                    <td className="py-1 text-right pr-1">
+                                      <button
+                                        onClick={() => handleDeleteOccurrence(occ.id)}
+                                        className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
+                                        title="Delete occurrence">
+                                        <X size={13} />
+                                      </button>
                                     </td>
                                   </tr>
                                 );
