@@ -72,34 +72,36 @@ function groupByMonth(occs) {
 }
 
 // ── Driver input with autocomplete ───────────────────────────────────────────
-// Defined outside main component — stable reference, no remount on parent render
-function DriverInput({ value, occKey, field, drivers, onSave }) {
-  const [editing,  setEditing]  = useState(!value);
-  const [inputVal, setInputVal] = useState(value || "");
+// Defined outside main component — stable reference, no remount on parent render.
+// Pill vs input is driven PURELY by the value prop — no useEffect sync needed.
+// editing only tracks whether the manager explicitly clicked a filled pill to
+// reassign; it defaults false so a freshly-claimed slot shows its pill instantly.
+function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSave }) {
+  const [editing,  setEditing]  = useState(false);
+  const [inputVal, setInputVal] = useState("");
   const [showDrop, setShowDrop] = useState(false);
   const inputRef = useRef(null);
-
-  // Keep in sync if value changes externally
-  useEffect(() => {
-    setInputVal(value || "");
-    setEditing(!value);
-  }, [value]);
 
   const filtered = drivers.filter(d =>
     !inputVal || d.name?.toLowerCase().includes(inputVal.toLowerCase())
   );
 
   async function save(name) {
-    setInputVal(name);
+    setInputVal("");
     setShowDrop(false);
     setEditing(false);
-    await onSave(occKey, field, name);
+    await onSave(occKey, driverIndex, name, currentDrivers);
   }
 
-  if (!editing && value) {
+  // Show pill when a driver is assigned AND manager hasn't clicked to reassign
+  if (value && !editing) {
     return (
       <span
-        onClick={() => { setEditing(true); setTimeout(() => inputRef.current?.focus(), 0); }}
+        onClick={() => {
+          setEditing(true);
+          setInputVal(value);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
         className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 inline-block">
         {value}
       </span>
@@ -113,7 +115,7 @@ function DriverInput({ value, occKey, field, drivers, onSave }) {
         value={inputVal}
         onChange={e => { setInputVal(e.target.value); setShowDrop(true); }}
         onFocus={() => setShowDrop(true)}
-        onBlur={() => setTimeout(() => setShowDrop(false), 180)}
+        onBlur={() => { setTimeout(() => setShowDrop(false), 180); setEditing(false); }}
         placeholder="Assign driver..."
         className="w-full border border-[#e5e7eb] rounded-lg px-2 py-1 text-[12px]
                    text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]"
@@ -200,7 +202,8 @@ export default function ManagerDeliveryRoutes() {
   useEffect(() => {
     return onValue(ref(db, "volunteers"), snap => {
       const data = snap.val();
-      setVolunteers(data ? Object.values(data) : []);
+      // Use Object.entries so the Firebase key is preserved as vol.id
+      setVolunteers(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
     });
   }, []);
 
@@ -399,18 +402,41 @@ export default function ManagerDeliveryRoutes() {
     const dates = templateOccs.map(o => o.date).filter(Boolean);
     const newDate = nextOccurrenceDate(selectedTemplate.dayOfWeek, dates);
     await push(ref(db, "routeOccurrences"), {
-      templateId: selectedTemplate.id,
-      date:       newDate,
-      driver1:    "",
-      driver2:    "",
-      status:     "pending",
-      notes:      "",
-      isSpecial:  false,
+      templateId:  selectedTemplate.id,
+      date:        newDate,
+      drivers:     [],
+      status:      "pending",
+      notes:       "",
+      specialNote: "",
+      isSpecial:   false,
+      createdAt:   Date.now(),
     });
   }
 
-  async function handleAssignDriver(occKey, field, name) {
-    await update(ref(db, `routeOccurrences/${occKey}`), { [field]: name });
+  async function handleDeleteOccurrence(occurrenceId) {
+    await remove(ref(db, `routeOccurrences/${occurrenceId}`));
+  }
+
+  // Writes to drivers[] array so manager assigns and volunteer claims
+  // use the same field — preserves other slots via update() not set()
+  async function handleDriverAssign(occurrenceId, driverIndex, value, currentDrivers) {
+    // Normalize: Firebase RTDB may return arrays as plain objects
+    const normalized = Array.isArray(currentDrivers)
+      ? currentDrivers
+      : currentDrivers && typeof currentDrivers === "object"
+      ? Object.values(currentDrivers)
+      : [];
+    const updatedDrivers = [...normalized];
+    updatedDrivers[driverIndex] = value;
+    // Safely count filled slots — guard against non-string entries
+    const filledSlots = updatedDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
+    // Read driversNeeded fresh from template to avoid stale closure
+    const tmplNeeded = Number(templates[selectedId]?.driversNeeded) || driversNeeded;
+    const newStatus = filledSlots >= tmplNeeded ? "inProgress" : "pending";
+    await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+      drivers: updatedDrivers,
+      status:  newStatus,
+    });
   }
 
   const todayDisplay = new Date().toLocaleDateString("en-US", {
@@ -729,8 +755,12 @@ export default function ManagerDeliveryRoutes() {
                             {driversNeeded >= 2 && (
                               <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 2</th>
                             )}
+                            {driversNeeded >= 3 && (
+                              <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 font-medium">Driver 3</th>
+                            )}
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[90px] font-medium">Status</th>
                             <th className="text-[11px] text-[#6b7280] uppercase tracking-wide pb-2 w-[100px] font-medium">Notes</th>
+                            <th className="pb-2 w-[28px]" />
                           </tr>
                         </thead>
                         <tbody>
@@ -738,7 +768,7 @@ export default function ManagerDeliveryRoutes() {
                             <React.Fragment key={group.month}>
                               {/* Month header row */}
                               <tr>
-                                <td colSpan={driversNeeded >= 2 ? 5 : 4}
+                                <td colSpan={driversNeeded >= 3 ? 7 : driversNeeded >= 2 ? 6 : 5}
                                   className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
                                   {monthLabel(group.month + "-01")}
                                 </td>
@@ -754,17 +784,34 @@ export default function ManagerDeliveryRoutes() {
                                       <td className="text-[#0a2a3a] text-[12px] pr-4">
                                         {formatDateShort(occ.date)}
                                       </td>
-                                      <td colSpan={driversNeeded >= 2 ? 4 : 3}
+                                      <td colSpan={driversNeeded >= 3 ? 6 : driversNeeded >= 2 ? 5 : 4}
                                         className="text-[#dc2626] text-[12px] font-medium text-center">
                                         {occ.specialNote || "Special day"}
+                                      </td>
+                                      <td className="py-1 text-right pr-1">
+                                        <button
+                                          onClick={() => handleDeleteOccurrence(occ.id)}
+                                          className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
+                                          title="Delete occurrence">
+                                          <X size={13} />
+                                        </button>
                                       </td>
                                     </tr>
                                   );
                                 }
 
-                                const allFilled = driversNeeded >= 2
-                                  ? (!!occ.driver1 && !!occ.driver2)
-                                  : !!occ.driver1;
+                                // Normalize drivers — Firebase RTDB can return arrays as
+                                // plain objects ({0:"name"}) so handle both cases
+                                const rawDrivers  = occ.drivers;
+                                const occDrivers  = Array.isArray(rawDrivers)
+                                  ? rawDrivers
+                                  : rawDrivers && typeof rawDrivers === "object"
+                                  ? Object.values(rawDrivers)
+                                  : [];
+                                const driver0     = occDrivers[0] || "";
+                                const driver1     = occDrivers[1] || "";
+                                const driver2     = occDrivers[2] || "";
+                                const slotsFilled = occDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
 
                                 return (
                                   <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
@@ -776,16 +823,18 @@ export default function ManagerDeliveryRoutes() {
                                     {/* Driver 1 */}
                                     <td className="pr-3 py-1">
                                       {isPast ? (
-                                        occ.driver1
-                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver1}</span>
+                                        driver0
+                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver0}</span>
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
                                         <DriverInput
-                                          value={occ.driver1}
+                                          key={`${occ.id}-0-${!!driver0}`}
+                                          value={driver0}
                                           occKey={occ.id}
-                                          field="driver1"
+                                          driverIndex={0}
+                                          currentDrivers={occDrivers}
                                           drivers={drivers}
-                                          onSave={handleAssignDriver}
+                                          onSave={handleDriverAssign}
                                         />
                                       )}
                                     </td>
@@ -794,22 +843,45 @@ export default function ManagerDeliveryRoutes() {
                                     {driversNeeded >= 2 && (
                                       <td className="pr-3 py-1">
                                         {isPast ? (
-                                          occ.driver2
-                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{occ.driver2}</span>
+                                          driver1
+                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver1}</span>
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
                                           <DriverInput
-                                            value={occ.driver2}
+                                            key={`${occ.id}-1-${!!driver1}`}
+                                            value={driver1}
                                             occKey={occ.id}
-                                            field="driver2"
+                                            driverIndex={1}
+                                            currentDrivers={occDrivers}
                                             drivers={drivers}
-                                            onSave={handleAssignDriver}
+                                            onSave={handleDriverAssign}
                                           />
                                         )}
                                       </td>
                                     )}
 
-                                    {/* Status */}
+                                    {/* Driver 3 */}
+                                    {driversNeeded >= 3 && (
+                                      <td className="pr-3 py-1">
+                                        {isPast ? (
+                                          driver2
+                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver2}</span>
+                                            : <span className="text-[#6b7280]">—</span>
+                                        ) : (
+                                          <DriverInput
+                                            key={`${occ.id}-2-${!!driver2}`}
+                                            value={driver2}
+                                            occKey={occ.id}
+                                            driverIndex={2}
+                                            currentDrivers={occDrivers}
+                                            drivers={drivers}
+                                            onSave={handleDriverAssign}
+                                          />
+                                        )}
+                                      </td>
+                                    )}
+
+                                    {/* Status — reads live from occ.status + occ.drivers */}
                                     <td className="pr-3">
                                       {isPast ? (
                                         <span className={`text-[11px] font-medium ${
@@ -820,16 +892,32 @@ export default function ManagerDeliveryRoutes() {
                                           {occ.status === "complete" ? "Complete" :
                                            occ.status === "incomplete" ? "Incomplete" : "—"}
                                         </span>
+                                      ) : occ.status === "complete" ? (
+                                        <span className="text-[11px] font-medium text-[#34c759]">Complete</span>
+                                      ) : occ.status === "inProgress" ? (
+                                        <span className="text-[11px] font-medium text-[#ff9500]">In Progress</span>
+                                      ) : slotsFilled >= driversNeeded ? (
+                                        <span className="text-[11px] font-medium text-[#0d9488]">Assigned</span>
+                                      ) : slotsFilled > 0 ? (
+                                        <span className="text-[11px] font-medium text-[#ff9500]">Partial</span>
                                       ) : (
-                                        <span className={`text-[11px] ${allFilled ? "text-[#0d9488] font-medium" : "text-[#6b7280] italic"}`}>
-                                          {allFilled ? "Assigned" : "Pending"}
-                                        </span>
+                                        <span className="text-[11px] text-[#6b7280] italic">Pending</span>
                                       )}
                                     </td>
 
                                     {/* Notes */}
                                     <td className="text-[#6b7280] text-[12px]">
                                       {occ.notes || ""}
+                                    </td>
+
+                                    {/* Delete */}
+                                    <td className="py-1 text-right pr-1">
+                                      <button
+                                        onClick={() => handleDeleteOccurrence(occ.id)}
+                                        className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
+                                        title="Delete occurrence">
+                                        <X size={13} />
+                                      </button>
                                     </td>
                                   </tr>
                                 );
@@ -918,25 +1006,26 @@ export default function ManagerDeliveryRoutes() {
                 onClick={() => {
                   if (!selectedTemplate) return;
 
-                  // Build the update, keeping existing values as fallback
-                  // so we never wipe a field the user didn't touch
-                  const t = selectedTemplate;
+                  // editFields is initialised with all current values so use
+                  // them directly — avoids || swallowing empty strings when
+                  // the user intentionally clears an optional field
+                  const capturedId = selectedId;
                   const templateUpdate = {
-                    name:          editFields.name          || t.name          || "",
-                    source:        editFields.source        || t.source        || "",
-                    destination:   editFields.destination   || t.destination   || "",
-                    departureTime: editFields.departureTime || t.departureTime || "",
-                    arrivalTime:   editFields.arrivalTime   || t.arrivalTime   || "",
-                    vehicle:       editFields.vehicle       || t.vehicle       || "",
-                    driversNeeded: editFields.driversNeeded || t.driversNeeded || 1,
+                    name:          editFields.name,
+                    source:        editFields.source,
+                    destination:   editFields.destination,
+                    departureTime: editFields.departureTime,
+                    arrivalTime:   editFields.arrivalTime,
+                    vehicle:       editFields.vehicle,
+                    driversNeeded: editFields.driversNeeded || 1,
                   };
 
                   // Write to Firebase — on success patch local state and close popup
-                  update(ref(db, `routeTemplates/${selectedId}`), templateUpdate)
+                  update(ref(db, `routeTemplates/${capturedId}`), templateUpdate)
                     .then(() => {
                       setTemplates({
                         ..._cachedTemplates,
-                        [selectedId]: { ..._cachedTemplates[selectedId], ...templateUpdate },
+                        [capturedId]: { ..._cachedTemplates[capturedId], ...templateUpdate },
                       });
                       setShowEditPopup(false);
                     })
@@ -1118,7 +1207,7 @@ export default function ManagerDeliveryRoutes() {
                     <div>
                       <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
                       <div className="flex gap-3">
-                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }].map(p => (
+                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }, { label: "3 Drivers", value: 3 }].map(p => (
                           <button key={p.value}
                             onClick={() => setNewRoute(r => ({ ...r, driversNeeded: p.value }))}
                             className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
