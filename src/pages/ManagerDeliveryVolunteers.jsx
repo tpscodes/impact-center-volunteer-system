@@ -1,5 +1,5 @@
 // ManagerDeliveryVolunteers.jsx — Delivery drivers roster
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Search, UserPlus, UserCheck, X, Menu, Check, User, Truck } from "lucide-react";
@@ -86,6 +86,109 @@ function DriverCard({ vol, weekCount, onRemoveTag, onRemove }) {
   );
 }
 
+// ── Add Driver Modal ──────────────────────────────────────────────────────────
+// State lives here so typing never causes the parent component to re-render,
+// preventing the input focus loss bug on every keystroke.
+function AddDriverModal({ volunteers, onClose, onAdd }) {
+  const firstNameRef = useRef(null);
+  const lastNameRef  = useRef(null);
+  const idRef        = useRef(null);
+  const [isPantry,   setIsPantry]   = useState(false);
+  const [modalError, setModalError] = useState("");
+
+  async function handleSubmit() {
+    const firstName = firstNameRef.current?.value?.trim() ?? "";
+    const lastName  = lastNameRef.current?.value?.trim() ?? "";
+    const id        = idRef.current?.value?.trim() ?? "";
+    const fullName  = `${firstName} ${lastName}`.trim();
+    if (!fullName) { setModalError("Name is required"); return; }
+    if (!id || id.length !== 4 || !/^\d{4}$/.test(id)) {
+      setModalError("Volunteer ID must be exactly 4 digits"); return;
+    }
+    if (volunteers.some(v => v.id === id)) {
+      setModalError("A volunteer with this ID already exists"); return;
+    }
+    await onAdd({ fullName, id, isPantry });
+    onClose();
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                      bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Driver</p>
+          <button onClick={onClose}
+            className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
+              <input ref={firstNameRef} type="text" placeholder="First Name" autoFocus defaultValue=""
+                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+            </div>
+            <div>
+              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
+              <input ref={lastNameRef} type="text" placeholder="Last Name" defaultValue=""
+                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
+              Volunteer ID (last 4 digits of phone number)
+            </p>
+            <input ref={idRef} type="text" placeholder="4 digits" maxLength={4} defaultValue=""
+              className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
+                         text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+          </div>
+
+          <div>
+            <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
+            <div className="flex gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                              bg-[#ccedeb] text-[#09665e] text-[12px] font-medium
+                              cursor-not-allowed select-none">
+                <Check size={12} strokeWidth={2.5} />
+                Driver
+              </div>
+              <button type="button" onClick={() => setIsPantry(p => !p)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px]
+                            font-medium border-none cursor-pointer transition-colors
+                            ${isPantry ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"}`}>
+                {isPantry && <Check size={12} strokeWidth={2.5} />}
+                Pantry
+              </button>
+            </div>
+          </div>
+
+          {modalError && <p className="text-[#dc2626] text-[13px]">{modalError}</p>}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
+                       text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
+            Cancel
+          </button>
+          <button onClick={handleSubmit}
+            className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px]
+                       font-medium hover:opacity-90 border-none cursor-pointer">
+            Add Driver
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryVolunteers() {
   const navigate = useNavigate();
@@ -94,11 +197,6 @@ export default function ManagerDeliveryVolunteers() {
   const [routes,     setRoutes]     = useState([]);
   const [searchQuery,    setSearchQuery]    = useState("");
   const [showAddModal,   setShowAddModal]   = useState(false);
-  const [newFirstName,   setNewFirstName]   = useState("");
-  const [newLastName,    setNewLastName]    = useState("");
-  const [newId,          setNewId]          = useState("");
-  const [isPantry,       setIsPantry]       = useState(false);
-  const [modalError,     setModalError]     = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Firebase listeners
@@ -162,34 +260,15 @@ export default function ManagerDeliveryVolunteers() {
     await remove(ref(db, `volunteers/${vol.id}`));
   }
 
-  function closeModal() {
-    setShowAddModal(false);
-    setNewFirstName("");
-    setNewLastName("");
-    setNewId("");
-    setIsPantry(false);
-    setModalError("");
-  }
-
-  async function handleAddDriver() {
-    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
-    if (!fullName) { setModalError("Name is required"); return; }
-    if (!newId || newId.length !== 4 || !/^\d{4}$/.test(newId)) {
-      setModalError("Volunteer ID must be exactly 4 digits"); return;
-    }
-    if (volunteers.some(v => v.id === newId)) {
-      setModalError("A volunteer with this ID already exists"); return;
-    }
-    const newVol = {
-      id:         newId,
+  async function handleAddDriver({ fullName, id, isPantry }) {
+    await set(ref(db, `volunteers/${id}`), {
+      id,
       name:       fullName,
       active:     false,
       lastActive: null,
       isDriver:   true,
       ...(isPantry ? { isPantry: true } : {}),
-    };
-    await set(ref(db, `volunteers/${newId}`), newVol);
-    closeModal();
+    });
   }
 
   const todayDisplay = new Date().toLocaleDateString("en-US", {
@@ -209,89 +288,6 @@ export default function ManagerDeliveryVolunteers() {
     { label: "Active Today",     value: activeTodaySet.size,   color: "#ff9500" },
     { label: "Routes Completed", value: routesCompleted,        color: "#34c759" },
   ];
-
-  // ── Add Driver modal ───────────────────────────────────────────────────────
-  const AddDriverModal = () => (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={closeModal} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                      bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Driver</p>
-          <button onClick={closeModal}
-            className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
-              <input type="text" placeholder="First Name"
-                value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
-                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-            </div>
-            <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
-              <input type="text" placeholder="Last Name"
-                value={newLastName} onChange={e => setNewLastName(e.target.value)}
-                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                           text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-            </div>
-          </div>
-
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
-              Volunteer ID (last 4 digits of phone number)
-            </p>
-            <input type="text" placeholder="4 digits" maxLength={4}
-              value={newId} onChange={e => setNewId(e.target.value)}
-              className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-                         text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-          </div>
-
-          {/* Role pills */}
-          <div>
-            <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
-            <div className="flex gap-2">
-              {/* Driver — locked on */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                              bg-[#ccedeb] text-[#09665e] text-[12px] font-medium
-                              cursor-not-allowed select-none">
-                <Check size={12} strokeWidth={2.5} />
-                Driver
-              </div>
-              {/* Pantry — optional */}
-              <button type="button" onClick={() => setIsPantry(p => !p)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px]
-                            font-medium border-none cursor-pointer transition-colors
-                            ${isPantry ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"}`}>
-                {isPantry && <Check size={12} strokeWidth={2.5} />}
-                Pantry
-              </button>
-            </div>
-          </div>
-
-          {modalError && <p className="text-[#dc2626] text-[13px]">{modalError}</p>}
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={closeModal}
-            className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
-                       text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
-            Cancel
-          </button>
-          <button onClick={handleAddDriver}
-            className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px]
-                       font-medium hover:opacity-90 border-none cursor-pointer">
-            Add Driver
-          </button>
-        </div>
-      </div>
-    </>
-  );
 
   return (
     <>
@@ -512,7 +508,13 @@ export default function ManagerDeliveryVolunteers() {
         </div>
       </div>
 
-      {showAddModal && <AddDriverModal />}
+      {showAddModal && (
+        <AddDriverModal
+          volunteers={volunteers}
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddDriver}
+        />
+      )}
     </>
   );
 }
