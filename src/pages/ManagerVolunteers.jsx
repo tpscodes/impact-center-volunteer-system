@@ -720,8 +720,8 @@ export default function ManagerVolunteers() {
                     className={`relative w-11 h-6 rounded-full transition-colors border-none cursor-pointer ${
                       editIsActive ? "bg-[#0d9488]" : "bg-[#e5e7eb]"
                     }`}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                      editIsActive ? "translate-x-5" : "translate-x-0.5"
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      editIsActive ? "translate-x-[22px]" : "translate-x-0"
                     }`} />
                   </button>
                 </div>
