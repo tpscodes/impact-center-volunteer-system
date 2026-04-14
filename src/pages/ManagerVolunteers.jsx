@@ -1,5 +1,5 @@
 // ManagerVolunteers.jsx — Experienced volunteer roster management
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Search, UserPlus, X, Menu, Check } from "lucide-react";
@@ -32,38 +32,37 @@ function volunteersFromFirebase(snap) {
   return Object.values(snap);
 }
 
-// ── Add Volunteer Modal ───────────────────────────────────────────────────────
-// Defined at module level so typing never causes the parent to re-render,
-// preventing input focus loss on every keystroke.
+// ── Add Volunteer Modal — module-level to prevent remount on every keystroke ──
 function AddVolunteerModal({ volunteers, onClose, onAdd }) {
-  const [newFirstName, setNewFirstName] = useState("");
-  const [newLastName,  setNewLastName]  = useState("");
-  const [newId,        setNewId]        = useState("");
-  const [isDriver,     setIsDriver]     = useState(false);
-  const [error,        setError]        = useState("");
+  const firstNameRef = useRef(null);
+  const lastNameRef  = useRef(null);
+  const idRef        = useRef(null);
+  const [isDriver, setIsDriver] = useState(false);
+  const [error,    setError]    = useState("");
 
   async function handleSubmit() {
-    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
+    const firstName = firstNameRef.current?.value?.trim() ?? "";
+    const lastName  = lastNameRef.current?.value?.trim() ?? "";
+    const id        = idRef.current?.value?.trim() ?? "";
+    const fullName  = `${firstName} ${lastName}`.trim();
     if (!fullName) { setError("Name is required"); return; }
-    if (!newId || newId.length !== 4 || !/^\d{4}$/.test(newId)) {
+    if (!id || id.length !== 4 || !/^\d{4}$/.test(id)) {
       setError("Volunteer ID must be exactly 4 digits"); return;
     }
-    if (volunteers.some(v => v.id === newId)) {
+    if (volunteers.some(v => v.id === id)) {
       setError("A volunteer with this ID already exists"); return;
     }
-    await onAdd({ fullName, id: newId, isDriver });
+    await onAdd({ fullName, id, isDriver });
     onClose();
   }
 
-  function close() { onClose(); }
-
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={close} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
         <div className="flex items-center justify-between mb-6">
           <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Experienced Volunteer</p>
-          <button onClick={close}
+          <button onClick={onClose}
             className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
             <X size={20} />
           </button>
@@ -72,14 +71,12 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
-              <input type="text" placeholder="First Name" autoFocus
-                value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
+              <input ref={firstNameRef} type="text" placeholder="First Name" autoFocus defaultValue=""
                 className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
             </div>
             <div>
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
-              <input type="text" placeholder="Last Name"
-                value={newLastName} onChange={e => setNewLastName(e.target.value)}
+              <input ref={lastNameRef} type="text" placeholder="Last Name" defaultValue=""
                 className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
             </div>
           </div>
@@ -87,10 +84,10 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
             <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
               Volunteer ID (last 4 digits of phone number)
             </p>
-            <input type="text" placeholder="4 digits" maxLength={4}
-              value={newId} onChange={e => setNewId(e.target.value)}
+            <input ref={idRef} type="text" placeholder="4 digits" maxLength={4} defaultValue=""
               className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
           </div>
+          {/* Role toggles */}
           <div>
             <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
             <div className="flex gap-2">
@@ -98,7 +95,8 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
                 <Check size={12} strokeWidth={2.5} />
                 Pantry
               </div>
-              <button type="button" onClick={() => setIsDriver(d => !d)}
+              <button type="button"
+                onClick={() => setIsDriver(d => !d)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
                   isDriver ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"
                 }`}>
@@ -110,7 +108,7 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
           {error && <p className="text-[#dc2626] text-[13px]">{error}</p>}
         </div>
         <div className="flex gap-3">
-          <button onClick={close}
+          <button onClick={onClose}
             className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
             Cancel
           </button>

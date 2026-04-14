@@ -1,5 +1,5 @@
 // ManagerDeliveryVolunteers.jsx — Delivery drivers roster
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Search, UserPlus, UserCheck, X, Menu, Check, User, Truck } from "lucide-react";
@@ -90,22 +90,25 @@ function DriverCard({ vol, weekCount, onRemoveTag, onRemove }) {
 // State lives here so typing never causes the parent component to re-render,
 // preventing the input focus loss bug on every keystroke.
 function AddDriverModal({ volunteers, onClose, onAdd }) {
-  const [newFirstName, setNewFirstName] = useState("");
-  const [newLastName,  setNewLastName]  = useState("");
-  const [newId,        setNewId]        = useState("");
-  const [isPantry,     setIsPantry]     = useState(false);
-  const [modalError,   setModalError]   = useState("");
+  const firstNameRef = useRef(null);
+  const lastNameRef  = useRef(null);
+  const idRef        = useRef(null);
+  const [isPantry,   setIsPantry]   = useState(false);
+  const [modalError, setModalError] = useState("");
 
   async function handleSubmit() {
-    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
+    const firstName = firstNameRef.current?.value?.trim() ?? "";
+    const lastName  = lastNameRef.current?.value?.trim() ?? "";
+    const id        = idRef.current?.value?.trim() ?? "";
+    const fullName  = `${firstName} ${lastName}`.trim();
     if (!fullName) { setModalError("Name is required"); return; }
-    if (!newId || newId.length !== 4 || !/^\d{4}$/.test(newId)) {
+    if (!id || id.length !== 4 || !/^\d{4}$/.test(id)) {
       setModalError("Volunteer ID must be exactly 4 digits"); return;
     }
-    if (volunteers.some(v => v.id === newId)) {
+    if (volunteers.some(v => v.id === id)) {
       setModalError("A volunteer with this ID already exists"); return;
     }
-    await onAdd({ fullName, id: newId, isPantry });
+    await onAdd({ fullName, id, isPantry });
     onClose();
   }
 
@@ -126,15 +129,13 @@ function AddDriverModal({ volunteers, onClose, onAdd }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
-              <input type="text" placeholder="First Name" autoFocus
-                value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
+              <input ref={firstNameRef} type="text" placeholder="First Name" autoFocus defaultValue=""
                 className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
                            text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
             </div>
             <div>
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
-              <input type="text" placeholder="Last Name"
-                value={newLastName} onChange={e => setNewLastName(e.target.value)}
+              <input ref={lastNameRef} type="text" placeholder="Last Name" defaultValue=""
                 className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
                            text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
             </div>
@@ -144,8 +145,7 @@ function AddDriverModal({ volunteers, onClose, onAdd }) {
             <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
               Volunteer ID (last 4 digits of phone number)
             </p>
-            <input type="text" placeholder="4 digits" maxLength={4}
-              value={newId} onChange={e => setNewId(e.target.value)}
+            <input ref={idRef} type="text" placeholder="4 digits" maxLength={4} defaultValue=""
               className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
                          text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
           </div>

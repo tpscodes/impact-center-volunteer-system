@@ -6,7 +6,7 @@ const PANTRY_NAV = [
   { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard, disabled: false },
   { label: "Tasks",     path: "/manager-tasks",      icon: ClipboardList,   disabled: false },
   { label: "Volunteers",path: "/manager-volunteers",  icon: Users,           disabled: false },
-  { label: "History",   path: "/manager/history",     icon: Clock,           disabled: false },
+  { label: "History",   path: "/manager-history",     icon: Clock,           disabled: false },
 ];
 
 const DELIVERY_NAV = [
