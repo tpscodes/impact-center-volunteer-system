@@ -130,6 +130,9 @@ export default function ManagerVolunteers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("name-asc");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   // ── Firebase real-time listener ────────────────────────────────────────────
   useEffect(() => {
@@ -153,15 +156,47 @@ export default function ManagerVolunteers() {
     return () => unsub();
   }, []);
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
-  const filtered = volunteers.filter(v => {
-    const q = searchQuery.toLowerCase();
-    return (
-      !q ||
-      v.name?.toLowerCase().includes(q) ||
-      String(v.id).includes(q)
-    );
-  });
+  // ── Filtered + sorted list ─────────────────────────────────────────────────
+  const filteredAndSorted = volunteers
+    .filter(v => {
+      const matchesSearch =
+        !searchQuery ||
+        v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.id?.toString().includes(searchQuery);
+
+      const matchesStatus =
+        statusFilter === "all" ? true :
+        statusFilter === "active" ? v.active === true :
+        v.active !== true;
+
+      const matchesRole =
+        roleFilter === "all"    ? true :
+        roleFilter === "pantry" ? !v.isDriver :
+        roleFilter === "driver" ? v.isDriver === true && !v.active :
+        roleFilter === "both"   ? v.isDriver === true : true;
+
+      return matchesSearch && matchesStatus && matchesRole;
+    })
+    .sort((a, b) => {
+      if (sortBy === "name-asc")  return (a.name || "").localeCompare(b.name || "");
+      if (sortBy === "name-desc") return (b.name || "").localeCompare(a.name || "");
+      if (sortBy === "id-asc")    return (a.id || "").toString().localeCompare((b.id || "").toString());
+      if (sortBy === "recent") {
+        if (!a.lastActive) return 1;
+        if (!b.lastActive) return -1;
+        return new Date(b.lastActive) - new Date(a.lastActive);
+      }
+      return 0;
+    });
+
+  const hasActiveFilters = statusFilter !== "all" || roleFilter !== "all" || sortBy !== "name-asc";
+
+  function clearFilters() {
+    setStatusFilter("all");
+    setRoleFilter("all");
+    setSortBy("name-asc");
+    setSearchQuery("");
+  }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleRemoveVolunteer(id) {
@@ -289,20 +324,67 @@ export default function ManagerVolunteers() {
           </div>
         </div>
 
+        {/* ── Controls row (mobile) ── */}
+        <div className="px-4 pt-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+              className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
+              <option value="name-asc">Name A → Z</option>
+              <option value="name-desc">Name Z → A</option>
+              <option value="id-asc">ID Ascending</option>
+              <option value="recent">Most Recently Active</option>
+            </select>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {["all", "active", "inactive"].map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
+                  statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                }`}>
+                {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { value: "all",    label: "All Roles"   },
+              { value: "pantry", label: "Pantry Only" },
+              { value: "driver", label: "Driver"      },
+              { value: "both",   label: "Both"        },
+            ].map(r => (
+              <button key={r.value} onClick={() => setRoleFilter(r.value)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                  roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                }`}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center">
+            <p className="text-[#6b7280] text-[12px]">
+              Showing {filteredAndSorted.length} of {volunteers.length} volunteers
+            </p>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="text-[#0d9488] text-[12px] underline ml-auto bg-transparent border-none cursor-pointer">
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ── Section header ── */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <div className="px-4 pt-3 pb-2">
           <p className="text-[#0a2a3a] text-[15px] font-semibold">Experienced Volunteers</p>
-          <p className="text-[#6b7280] text-[12px]">{filtered.length} total</p>
         </div>
 
         {/* ── Volunteer cards ── */}
         <div className="px-4 flex flex-col gap-3">
-          {filtered.length === 0 ? (
+          {filteredAndSorted.length === 0 ? (
             <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-10 text-center">
               <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
             </div>
           ) : (
-            filtered.map(vol => (
+            filteredAndSorted.map(vol => (
               <div key={vol.id} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5 flex items-center gap-3">
                 {/* ID pill */}
                 <span className="bg-[#ccedeb] text-[#09665e] text-[12px] font-medium px-2.5 py-1 rounded-lg shrink-0">
@@ -400,6 +482,56 @@ export default function ManagerVolunteers() {
                 </div>
               </div>
 
+              {/* Controls row */}
+              <div className="px-5 py-3 border-b border-[#e5e7eb] flex items-center gap-3 flex-wrap">
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                  className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
+                  <option value="name-asc">Name A → Z</option>
+                  <option value="name-desc">Name Z → A</option>
+                  <option value="id-asc">ID Ascending</option>
+                  <option value="recent">Most Recently Active</option>
+                </select>
+
+                <div className="flex gap-2">
+                  {["all", "active", "inactive"].map(s => (
+                    <button key={s} onClick={() => setStatusFilter(s)}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
+                        statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                      }`}>
+                      {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  {[
+                    { value: "all",    label: "All Roles"   },
+                    { value: "pantry", label: "Pantry Only" },
+                    { value: "driver", label: "Driver"      },
+                    { value: "both",   label: "Both"        },
+                  ].map(r => (
+                    <button key={r.value} onClick={() => setRoleFilter(r.value)}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                        roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                      }`}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center ml-auto gap-3">
+                  <p className="text-[#6b7280] text-[12px]">
+                    Showing {filteredAndSorted.length} of {volunteers.length} volunteers
+                  </p>
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters}
+                      className="text-[#0d9488] text-[12px] underline bg-transparent border-none cursor-pointer">
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Column headers */}
               <div className="px-5 py-2 bg-[#f9fafb] border-b border-[#e5e7eb]">
                 <div className="grid grid-cols-12 gap-4 items-center">
@@ -412,12 +544,12 @@ export default function ManagerVolunteers() {
               </div>
 
               {/* Volunteer rows */}
-              {filtered.length === 0 ? (
+              {filteredAndSorted.length === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
                 </div>
               ) : (
-                filtered.map(vol => (
+                filteredAndSorted.map(vol => (
                   <div key={vol.id} className="px-5 py-4 border-b border-[#e5e7eb] last:border-b-0">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       {/* ID pill */}
