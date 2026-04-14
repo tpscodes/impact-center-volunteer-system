@@ -1,12 +1,12 @@
 // Sidebar.jsx — Reusable desktop manager sidebar
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ClipboardList, Users, Clock, Truck, UserCheck } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Users, Clock, Truck, UserCheck, Settings } from "lucide-react";
 
 const PANTRY_NAV = [
   { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard, disabled: false },
   { label: "Tasks",     path: "/manager-tasks",      icon: ClipboardList,   disabled: false },
   { label: "Volunteers",path: "/manager-volunteers",  icon: Users,           disabled: false },
-  { label: "History",   path: "/manager/history",     icon: Clock,           disabled: false },
+  { label: "History",   path: "/manager-history",     icon: Clock,           disabled: false },
 ];
 
 const DELIVERY_NAV = [
@@ -75,12 +75,18 @@ export default function Sidebar({ mode, activePath }) {
       <div className="px-4 pb-5 pt-3 border-t border-[#ffffff12]">
         <div className="flex items-center gap-2.5 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-            <span className="text-white text-[11px] font-semibold">JB</span>
+            <span className="text-white text-[11px] font-semibold" id="sidebar-initials">JB</span>
           </div>
-          <div>
-            <p className="text-white text-[12px] font-medium">Jason Bratina</p>
+          <div className="flex-1">
+            <p className="text-white text-[12px] font-medium" id="sidebar-name">Jason Bratina</p>
             <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
           </div>
+          <button
+            onClick={() => navigate("/manager-settings")}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[#6b7280]
+              hover:text-white hover:bg-[#ffffff12] transition-colors bg-transparent border-none cursor-pointer">
+            <Settings size={14} />
+          </button>
         </div>
         <button
           onClick={() => navigate("/")}

@@ -12,6 +12,7 @@ import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
 import TaskPool from "./pages/TaskPool";
 import NewVolunteerTasks from "./pages/NewVolunteerTasks";
 import TaskHistory from "./pages/TaskHistory";
+import ManagerHistory from "./pages/ManagerHistory";
 import ManagerVolunteers from "./pages/ManagerVolunteers";
 import VolunteerModeSelect from "./pages/VolunteerModeSelect";
 import ManagerDelivery from "./pages/ManagerDelivery";
@@ -21,6 +22,7 @@ import ManagerDeliveryVolunteers from "./pages/ManagerDeliveryVolunteers";
 import ManagerDeliveryHistory from "./pages/ManagerDeliveryHistory";
 import DeliveryTaskPool from "./pages/DeliveryTaskPool";
 import DeliveryRouteDetail from "./pages/DeliveryRouteDetail";
+import ManagerSettings from "./pages/ManagerSettings";
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
@@ -86,6 +88,7 @@ export default function App() {
         <Route path="/manager/tasks" element={<ManagerTasksWrapper />} />
         <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
         <Route path="/manager/history" element={<TaskHistory />} />
+        <Route path="/manager-history" element={<ManagerHistory />} />
         <Route path="/manager-volunteers" element={<ManagerVolunteers />} />
         <Route path="/manager-delivery" element={<ManagerDelivery />} />
         <Route path="/create-delivery-route" element={<CreateDeliveryRoute />} />
@@ -94,6 +97,7 @@ export default function App() {
         <Route path="/manager-delivery-history" element={<ManagerDeliveryHistory />} />
         <Route path="/delivery-task-pool" element={<DeliveryTaskPool />} />
         <Route path="/delivery-route-detail" element={<DeliveryRouteDetail />} />
+        <Route path="/manager-settings" element={<ManagerSettings />} />
 
         {/* Digital board (Prof. Amy's screen) */}
         <Route path="/board" element={<DigitalBoardWrapper />} />
