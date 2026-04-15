@@ -259,6 +259,14 @@ export function useSharedTasks() {
     await remove(ref(db, `tasks/${taskId}`));
   }, []);
 
+  // Update a task's editable fields (manager only)
+  const updateTask = useCallback(async (taskId, updates) => {
+    const updated = tasksRef.current.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    updateTasks(updated);
+    const task = updated.find(t => t.id === taskId);
+    if (task) await set(ref(db, `tasks/${taskId}`), task);
+  }, []);
+
   // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and new-vol fields
   const markTaskIncomplete = useCallback(async (taskId) => {
     const updated = tasksRef.current.map(t => {
@@ -350,7 +358,7 @@ export function useSharedTasks() {
 
   return {
     tasks, shiftLeader, completedTasks, session, synced, error,
-    createTask, claimTask, completeTask, deleteTask, resetTasks,
+    createTask, claimTask, completeTask, deleteTask, updateTask, resetTasks,
     setShiftLeader, clearShiftLeader, clearCompletedTasks,
     markTaskIncomplete, startSession, endSession,
   };

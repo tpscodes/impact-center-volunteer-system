@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList } from "lucide-react";
+import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
@@ -201,11 +201,46 @@ const MOBILE_TAGS = ['All', 'Warehouse', 'Kitchen', 'Clothing', 'Freezer', 'Frid
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const { tasks, completedTasks, session, deleteTask, markTaskIncomplete } = useSharedTasks()
+  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState('All')
+  const [editingTask, setEditingTask] = useState(null)  // task object being edited
+  const [editForm, setEditForm] = useState({})
+
+  function openEdit(task) {
+    setEditingTask(task)
+    setEditForm({
+      name:        task.name || task.item || '',
+      source:      task.source || '',
+      destination: task.destination || '',
+      comments:    task.comments || '',
+      priority:    task.priority || 'Normal',
+      tags:        task.tags ? [...task.tags] : [],
+    })
+  }
+
+  async function saveEdit() {
+    if (!editingTask) return
+    await updateTask(editingTask.id, {
+      name:        editForm.name.trim(),
+      item:        editForm.name.trim(),
+      source:      editForm.source.trim(),
+      destination: editForm.destination.trim(),
+      comments:    editForm.comments.trim(),
+      priority:    editForm.priority,
+      tags:        editForm.tags,
+    })
+    setEditingTask(null)
+  }
+
+  function toggleEditTag(tag) {
+    setEditForm(f => ({
+      ...f,
+      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag],
+    }))
+  }
 
   const activeTasks = tasks.filter(t => t.status !== 'complete').length
   const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length
@@ -440,6 +475,12 @@ export default function ManagerTasks() {
                       </button>
                     )}
                     {task.status !== 'complete' && (
+                      <button onClick={() => openEdit(task)}
+                        className="text-[#0d9488] bg-transparent border-none cursor-pointer p-0">
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                    {task.status !== 'complete' && (
                       <button onClick={() => deleteTask(task.id)}
                         className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer p-0">
                         Remove
@@ -610,6 +651,12 @@ export default function ManagerTasks() {
                         </button>
                       )}
                     </div>
+                    {task.status !== 'complete' && (
+                      <button onClick={() => openEdit(task)}
+                        className="text-[#0d9488] hover:text-[#09665e] bg-transparent border-none cursor-pointer p-1 rounded-lg hover:bg-[#f0fafa] transition-colors">
+                        <Pencil size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -637,6 +684,139 @@ export default function ManagerTasks() {
           </div>
         </div>
       </div>
+
+      {/* ── Edit Task Modal ─────────────────────────────────────────────────── */}
+      {editingTask && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setEditingTask(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                          bg-white rounded-2xl shadow-xl w-[92vw] max-w-[480px] max-h-[90vh]
+                          overflow-y-auto"
+               style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#e5e7eb]">
+              <div className="flex items-center gap-2">
+                <Pencil size={16} className="text-[#0d9488]" />
+                <p className="text-[#0a2a3a] text-[16px] font-semibold">Edit Task</p>
+              </div>
+              <button onClick={() => setEditingTask(null)}
+                className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer p-1">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="px-5 py-4 flex flex-col gap-4">
+
+              {/* Task Name */}
+              <div>
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Task Name</p>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
+                             text-[#0a2a3a] outline-none focus:border-[#0d9488] focus:ring-1
+                             focus:ring-[#0d9488]"
+                />
+              </div>
+
+              {/* Source + Destination */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Source</p>
+                  <input
+                    type="text"
+                    value={editForm.source}
+                    onChange={e => setEditForm(f => ({ ...f, source: e.target.value }))}
+                    placeholder="Where to pick up from"
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
+                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]"
+                  />
+                </div>
+                <div>
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Destination</p>
+                  <input
+                    type="text"
+                    value={editForm.destination}
+                    onChange={e => setEditForm(f => ({ ...f, destination: e.target.value }))}
+                    placeholder="Where it goes"
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
+                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]"
+                  />
+                </div>
+              </div>
+
+              {/* Comments */}
+              <div>
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Special Instructions</p>
+                <textarea
+                  value={editForm.comments}
+                  onChange={e => setEditForm(f => ({ ...f, comments: e.target.value }))}
+                  placeholder="Any notes for volunteers..."
+                  rows={2}
+                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
+                             text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]
+                             resize-none"
+                />
+              </div>
+
+              {/* Priority */}
+              <div>
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Priority</p>
+                <div className="flex gap-2">
+                  {PRIORITY_OPTIONS.map(p => (
+                    <button key={p} type="button"
+                      onClick={() => setEditForm(f => ({ ...f, priority: p }))}
+                      className={`flex-1 py-2 rounded-lg text-[13px] font-medium border-none cursor-pointer transition-colors ${
+                        editForm.priority === p
+                          ? p === 'Urgent' ? 'bg-[#fff0f0] text-[#dc2626] ring-1 ring-[#dc2626]'
+                          : p === 'High'   ? 'bg-[#fff3e0] text-[#ff9500] ring-1 ring-[#ff9500]'
+                          :                  'bg-[#ccedeb] text-[#09665e] ring-1 ring-[#09665e]'
+                          : 'bg-[#f3f4f6] text-[#6b7280]'
+                      }`}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Tags</p>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_TAGS.map(tag => (
+                    <button key={tag} type="button"
+                      onClick={() => toggleEditTag(tag)}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
+                        editForm.tags.includes(tag)
+                          ? 'bg-[#0d9488] text-white'
+                          : 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]'
+                      }`}>
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={() => setEditingTask(null)}
+                className="flex-1 py-2.5 border border-[#e5e7eb] text-[#6b7280] rounded-lg text-[14px]
+                           bg-transparent cursor-pointer hover:bg-[#f9fafb]">
+                Cancel
+              </button>
+              <button onClick={saveEdit}
+                className="flex-1 py-2.5 bg-[#09665e] hover:bg-[#0d9488] text-white rounded-lg
+                           text-[14px] font-medium border-none cursor-pointer transition-colors">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
