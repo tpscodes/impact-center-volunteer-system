@@ -76,7 +76,7 @@ export function VolunteerIdEntry() {
           <p className="text-lg text-[#757575] text-center mb-8">Sign in to continue</p>
 
           <div className="flex flex-col gap-2 mb-6">
-            <label className="text-base text-[#1e1e1e]">Enter your 4-digit ID</label>
+            <label className="text-base text-[#1e1e1e]">Enter your 4-digit ID of your phone number</label>
             <input
               type="tel"
               inputMode="numeric"
