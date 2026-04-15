@@ -466,14 +466,19 @@ export default function ManagerDeliveryRoutes() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen flex flex-col">
 
-        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Routes</p>
+        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
+              <span className="text-white text-[11px] font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(o => !o)}
+          <button onClick={() => setMobileMenuOpen(true)}
             className="text-white bg-transparent border-none cursor-pointer p-1">
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            <Menu size={22} />
           </button>
         </div>
 
@@ -538,6 +543,12 @@ export default function ManagerDeliveryRoutes() {
           </>
         )}
 
+        {/* Mobile page title */}
+        <div className="lg:hidden px-4 pt-5 pb-3">
+          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Routes</h1>
+        </div>
+
         <div className="px-4 py-4 flex flex-col gap-3 pb-8">
           <div className="flex justify-end">
             <button onClick={() => { setShowAddModal(true); setAddStep(1); }}
@@ -592,7 +603,7 @@ export default function ManagerDeliveryRoutes() {
 
         <Sidebar mode="delivery" activePath="/manager-delivery-routes" />
 
-        <div className="ml-[220px] flex-1 flex flex-col" style={{ height: "100vh" }}>
+        <div className="lg:ml-[220px] flex-1 flex flex-col" style={{ height: "100vh" }}>
 
           {/* Top bar */}
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 shrink-0 z-10">

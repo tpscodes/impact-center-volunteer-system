@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Search, UserPlus, X, Menu, Check } from "lucide-react";
+import { Search, UserPlus, X, Menu, Check, Pencil } from "lucide-react";
 import { db } from "../firebase";
-import { ref, onValue, set, remove } from "firebase/database";
+import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
 
 // Default seed derived from VOLUNTEER_PROFILES
@@ -130,6 +130,15 @@ export default function ManagerVolunteers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("name-asc");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingVolunteer, setEditingVolunteer] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editIsDriver, setEditIsDriver] = useState(false);
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [editErrors, setEditErrors] = useState({});
 
   // ── Firebase real-time listener ────────────────────────────────────────────
   useEffect(() => {
@@ -153,21 +162,80 @@ export default function ManagerVolunteers() {
     return () => unsub();
   }, []);
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
-  const filtered = volunteers.filter(v => {
-    const q = searchQuery.toLowerCase();
-    return (
-      !q ||
-      v.name?.toLowerCase().includes(q) ||
-      String(v.id).includes(q)
-    );
-  });
+  // ── Filtered + sorted list ─────────────────────────────────────────────────
+  const filteredAndSorted = volunteers
+    .filter(v => {
+      const matchesSearch =
+        !searchQuery ||
+        v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.id?.toString().includes(searchQuery);
+
+      const matchesStatus =
+        statusFilter === "all" ? true :
+        statusFilter === "active" ? v.active === true :
+        v.active !== true;
+
+      const matchesRole =
+        roleFilter === "all"    ? true :
+        roleFilter === "pantry" ? !v.isDriver :
+        roleFilter === "driver" ? v.isDriver === true && !v.active :
+        roleFilter === "both"   ? v.isDriver === true : true;
+
+      return matchesSearch && matchesStatus && matchesRole;
+    })
+    .sort((a, b) => {
+      if (sortBy === "name-asc")  return (a.name || "").localeCompare(b.name || "");
+      if (sortBy === "name-desc") return (b.name || "").localeCompare(a.name || "");
+      if (sortBy === "id-asc")    return (a.id || "").toString().localeCompare((b.id || "").toString());
+      if (sortBy === "recent") {
+        if (!a.lastActive) return 1;
+        if (!b.lastActive) return -1;
+        return new Date(b.lastActive) - new Date(a.lastActive);
+      }
+      return 0;
+    });
+
+  const hasActiveFilters = statusFilter !== "all" || roleFilter !== "all" || sortBy !== "name-asc";
+
+  function clearFilters() {
+    setStatusFilter("all");
+    setRoleFilter("all");
+    setSortBy("name-asc");
+    setSearchQuery("");
+  }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleRemoveVolunteer(id) {
     const updated = volunteers.filter(v => v.id !== id);
     setVolunteers(updated);
     await remove(ref(db, `volunteers/${id}`));
+  }
+
+  function handleEditOpen(volunteer) {
+    setEditingVolunteer(volunteer);
+    setEditName(volunteer.name || "");
+    setEditIsDriver(volunteer.isDriver || false);
+    setEditIsActive(volunteer.active !== false);
+    setEditErrors({});
+    setShowEditModal(true);
+  }
+
+  async function handleEditSave() {
+    if (!editName.trim()) {
+      setEditErrors({ name: "Name is required" });
+      return;
+    }
+    try {
+      await update(ref(db, `volunteers/${editingVolunteer.id}`), {
+        name: editName.trim(),
+        isDriver: editIsDriver,
+        active: editIsActive,
+      });
+      setShowEditModal(false);
+      setEditingVolunteer(null);
+    } catch (err) {
+      console.error("Error updating volunteer:", err);
+    }
   }
 
   async function handleAddVolunteer({ fullName, id, isDriver }) {
@@ -231,7 +299,7 @@ export default function ManagerVolunteers() {
                   { label: "Dashboard", path: "/manager/dashboard", active: false },
                   { label: "Tasks",     path: "/manager-tasks",      active: false },
                   { label: "Volunteers",path: "/manager-volunteers", active: true  },
-                  { label: "History",   path: "/manager/history",    active: false },
+                  { label: "History",   path: "/manager-history",    active: false },
                 ].map(item => (
                   <button key={item.label}
                     onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
@@ -289,28 +357,81 @@ export default function ManagerVolunteers() {
           </div>
         </div>
 
+        {/* ── Controls row (mobile) ── */}
+        <div className="px-4 pt-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+              className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
+              <option value="name-asc">Name A → Z</option>
+              <option value="name-desc">Name Z → A</option>
+              <option value="id-asc">ID Ascending</option>
+              <option value="recent">Most Recently Active</option>
+            </select>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {["all", "active", "inactive"].map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
+                  statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                }`}>
+                {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { value: "all",    label: "All Roles"   },
+              { value: "pantry", label: "Pantry Only" },
+              { value: "driver", label: "Driver"      },
+              { value: "both",   label: "Both"        },
+            ].map(r => (
+              <button key={r.value} onClick={() => setRoleFilter(r.value)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                  roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                }`}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center">
+            <p className="text-[#6b7280] text-[12px]">
+              Showing {filteredAndSorted.length} of {volunteers.length} volunteers
+            </p>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="text-[#0d9488] text-[12px] underline ml-auto bg-transparent border-none cursor-pointer">
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ── Section header ── */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <div className="px-4 pt-3 pb-2">
           <p className="text-[#0a2a3a] text-[15px] font-semibold">Experienced Volunteers</p>
-          <p className="text-[#6b7280] text-[12px]">{filtered.length} total</p>
         </div>
 
         {/* ── Volunteer cards ── */}
         <div className="px-4 flex flex-col gap-3">
-          {filtered.length === 0 ? (
+          {filteredAndSorted.length === 0 ? (
             <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-10 text-center">
               <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
             </div>
           ) : (
-            filtered.map(vol => (
+            filteredAndSorted.map(vol => (
               <div key={vol.id} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5 flex items-center gap-3">
                 {/* ID pill */}
                 <span className="bg-[#ccedeb] text-[#09665e] text-[12px] font-medium px-2.5 py-1 rounded-lg shrink-0">
                   {vol.id}
                 </span>
-                {/* Name + last active */}
+                {/* Name + last active + role pills */}
                 <div className="flex-1 min-w-0">
                   <p className="text-[#0a2a3a] text-[14px] font-semibold truncate">{vol.name}</p>
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
+                    {vol.isDriver && (
+                      <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
+                    )}
+                  </div>
                   <p className="text-[#6b7280] text-[11px] mt-0.5">{vol.lastActive || "Never active"}</p>
                 </div>
                 {/* Status badge */}
@@ -319,9 +440,14 @@ export default function ManagerVolunteers() {
                 }`}>
                   {vol.active ? "Active" : "Inactive"}
                 </span>
+                {/* Edit */}
+                <button onClick={() => handleEditOpen(vol)}
+                  className="text-[#0d9488] hover:text-[#09665e] shrink-0 bg-transparent border-none cursor-pointer">
+                  <Pencil size={14} />
+                </button>
                 {/* Remove */}
                 <button onClick={() => handleRemoveVolunteer(vol.id)}
-                  className="text-[#dc2626] text-[12px] shrink-0 bg-transparent border-none cursor-pointer ml-1">
+                  className="text-[#dc2626] text-[12px] shrink-0 bg-transparent border-none cursor-pointer">
                   Remove
                 </button>
               </div>
@@ -348,7 +474,7 @@ export default function ManagerVolunteers() {
         <Sidebar mode="pantry" activePath="/manager-volunteers" />
 
         {/* ── Main content ── */}
-        <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
@@ -364,7 +490,7 @@ export default function ManagerVolunteers() {
           <div className="p-6 flex flex-col gap-5">
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { label: "Total Volunteers",      value: volunteers.length,                         color: "#0d9488" },
                 { label: "Active This Session",    value: volunteers.filter(v => v.active).length,   color: "#ff9500" },
@@ -400,24 +526,74 @@ export default function ManagerVolunteers() {
                 </div>
               </div>
 
+              {/* Controls row */}
+              <div className="px-5 py-3 border-b border-[#e5e7eb] flex items-center gap-3 flex-wrap">
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                  className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
+                  <option value="name-asc">Name A → Z</option>
+                  <option value="name-desc">Name Z → A</option>
+                  <option value="id-asc">ID Ascending</option>
+                  <option value="recent">Most Recently Active</option>
+                </select>
+
+                <div className="flex gap-2">
+                  {["all", "active", "inactive"].map(s => (
+                    <button key={s} onClick={() => setStatusFilter(s)}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
+                        statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                      }`}>
+                      {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  {[
+                    { value: "all",    label: "All Roles"   },
+                    { value: "pantry", label: "Pantry Only" },
+                    { value: "driver", label: "Driver"      },
+                    { value: "both",   label: "Both"        },
+                  ].map(r => (
+                    <button key={r.value} onClick={() => setRoleFilter(r.value)}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                        roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
+                      }`}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center ml-auto gap-3">
+                  <p className="text-[#6b7280] text-[12px]">
+                    Showing {filteredAndSorted.length} of {volunteers.length} volunteers
+                  </p>
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters}
+                      className="text-[#0d9488] text-[12px] underline bg-transparent border-none cursor-pointer">
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Column headers */}
               <div className="px-5 py-2 bg-[#f9fafb] border-b border-[#e5e7eb]">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-1">ID</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-5">Name</p>
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-4">Name</p>
                   <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-3">Last Active</p>
                   <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-2">Status</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-1 text-right">Action</p>
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-2 text-right">Action</p>
                 </div>
               </div>
 
               {/* Volunteer rows */}
-              {filtered.length === 0 ? (
+              {filteredAndSorted.length === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
                 </div>
               ) : (
-                filtered.map(vol => (
+                filteredAndSorted.map(vol => (
                   <div key={vol.id} className="px-5 py-4 border-b border-[#e5e7eb] last:border-b-0">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       {/* ID pill */}
@@ -426,8 +602,16 @@ export default function ManagerVolunteers() {
                           {vol.id}
                         </span>
                       </div>
-                      {/* Name */}
-                      <p className="text-[#0a2a3a] text-[14px] font-semibold col-span-5">{vol.name}</p>
+                      {/* Name + role pills */}
+                      <div className="col-span-4">
+                        <p className="text-[#0a2a3a] text-[14px] font-semibold">{vol.name}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
+                          {vol.isDriver && (
+                            <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
+                          )}
+                        </div>
+                      </div>
                       {/* Last active */}
                       <p className="text-[#6b7280] text-[12px] col-span-3">{vol.lastActive || "Never"}</p>
                       {/* Status badge */}
@@ -438,8 +622,12 @@ export default function ManagerVolunteers() {
                           {vol.active ? "Active" : "Inactive"}
                         </span>
                       </div>
-                      {/* Remove */}
-                      <div className="col-span-1 flex justify-end">
+                      {/* Edit + Remove */}
+                      <div className="col-span-2 flex items-center justify-end gap-2">
+                        <button onClick={() => handleEditOpen(vol)}
+                          className="text-[#0d9488] hover:text-[#09665e] bg-transparent border-none cursor-pointer">
+                          <Pencil size={14} />
+                        </button>
                         <button onClick={() => handleRemoveVolunteer(vol.id)}
                           className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer">
                           Remove
@@ -461,6 +649,101 @@ export default function ManagerVolunteers() {
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddVolunteer}
         />
+      )}
+
+      {/* ── Edit Volunteer Modal ── */}
+      {showEditModal && editingVolunteer && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] w-full max-w-[400px] mx-4">
+
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
+              <p className="text-[#0a2a3a] text-[16px] font-semibold">Edit Volunteer</p>
+              <button onClick={() => setShowEditModal(false)}
+                className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="px-6 pt-5 pb-2 flex flex-col gap-4">
+
+              {/* ID — read only */}
+              <div>
+                <p className="text-[#6b7280] text-[12px] mb-1">Volunteer ID</p>
+                <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-[#6b7280] text-[14px]">
+                  {editingVolunteer.id}
+                </div>
+                <p className="text-[#9ca3af] text-[11px] mt-1">ID cannot be changed as it is used for login</p>
+              </div>
+
+              {/* Name */}
+              <div>
+                <p className="text-[#6b7280] text-[12px] mb-1">Full Name</p>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => { setEditName(e.target.value); setEditErrors({}); }}
+                  className={`w-full border rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] outline-none focus:border-[#0d9488] ${
+                    editErrors.name ? "border-[#dc2626]" : "border-[#e5e7eb]"
+                  }`}
+                />
+                {editErrors.name && (
+                  <p className="text-[#dc2626] text-[11px] mt-1">{editErrors.name}</p>
+                )}
+              </div>
+
+              {/* Role toggles */}
+              <div>
+                <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#ccedeb] text-[#09665e] text-[12px] font-medium opacity-70 cursor-not-allowed select-none">
+                    <Check size={12} />
+                    Pantry
+                  </div>
+                  <button type="button" onClick={() => setEditIsDriver(d => !d)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium cursor-pointer border transition-colors ${
+                      editIsDriver
+                        ? "bg-[#fff3e0] text-[#ff9500] border-[#ff9500]"
+                        : "bg-[#f0f0f0] text-[#6b7280] border-transparent"
+                    }`}>
+                    {editIsDriver && <Check size={12} />}
+                    Driver
+                  </button>
+                </div>
+              </div>
+
+              {/* Active status toggle */}
+              <div>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-[#0a2a3a] text-[13px] font-medium">Active Volunteer</p>
+                  <button type="button" onClick={() => setEditIsActive(a => !a)}
+                    className={`relative w-11 h-6 rounded-full transition-colors border-none cursor-pointer ${
+                      editIsActive ? "bg-[#0d9488]" : "bg-[#e5e7eb]"
+                    }`}>
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      editIsActive ? "translate-x-[22px]" : "translate-x-0"
+                    }`} />
+                  </button>
+                </div>
+                <p className={`text-[11px] mt-1 ${editIsActive ? "text-[#6b7280]" : "text-[#dc2626]"}`}>
+                  {editIsActive ? "Volunteer can log in and claim tasks" : "Volunteer cannot log in"}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[#e5e7eb] flex gap-3">
+              <button onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-white border border-[#e5e7eb] text-[#6b7280] rounded-xl py-2.5 text-[13px] cursor-pointer hover:bg-[#f9fafb]">
+                Cancel
+              </button>
+              <button onClick={handleEditSave}
+                className="flex-1 bg-[#09665e] text-white rounded-xl py-2.5 text-[13px] font-medium hover:bg-[#0d9488] border-none cursor-pointer">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
