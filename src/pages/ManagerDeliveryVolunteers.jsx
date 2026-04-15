@@ -297,15 +297,20 @@ export default function ManagerDeliveryVolunteers() {
       <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col pb-24"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* Mobile header */}
-        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Drivers</p>
+        {/* Mobile top bar */}
+        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
+              <span className="text-white text-[11px] font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(o => !o)}
+          <button onClick={() => setMobileMenuOpen(true)}
             className="text-white bg-transparent border-none cursor-pointer p-1">
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            <Menu size={22} />
           </button>
         </div>
 
@@ -366,6 +371,12 @@ export default function ManagerDeliveryVolunteers() {
             </div>
           </>
         )}
+
+        {/* Mobile page title */}
+        <div className="lg:hidden px-4 pt-5 pb-3">
+          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Drivers</h1>
+        </div>
 
         {/* Stats grid */}
         <div className="px-4 pt-4 grid grid-cols-2 gap-3">
@@ -440,7 +451,7 @@ export default function ManagerDeliveryVolunteers() {
 
         <Sidebar mode="delivery" activePath="/manager-delivery-volunteers" />
 
-        <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
@@ -464,7 +475,7 @@ export default function ManagerDeliveryVolunteers() {
           <div className="p-6 flex flex-col gap-5">
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {STATS.map(s => (
                 <div key={s.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
                   <p className="text-[#6b7280] text-[12px] mb-1">{s.label}</p>

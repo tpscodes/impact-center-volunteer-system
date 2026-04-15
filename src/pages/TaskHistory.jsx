@@ -67,7 +67,7 @@ export default function TaskHistory() {
             { label: "Dashboard", path: "/manager/dashboard", active: false, enabled: true },
             { label: "Tasks",     path: "/manager-tasks",      active: false, enabled: true },
             { label: "Volunteers",path: "/manager-volunteers", active: false, enabled: true },
-            { label: "History",   path: "/manager/history",    active: true,  enabled: true },
+            { label: "History",   path: "/manager-history",    active: true,  enabled: true },
           ].map(item => (
             <button key={item.label}
               onClick={() => item.enabled && item.path && navigate(item.path)}

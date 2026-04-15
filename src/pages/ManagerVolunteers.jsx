@@ -299,7 +299,7 @@ export default function ManagerVolunteers() {
                   { label: "Dashboard", path: "/manager/dashboard", active: false },
                   { label: "Tasks",     path: "/manager-tasks",      active: false },
                   { label: "Volunteers",path: "/manager-volunteers", active: true  },
-                  { label: "History",   path: "/manager/history",    active: false },
+                  { label: "History",   path: "/manager-history",    active: false },
                 ].map(item => (
                   <button key={item.label}
                     onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
@@ -474,7 +474,7 @@ export default function ManagerVolunteers() {
         <Sidebar mode="pantry" activePath="/manager-volunteers" />
 
         {/* ── Main content ── */}
-        <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
@@ -490,7 +490,7 @@ export default function ManagerVolunteers() {
           <div className="p-6 flex flex-col gap-5">
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { label: "Total Volunteers",      value: volunteers.length,                         color: "#0d9488" },
                 { label: "Active This Session",    value: volunteers.filter(v => v.active).length,   color: "#ff9500" },

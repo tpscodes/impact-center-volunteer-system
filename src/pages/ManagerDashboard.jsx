@@ -223,7 +223,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
                   { label: "Dashboard", active: true,  action: () => {} },
                   { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
                   { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
-                  { label: "History",   active: false, action: () => navigate("/manager/history") },
+                  { label: "History",   active: false, action: () => navigate("/manager-history") },
                 ].map(item => (
                   <button
                     key={item.label}
@@ -377,7 +377,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
       <Sidebar mode="pantry" activePath="/manager/dashboard" />
 
       {/* ── Main content ── */}
-      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+      <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
         {/* Top bar */}
         <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
@@ -420,7 +420,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-4 gap-3 px-6 pb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 pb-4">
           {[
             { label: "Active Tasks",      value: active.length,       color: "#0d9488" },
             { label: "In Progress",       value: inProgress.length,   color: "#ff9500" },

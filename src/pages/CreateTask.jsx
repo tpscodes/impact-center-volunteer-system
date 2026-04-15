@@ -1,4 +1,8 @@
-import { useState } from "react";
+// CreateTask.jsx — Spreadsheet-style multi-task creator
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import { ChevronLeft, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── REAL DATA seeded from Jason's task sheets (2021–2026) ──────────────────
 const ITEMS_DB = [
@@ -62,37 +66,23 @@ const ITEMS_DB = [
   { item: "Shopping Boxes", defaultDest: "Front of window at pantry entrance", defaultAction: "Save and place", defaultSource: "Warehouse", defaultComments: "Must fit in grocery cart" },
 ];
 
-const COMMON_TASKS = [
-  "Fill Coffee → Rack 7 from warehouse",
-  "Front up Cereal → Rack 9",
-  "Move Peanut Butter to Rack 18, fill Rack 15 with silver bags of beans",
-  "Fill Yogurt → Door 1 from walk-in fridge, check expiry dates",
-  "Fill Eggs → Door 5 & 6 from tall pallet in walk-in fridge, rotate old to front",
-  "Fill Chips → Rack 25, no pretzels",
-  "Empty Trash Cans in Warehouse",
-  "Sort Donation Bins by tables in warehouse",
-  "Fill Ramen → Rack 22, rubber band 2 together",
-];
-
 const PRIORITY = ["Normal", "High", "Urgent"];
-const VOLUNTEERS = [
-  { id: "", name: "Leave open — anyone can claim" },
-  { id: "1001", name: "Maria S." },
-  { id: "1002", name: "Carlos T." },
-  { id: "1003", name: "Bob M." },
-  { id: "1004", name: "Linda K." },
+
+const ALL_TAGS = ["Warehouse", "Fridge", "Freezer", "Sorting", "Produce", "Delivery", "Shift Leader", "Warm", "Cool", "Kitchen", "Clothing", "General"];
+
+// Determines which task pool the task lands in
+const ASSIGN_OPTIONS = [
+  { id: "",            label: "Anyone" },
+  { id: "experienced", label: "Experienced Volunteers" },
+  { id: "new",         label: "New Volunteers" },
 ];
 
-function searchItems(query) {
-  if (!query || query.length < 2) return [];
-  const q = query.toLowerCase();
-  return ITEMS_DB.filter(i =>
-    i.item.toLowerCase().includes(q) ||
-    (i.defaultDest || "").toLowerCase().includes(q) ||
-    (i.defaultSource || "").toLowerCase().includes(q)
-  ).slice(0, 5);
-}
+const SOURCE_SUGGESTIONS  = [...new Set(ITEMS_DB.map(i => i.defaultSource).filter(Boolean))];
+const DEST_SUGGESTIONS    = [...new Set(ITEMS_DB.map(i => i.defaultDest).filter(Boolean))];
+const ACTION_SUGGESTIONS  = [...new Set(ITEMS_DB.map(i => i.defaultAction).filter(Boolean))];
+const ITEM_NAMES          = ITEMS_DB.map(i => i.item);
 
+// ─── Kept for future use ─────────────────────────────────────────────────────
 async function parseWithAI(sentence) {
   const names = ITEMS_DB.map(i => i.item).join(", ");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -120,255 +110,448 @@ Use "" for unknown fields. Priority: Urgent=urgent/asap/now, High=important/high
   catch { return null; }
 }
 
-function StepDots({ step }) {
+// ─── Row factory ─────────────────────────────────────────────────────────────
+let _id = 0;
+function newRow() {
+  return {
+    _id: ++_id,
+    item: "", source: "", destination: "", action: "",
+    assignTo: "", priority: "Normal", tags: [],
+    specialInstructions: "",
+    showInstructions: false,
+  };
+}
+
+const TODAY = new Date().toLocaleDateString("en-US", {
+  weekday: "short", month: "short", day: "numeric", year: "numeric",
+});
+
+// ─── Column header widths (shared between header + rows) ─────────────────────
+const COLS = "32px 1.4fr 1fr 1fr 0.8fr 130px 90px 1fr 36px";
+
+const colHeaders = ["#", "Item", "Source", "Destination", "Action", "Assign To", "Priority", "Tags", ""];
+
+// ─── Autocomplete text input ──────────────────────────────────────────────────
+function AutoInput({ value, onChange, onSelect, suggestions, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const [filtered, setFiltered] = useState([]);
+  const ref = useRef(null);
+
+  function handleChange(val) {
+    onChange(val);
+    const q = val.toLowerCase();
+    setFiltered(q.length > 0 ? suggestions.filter(s => s.toLowerCase().includes(q)).slice(0, 6) : []);
+    setOpen(true);
+  }
+
+  function handlePick(s) {
+    onSelect ? onSelect(s) : onChange(s);
+    setOpen(false);
+    setFiltered([]);
+  }
+
+  useEffect(() => {
+    function handleOutside(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
   return (
-    <div style={{ display: "flex", alignItems: "center", padding: "14px 20px 0" }}>
-      {["Describe", "Review", "Publish"].map((label, i) => {
-        const n = i + 1, active = step === n, done = step > n;
-        return (
-          <div key={n} style={{ display: "flex", alignItems: "center", flex: i < 2 ? 1 : "none" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: done ? "#374151" : active ? "#1F2937" : "#E5E7EB", color: (done || active) ? "white" : "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, boxShadow: active ? "0 0 0 3px #D1D5DB" : "none" }}>
-                {done ? "✓" : n}
-              </div>
-              <span style={{ fontSize: 10, color: active ? "#1F2937" : "#9CA3AF", fontWeight: active ? 700 : 400 }}>{label}</span>
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <input
+        value={value}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => { if (filtered.length > 0) setOpen(true); }}
+        placeholder={placeholder}
+        className="w-full border-0 bg-transparent text-[13px] text-[#0a2a3a]
+          focus:outline-none focus:bg-[#f0fafa] rounded px-2 py-1.5
+          placeholder:text-[#d1d5db]"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-[#e5e7eb]
+          rounded-lg shadow-md overflow-hidden mt-0.5">
+          {filtered.map((s, i) => (
+            <div key={i} onClick={() => handlePick(s)}
+              className="px-3 py-2 text-[13px] text-[#1f2937] cursor-pointer hover:bg-[#f9fafb]
+                border-b border-[#e5e7eb] last:border-b-0">
+              {s}
             </div>
-            {i < 2 && <div style={{ flex: 1, height: 2, margin: "0 6px", marginBottom: 14, background: done ? "#374151" : "#E5E7EB" }} />}
-          </div>
-        );
-      })}
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function Field({ label, value, onChange, placeholder, multiline, hint }) {
-  const [focused, setFocused] = useState(false);
-  const style = { width: "100%", padding: "9px 11px", border: `1.5px solid ${focused ? "#6B7280" : "#E5E7EB"}`, borderRadius: 8, fontSize: 14, color: "#1F2937", background: "white", fontFamily: "inherit", boxSizing: "border-box", outline: "none", transition: "border 0.15s" };
+// ─── Tag multi-select cell (click to open dropdown with predefined tags) ─────
+function TagsCell({ tags, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function toggleTag(tag) {
+    onChange(tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]);
+  }
+
   return (
-    <div style={{ marginBottom: 13 }}>
-      <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 3 }}>{label}</label>
-      {multiline
-        ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={2} style={{ ...style, resize: "vertical" }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-        : <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder || "—"} style={style} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-      }
-      {hint && <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{hint}</div>}
-    </div>
-  );
-}
-
-export default function CreateTask({ onBack, onPublish }) {
-  const [step, setStep] = useState(1);
-  const [sentence, setSentence] = useState("");
-  const [parsing, setParsing] = useState(false);
-  const [parseError, setParseError] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [fields, setFields] = useState({ item: "", action: "", source: "", destination: "", comments: "", estimatedTime: "~15 min", priority: "Normal" });
-  const [assignTo, setAssignTo] = useState("");
-  const [published, setPublished] = useState(false);
-
-  const upd = key => val => setFields(f => ({ ...f, [key]: val }));
-
-  function onType(val) {
-    setSentence(val);
-    setSuggestions(searchItems(val));
-  }
-
-  function applySuggestion(s) {
-    setFields({ item: s.item, action: s.defaultAction || "", source: s.defaultSource || "", destination: s.defaultDest || "", comments: s.defaultComments || "", estimatedTime: "~15 min", priority: "Normal" });
-    setSentence(s.item);
-    setSuggestions([]);
-    setStep(2);
-  }
-
-  async function handleParse() {
-    if (!sentence.trim()) return;
-    setParsing(true); setParseError("");
-    try {
-      const result = await parseWithAI(sentence.trim());
-      if (result) {
-        const match = ITEMS_DB.find(i => i.item.toLowerCase().includes((result.item || "").toLowerCase()));
-        setFields({
-          item: result.item || "",
-          action: result.action || match?.defaultAction || "",
-          source: result.source || match?.defaultSource || "",
-          destination: result.destination || match?.defaultDest || "",
-          comments: result.comments || match?.defaultComments || "",
-          estimatedTime: result.estimatedTime || "~15 min",
-          priority: result.priority || "Normal"
-        });
-        setStep(2);
-      } else {
-        setParseError("Couldn't parse — try a suggestion below or be more specific.");
-      }
-    } catch { setParseError("Something went wrong. Try again."); }
-    setParsing(false);
-  }
-
-  function handlePublish() {
-    setPublished(true);
-    setTimeout(() => { if (onPublish) onPublish({ ...fields, assignTo, sentence }); }, 1500);
-  }
-
-  function reset() { setPublished(false); setStep(1); setSentence(""); setFields({ item: "", action: "", source: "", destination: "", comments: "", estimatedTime: "~15 min", priority: "Normal" }); setAssignTo(""); }
-
-  if (published) return (
-    <div style={{ background: "white", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#1F2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "white" }}>✓</div>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#1F2937" }}>Task Published!</div>
-        <div style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>"{fields.destination ? fields.destination + " — " : ""}{fields.item || "Task"}" is live on the board</div>
+    <div ref={ref} style={{ position: "relative" }}>
+      <div onClick={() => setOpen(!open)}
+        style={{ minHeight: 34, padding: "4px 6px", border: "1px solid #e5e7eb", borderRadius: 6,
+          cursor: "pointer", display: "flex", flexWrap: "wrap", gap: 3, alignItems: "flex-start",
+          background: "white", boxSizing: "border-box" }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = "#6b7280"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+      >
+        {tags.length === 0
+          ? <span style={{ fontSize: 11, color: "#9ca3af", lineHeight: "26px", paddingLeft: 2 }}>+ Tags</span>
+          : tags.map(tag => (
+              <span key={tag} style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 10,
+                background: "#e5e7eb", color: "#374151", whiteSpace: "nowrap" }}>{tag}</span>
+            ))
+        }
       </div>
-      <button onClick={reset} style={{ padding: "10px 24px", background: "#1F2937", color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>+ Create Another</button>
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 200, background: "white",
+          border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          width: 164, marginTop: 2, maxHeight: 240, overflowY: "auto" }}>
+          {ALL_TAGS.map(tag => (
+            <div key={tag} onClick={() => toggleTag(tag)}
+              style={{ padding: "7px 10px", fontSize: 12, cursor: "pointer", display: "flex",
+                alignItems: "center", gap: 7, background: tags.includes(tag) ? "#f9fafb" : "white" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+              onMouseLeave={e => e.currentTarget.style.background = tags.includes(tag) ? "#f9fafb" : "white"}
+            >
+              <span style={{ width: 14, height: 14, borderRadius: 3, border: "1.5px solid #e5e7eb",
+                background: tags.includes(tag) ? "#1f2937" : "white", display: "flex",
+                alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {tags.includes(tag) && <span style={{ fontSize: 9, color: "white", lineHeight: 1 }}>✓</span>}
+              </span>
+              <span style={{ color: "#1f2937", fontWeight: tags.includes(tag) ? 600 : 400 }}>{tag}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
+}
 
-  const btn = (label, onClick, opts = {}) => (
-    <button onClick={onClick} style={{ flex: opts.flex || 1, padding: 13, borderRadius: 10, background: opts.secondary ? "white" : "#1F2937", border: opts.secondary ? "2px solid #E5E7EB" : "none", color: opts.secondary ? "#6B7280" : "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>{label}</button>
+// ─── Row component (module-level to avoid remount on parent re-render) ────────
+function TaskRow({ row, index, onUpdate, onRemove, onItemSelect }) {
+  return (
+    <>
+      {/* Main data cells */}
+      <div
+        className="grid items-center border-b border-[#f3f4f6] hover:bg-[#fafafa] transition-colors"
+        style={{ gridTemplateColumns: COLS }}
+      >
+        {/* # */}
+        <span className="text-[#9ca3af] text-[13px] text-center select-none">{index + 1}</span>
+
+        {/* Item — autocomplete against known item names, onSelect auto-fills other fields */}
+        <AutoInput
+          value={row.item}
+          onChange={v => onUpdate("item", v)}
+          onSelect={onItemSelect}
+          suggestions={ITEM_NAMES}
+          placeholder="Item name…"
+        />
+
+        {/* Source */}
+        <AutoInput
+          value={row.source}
+          onChange={v => onUpdate("source", v)}
+          suggestions={SOURCE_SUGGESTIONS}
+          placeholder="Source…"
+        />
+
+        {/* Destination */}
+        <AutoInput
+          value={row.destination}
+          onChange={v => onUpdate("destination", v)}
+          suggestions={DEST_SUGGESTIONS}
+          placeholder="Destination…"
+        />
+
+        {/* Action */}
+        <AutoInput
+          value={row.action}
+          onChange={v => onUpdate("action", v)}
+          suggestions={ACTION_SUGGESTIONS}
+          placeholder="Action…"
+        />
+
+        {/* Assign To */}
+        <select value={row.assignTo} onChange={e => onUpdate("assignTo", e.target.value)}
+          className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-[13px]
+            text-[#0a2a3a] bg-white focus:outline-none focus:ring-1
+            focus:ring-[#0d9488] mx-1">
+          {ASSIGN_OPTIONS.map(v => (
+            <option key={v.id} value={v.id}>{v.label}</option>
+          ))}
+        </select>
+
+        {/* Priority */}
+        <select value={row.priority} onChange={e => onUpdate("priority", e.target.value)}
+          className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-[13px]
+            text-[#0a2a3a] bg-white focus:outline-none focus:ring-1
+            focus:ring-[#0d9488]">
+          {PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+
+        {/* Tags */}
+        <div className="px-1">
+          <TagsCell
+            tags={row.tags}
+            onChange={newTags => onUpdate("tags", newTags)}
+          />
+        </div>
+
+        {/* Delete */}
+        <button onClick={onRemove}
+          className="text-[#dc2626] hover:bg-[#fff0f0] rounded p-1 transition-colors
+            bg-transparent border-none cursor-pointer mx-auto flex items-center justify-center">
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Special instructions row */}
+      <div className="px-10 py-1 border-b border-[#f3f4f6] bg-white">
+        <button
+          onClick={() => onUpdate("showInstructions", !row.showInstructions)}
+          className="text-[#0d9488] text-[12px] hover:text-[#09665e] cursor-pointer
+            bg-transparent border-none flex items-center gap-1">
+          {row.showInstructions
+            ? <><ChevronUp size={12} />Hide special instructions</>
+            : <><ChevronDown size={12} />Add special instructions</>
+          }
+        </button>
+        {row.showInstructions && (
+          <input
+            value={row.specialInstructions}
+            onChange={e => onUpdate("specialInstructions", e.target.value)}
+            placeholder="Special instructions for this task…"
+            className="w-full mt-1.5 border-0 bg-transparent text-[13px] text-[#0a2a3a]
+              focus:outline-none focus:bg-[#f0fafa] rounded px-2 py-1.5
+              placeholder:text-[#d1d5db]"
+          />
+        )}
+      </div>
+    </>
   );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function CreateTask({ onBack, onPublish, onPublishAll }) {
+  const navigate   = useNavigate();
+  const [rows, setRows] = useState([newRow()]);
+  const [generalNotes, setGeneralNotes] = useState("");
+
+  // ── Row helpers ──────────────────────────────────────────────────────────────
+  function addRow() {
+    setRows(prev => [...prev, newRow()]);
+  }
+
+  function removeRow(id) {
+    setRows(prev => prev.length === 1 ? [newRow()] : prev.filter(r => r._id !== id));
+  }
+
+  function updateField(id, field, value) {
+    setRows(prev => prev.map(r => r._id !== id ? r : { ...r, [field]: value }));
+  }
+
+  function handleItemSelect(id, itemName) {
+    const match = ITEMS_DB.find(s => s.item === itemName);
+    if (match) {
+      setRows(prev => prev.map(r => r._id !== id ? r : {
+        ...r,
+        item:                match.item,
+        source:              r.source      || match.defaultSource  || "",
+        destination:         r.destination || match.defaultDest    || "",
+        action:              r.action      || match.defaultAction  || "",
+        specialInstructions: r.specialInstructions || match.defaultComments || "",
+      }));
+    }
+  }
+
+  // ── Publish ──────────────────────────────────────────────────────────────────
+  function handlePublish() {
+    const filled = rows.filter(r => r.item.trim());
+    if (!filled.length) return;
+    const payload = filled.map(r => ({
+      item:        r.item,
+      action:      r.action,
+      source:      r.source,
+      destination: r.destination,
+      comments:    r.specialInstructions,
+      assignTo:    r.assignTo,
+      priority:    r.priority,
+      tags:        r.tags,
+    }));
+    if (onPublishAll) onPublishAll(payload);
+    else if (onPublish) onPublish(payload[0]);
+  }
+
+  const hasItems = rows.some(r => r.item.trim());
+
+  // ── Shared form — called as a function (not JSX component) to avoid remount ──
+  function renderFormContent(isMobile = false) {
+    return (
+      <div className={`${isMobile ? "px-4 py-4 pb-28" : "px-6 py-6 pb-24"}`}>
+
+        {/* Form card */}
+        <div className="bg-white rounded-xl border border-[#e5e7eb]">
+
+          {/* Card header hint */}
+          <div className="px-6 py-4 border-b border-[#e5e7eb] bg-[#f9fafb] rounded-t-xl">
+            <p className="text-[#6b7280] text-[13px]">
+              Fill in as many tasks as needed. Start typing an item to see suggestions.
+            </p>
+          </div>
+
+          {/* Column headers */}
+          <div
+            className="bg-[#f9fafb] border-b border-[#e5e7eb] grid"
+            style={{ gridTemplateColumns: COLS }}
+          >
+            {colHeaders.map((h, i) => (
+              <p key={i} className="px-2 py-2.5 text-[11px] text-[#6b7280] uppercase tracking-wide">
+                {h}
+              </p>
+            ))}
+          </div>
+
+          {/* Task rows */}
+          {rows.map((row, index) => (
+            <TaskRow
+              key={row._id}
+              row={row}
+              index={index}
+              onUpdate={(field, value) => updateField(row._id, field, value)}
+              onRemove={() => removeRow(row._id)}
+              onItemSelect={name => handleItemSelect(row._id, name)}
+            />
+          ))}
+        </div>
+
+        {/* Add Row */}
+        <button
+          onClick={addRow}
+          className="w-full mt-4 border-2 border-dashed border-[#e5e7eb] rounded-xl py-3
+            text-[#6b7280] text-[13px] hover:border-[#0d9488] hover:text-[#0d9488]
+            transition-colors flex items-center justify-center gap-2
+            bg-transparent cursor-pointer">
+          <Plus size={15} />
+          Add Row
+        </button>
+
+        {/* General Notes */}
+        <div className="bg-white rounded-xl border border-[#e5e7eb] p-4 mt-4">
+          <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-2">
+            General Notes (Optional)
+          </p>
+          <textarea
+            value={generalNotes}
+            onChange={e => setGeneralNotes(e.target.value)}
+            placeholder="Any notes for the whole session…"
+            className="w-full border-0 bg-transparent text-[13px] text-[#0a2a3a]
+              resize-none focus:outline-none placeholder:text-[#d1d5db] min-h-[80px]"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ background: "#F9FAFB", minHeight: "100vh", maxWidth: 480, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      {/* Header */}
-      <div style={{ background: "#374151", padding: "16px 20px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={onBack || (() => {})} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>← Back</button>
-        <div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Operations Manager</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "white" }}>Create Task</div>
+    <>
+      {/* ════════════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT
+      ════════════════════════════════════════════════════════════════════════ */}
+      <div
+        className="lg:hidden min-h-screen bg-[#f5f5f5]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+      >
+        {/* Mobile top bar */}
+        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
+          <button
+            onClick={() => onBack ? onBack() : navigate("/manager/dashboard")}
+            className="text-white bg-transparent border-none cursor-pointer p-0">
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
+            <p className="text-white text-[18px] font-semibold leading-tight">Create Tasks</p>
+          </div>
+        </div>
+
+        {/* Scrollable table on mobile */}
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: 700 }}>
+            {renderFormContent(true)}
+          </div>
         </div>
       </div>
 
-      <StepDots step={step} />
+      {/* ════════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+      ════════════════════════════════════════════════════════════════════════ */}
+      <div
+        className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+      >
+        <Sidebar mode="pantry" activePath="/create-task" />
 
-      <div style={{ padding: "18px 20px 40px" }}>
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
-        {/* STEP 1 */}
-        {step === 1 && <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1F2937", marginBottom: 2 }}>What needs to be done?</div>
-          <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>Type naturally — AI will structure it. Or pick a suggestion.</div>
-
-          <div style={{ position: "relative" }}>
-            <textarea value={sentence} onChange={e => onType(e.target.value)}
-              placeholder={"e.g. Fill coffee from warehouse to Rack 7\nMove peanut butter to Rack 18, then fill Rack 15 with beans"}
-              rows={3}
-              style={{ width: "100%", padding: "11px 13px", border: "2px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#1F2937", background: "white", resize: "none", fontFamily: "inherit", boxSizing: "border-box", outline: "none", lineHeight: 1.6 }}
-              onFocus={e => e.target.style.borderColor = "#6B7280"}
-              onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleParse(); }}
-            />
-            {suggestions.length > 0 && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10, background: "white", border: "1.5px solid #E5E7EB", borderRadius: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden", marginTop: 4 }}>
-                <div style={{ padding: "6px 12px", fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #F3F4F6" }}>Quick match</div>
-                {suggestions.map((s, i) => (
-                  <button key={i} onClick={() => applySuggestion(s)}
-                    style={{ width: "100%", padding: "10px 12px", background: "white", border: "none", borderBottom: i < suggestions.length - 1 ? "1px solid #F3F4F6" : "none", textAlign: "left", cursor: "pointer" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"}
-                    onMouseLeave={e => e.currentTarget.style.background = "white"}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1F2937" }}>{s.item}</div>
-                    <div style={{ fontSize: 11, color: "#9CA3AF" }}>{s.defaultAction} → {s.defaultDest}{s.defaultSource ? ` · from ${s.defaultSource}` : ""}</div>
-                  </button>
-                ))}
+          {/* Top bar */}
+          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center
+            justify-between px-6 sticky top-0 z-10">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onBack ? onBack() : navigate("/manager/dashboard")}
+                className="text-[#6b7280] hover:text-[#0a2a3a] transition-colors
+                  bg-transparent border-none cursor-pointer p-0">
+                <ChevronLeft size={20} />
+              </button>
+              <div>
+                <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">
+                  Operations Manager
+                </p>
+                <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">
+                  Create Tasks
+                </h1>
               </div>
-            )}
-          </div>
-
-          <div style={{ marginTop: 14, marginBottom: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Common Tasks</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {COMMON_TASKS.map(ex => (
-                <button key={ex} onClick={() => onType(ex)}
-                  style={{ background: "white", border: "1.5px solid #E5E7EB", borderRadius: 20, padding: "5px 10px", fontSize: 12, color: "#6B7280", cursor: "pointer" }}
-                  onMouseEnter={e => { e.target.style.borderColor = "#6B7280"; e.target.style.color = "#374151"; }}
-                  onMouseLeave={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.color = "#6B7280"; }}>
-                  {ex.length > 48 ? ex.slice(0, 48) + "…" : ex}
-                </button>
-              ))}
             </div>
+            <span className="text-[#6b7280] text-[13px]">{TODAY}</span>
           </div>
 
-          {parseError && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#B91C1C", marginBottom: 12 }}>⚠ {parseError}</div>}
-
-          <button onClick={handleParse} disabled={!sentence.trim() || parsing}
-            style={{ width: "100%", padding: 14, borderRadius: 10, background: sentence.trim() && !parsing ? "#1F2937" : "#D1D5DB", color: "white", border: "none", fontSize: 15, fontWeight: 700, cursor: sentence.trim() && !parsing ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {parsing ? <><span style={{ display: "inline-block", width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Parsing with AI...</> : "→ Parse with AI"}
-          </button>
-          <div style={{ textAlign: "center", fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>Ctrl+Enter to parse quickly</div>
-        </>}
-
-        {/* STEP 2 */}
-        {step === 2 && <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1F2937", marginBottom: 2 }}>Review & edit</div>
-          <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>AI filled these in — correct anything that's off.</div>
-          <div style={{ background: "#F3F4F6", borderRadius: 8, padding: "9px 12px", marginBottom: 14, borderLeft: "3px solid #9CA3AF" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>You wrote</div>
-            <div style={{ fontSize: 13, color: "#4B5563", fontStyle: "italic" }}>"{sentence}"</div>
-          </div>
-          <Field label="Item" value={fields.item} onChange={upd("item")} placeholder="e.g. Coffee bags" />
-          <Field label="Action" value={fields.action} onChange={upd("action")} placeholder="Fill / Front up / Move…" />
-          <Field label="Source" value={fields.source} onChange={upd("source")} placeholder="e.g. Walk-in Fridge, Warehouse — Bay 14, Freezer — Bay 3" hint="Include bay number if item is in the warehouse (e.g. Warehouse — Bay 14)" />
-          <Field label="Destination" value={fields.destination} onChange={upd("destination")} placeholder="Rack 7, Door 1, etc." />
-          <Field label="Est. Time" value={fields.estimatedTime} onChange={upd("estimatedTime")} placeholder="~15 min" />
-          <Field label="Special Instructions" value={fields.comments} onChange={upd("comments")} placeholder="Notes for the volunteer…" multiline />
-
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Priority</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {PRIORITY.map(p => (
-                <button key={p} onClick={() => upd("priority")(p)}
-                  style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: `2px solid ${fields.priority === p ? "#374151" : "#E5E7EB"}`, background: fields.priority === p ? "#374151" : "white", color: fields.priority === p ? "white" : "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Assign To</label>
-            <select value={assignTo} onChange={e => setAssignTo(e.target.value)}
-              style={{ width: "100%", padding: "9px 10px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 14, color: "#1F2937", background: "white", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}>
-              {VOLUNTEERS.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            {btn("← Retype", () => setStep(1), { secondary: true })}
-            {btn("Preview →", () => setStep(3), { flex: 2 })}
-          </div>
-        </>}
-
-        {/* STEP 3 */}
-        {step === 3 && <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1F2937", marginBottom: 2 }}>Confirm & publish</div>
-          <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 14 }}>This is how volunteers will see it on the board.</div>
-
-          <div style={{ background: "white", borderRadius: 12, border: "2px solid #E5E7EB", overflow: "hidden", marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <div style={{ background: "#374151", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "white" }}>{fields.destination ? `${fields.destination} — ` : ""}{fields.item || "Task"}</div>
-              <div style={{ background: fields.priority === "Urgent" ? "#4B5563" : fields.priority === "High" ? "#6B7280" : "#9CA3AF", color: "white", borderRadius: 12, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>{fields.priority}</div>
-            </div>
-            <div style={{ padding: "14px 16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", marginBottom: fields.comments ? 12 : 0 }}>
-                {[["ACTION", fields.action], ["EST. TIME", fields.estimatedTime], ["SOURCE", fields.source], ["DESTINATION", fields.destination]].filter(([, v]) => v).map(([label, val]) => (
-                  <div key={label}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-                    <div style={{ fontSize: 13, color: "#1F2937", fontWeight: 500 }}>{val}</div>
-                  </div>
-                ))}
-              </div>
-              {fields.comments && <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #9CA3AF" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Special Instructions</div>
-                <div style={{ fontSize: 13, color: "#4B5563" }}>{fields.comments}</div>
-              </div>}
-              {assignTo && <div style={{ marginTop: 10, fontSize: 12, color: "#6B7280" }}>👤 {VOLUNTEERS.find(v => v.id === assignTo)?.name}</div>}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            {btn("← Edit", () => setStep(2), { secondary: true })}
-            {btn("✓ Publish to Board", handlePublish, { flex: 2 })}
-          </div>
-        </>}
+          {renderFormContent(false)}
+        </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
-    </div>
+
+      {/* ── Fixed bottom bar (shared) ─────────────────────────────────────────── */}
+      <div
+        className="fixed bottom-0 right-0 left-0 lg:left-[220px] bg-white
+          border-t border-[#e5e7eb] px-6 py-3 flex items-center justify-between z-20">
+        <p className="text-[#6b7280] text-[13px]">
+          {!hasItems ? "Fill in at least one item" : ""}
+        </p>
+        <button
+          onClick={handlePublish}
+          disabled={!hasItems}
+          className={`bg-[#09665e] text-white px-6 py-2.5 rounded-xl text-[14px]
+            font-semibold border-none transition-colors
+            ${hasItems
+              ? "hover:bg-[#0d9488] cursor-pointer"
+              : "opacity-40 cursor-not-allowed"
+            }`}>
+          Done — Publish
+        </button>
+      </div>
+    </>
   );
 }

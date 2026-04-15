@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Plus, Menu, X, MapPin, ChevronRight, Clock } from "lucide-react";
+import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
@@ -175,10 +175,37 @@ function TagsCell({ tags, onChange }) {
   );
 }
 
+function getPriorityStyle(priority) {
+  const p = priority?.toLowerCase();
+  if (p === 'urgent') return 'bg-[#fff0f0] text-[#dc2626]';
+  if (p === 'high')   return 'bg-[#fff3e0] text-[#ff9500]';
+  return 'bg-[#f0f0f0] text-[#6b7280]';
+}
+
+function getStatusStyle(status) {
+  if (status === 'in-progress') return 'bg-[#fff3e0] text-[#ff9500]';
+  if (status === 'complete')    return 'bg-[#f0fff4] text-[#34c759]';
+  if (status === 'incomplete')  return 'bg-[#fff0f0] text-[#dc2626]';
+  return 'bg-[#e6e6e6] text-[#6b7280]';
+}
+
+function getStatusLabel(status) {
+  if (status === 'in-progress') return 'In Progress';
+  if (status === 'complete')    return 'Complete';
+  if (status === 'incomplete')  return 'Incomplete';
+  return 'Available';
+}
+
+const MOBILE_TAGS = ['All', 'Warehouse', 'Kitchen', 'Clothing', 'Freezer', 'Fridge'];
+
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
   const { tasks, completedTasks, session, deleteTask, markTaskIncomplete } = useSharedTasks()
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeFilter, setActiveFilter] = useState('All')
 
   const activeTasks = tasks.filter(t => t.status !== 'complete').length
   const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length
@@ -187,74 +214,193 @@ export default function ManagerTasks() {
 
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 
+  const activeTasks_ = tasks.filter(t => t.status !== 'complete')
+  const filteredTasks = activeTasks_.filter(task => {
+    const matchesSearch = !searchQuery.trim() ? true : (() => {
+      const q = searchQuery.toLowerCase()
+      return (
+        task.name?.toLowerCase().includes(q) ||
+        task.source?.toLowerCase().includes(q) ||
+        task.destination?.toLowerCase().includes(q) ||
+        task.tags?.some(tag => tag.toLowerCase().includes(q)) ||
+        task.action?.toLowerCase().includes(q)
+      )
+    })()
+    const matchesTag = activeFilter === 'All' ? true : task.tags?.includes(activeFilter)
+    return matchesSearch && matchesTag
+  })
+
+  const STATS = [
+    { label: 'Active Tasks',     value: activeTasks,               color: '#0d9488' },
+    { label: 'In Progress',      value: inProgressTasks,           color: '#ff9500' },
+    { label: 'Completed Today',  value: completedTasks?.length || 0, color: '#34c759' },
+    { label: 'Volunteers Active',value: volunteersActive,          color: '#0a2a3a' },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      <Sidebar mode="pantry" activePath="/manager-tasks" />
+      {/* ══════════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="lg:hidden min-h-screen bg-[#f5f5f5]">
 
-      {/* ── Main content ── */}
-      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
-
-        {/* Top bar */}
-        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
-            Good Morning, Operations Manager
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-            {isSessionActive ? (
-              <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
-                <div className="w-2 h-2 rounded-full bg-[#34c759]" />
-                <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full px-3 py-1">
-                <div className="w-2 h-2 rounded-full bg-[#9ca3af]" />
-                <span className="text-[#6b7280] text-[11px] font-medium">No Session</span>
-              </div>
-            )}
+        {/* Mobile top bar */}
+        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
+              <span className="text-white text-[11px] font-semibold">JB</span>
+            </div>
+            <div>
+              <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            </div>
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(true); }}
+            className="text-white bg-transparent border-none cursor-pointer p-1">
+            <Menu size={22} />
+          </button>
         </div>
 
-        {/* Content area */}
-        <div className="flex flex-1 gap-6 p-6">
+        {/* Hamburger overlay */}
+        {mobileMenuOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
+            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
+              style={{ animation: "slideDown 0.22s ease" }}>
+              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
+                <div>
+                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
+                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)}
+                  className="text-white bg-transparent border-none cursor-pointer p-1">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
+                  Pantry
+                </button>
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+                  Delivery
+                </button>
+              </div>
+              <nav className="flex flex-col py-2">
+                {[
+                  { label: "Dashboard", path: "/manager/dashboard",  active: false },
+                  { label: "Tasks",     path: "/manager-tasks",       active: true  },
+                  { label: "Volunteers",path: "/manager-volunteers",  active: false },
+                  { label: "History",   path: "/manager-history",     active: false },
+                ].map(item => (
+                  <button key={item.label}
+                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
+                      item.active
+                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
+                        : "text-[#9ca3af] border-l-[3px] border-transparent"
+                    }`}>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                    <span className="text-white text-[12px] font-semibold">JB</span>
+                  </div>
+                  <div>
+                    <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
+                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
+                  </div>
+                </div>
+                <button onClick={() => navigate("/")}
+                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
+                  Logout
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
-          {/* Left column — stats + create button */}
-          <div className="w-[240px] shrink-0 flex flex-col gap-4">
-            <button onClick={() => navigate('/manager/create-task')}
-              className="w-full bg-[#09665e] text-white py-3 rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer">
-              <Plus size={16} />
-              Create Task
-            </button>
-            {[
-              { label: 'Active Tasks',       value: activeTasks,      color: '#0d9488' },
-              { label: 'In Progress',        value: inProgressTasks,  color: '#ff9500' },
-              { label: 'Completed Today',    value: completedTasks?.length || 0, color: '#34c759' },
-              { label: 'Volunteers Active',  value: volunteersActive, color: '#0a2a3a' },
-            ].map(stat => (
+        {/* Mobile page title */}
+        <div className="lg:hidden px-4 pt-5 pb-3">
+          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Tasks</h1>
+        </div>
+
+        {/* Mobile content */}
+        <div className="px-4 pb-4">
+
+          {/* Stats 2×2 grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {STATS.map(stat => (
               <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
-                <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
-                <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
+                <p className="text-[#6b7280] text-[11px] mb-1">{stat.label}</p>
+                <p className="text-[24px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
               </div>
             ))}
           </div>
 
-          {/* Right column — task cards grid */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 content-start">
-            {tasks.filter(t => t.status !== 'complete').map(task => (
-              <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex flex-col gap-2">
+          {/* Action button */}
+          <div className="flex gap-3 mb-4">
+            <button onClick={() => navigate('/manager/create-task')}
+              className="flex-1 bg-[#09665e] text-white rounded-xl py-2.5 text-[13px] font-medium
+                flex items-center justify-center gap-2 border-none cursor-pointer">
+              <Plus size={15} />
+              Create Task
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative mb-3">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-[#e5e7eb] rounded-xl pl-9 pr-4 py-2.5
+                text-[13px] text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]
+                placeholder:text-[#9ca3af]"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0">
+                <X size={14} className="text-[#9ca3af]" />
+              </button>
+            )}
+          </div>
+
+          {/* Tag filter pills */}
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+            {MOBILE_TAGS.map(tag => (
+              <button key={tag} onClick={() => setActiveFilter(tag)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium
+                  transition-colors cursor-pointer
+                  ${activeFilter === tag
+                    ? 'bg-[#0d9488] text-white border-none'
+                    : 'bg-white border border-[#e5e7eb] text-[#6b7280]'
+                  }`}>
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {/* Task cards */}
+          <div className="space-y-3">
+            {filteredTasks.map(task => (
+              <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4">
 
                 {/* Name + priority */}
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">{task.name || task.item}</p>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-[#0a2a3a] text-[14px] font-semibold leading-snug flex-1">
+                    {task.name || task.item}
+                  </p>
                   {task.priority && (
-                    <span className={`text-[12px] font-semibold px-3 py-1 rounded-full shrink-0 ${
-                      task.priority === 'Urgent' || task.priority === 'urgent'
-                        ? 'bg-[#fff0f0] text-[#dc2626]'
-                        : task.priority === 'High' || task.priority === 'high'
-                        ? 'bg-[#fff3e0] text-[#ff9500]'
-                        : 'bg-[#f0f0f0] text-[#6b7280]'
-                    }`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${getPriorityStyle(task.priority)}`}>
                       {task.priority}
                     </span>
                   )}
@@ -262,64 +408,232 @@ export default function ManagerTasks() {
 
                 {/* Source → Destination */}
                 {(task.source || task.destination) && (
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <MapPin size={13} className="text-[#6b7280] shrink-0" />
-                    <p className="text-[#6b7280] text-[12px]">{task.source}</p>
-                    <ChevronRight size={13} className="text-[#6b7280]" />
-                    <p className="text-[#0a2a3a] text-[12px]">{task.destination}</p>
-                  </div>
-                )}
-
-                {/* Special instructions (comments field) */}
-                {task.comments && (
-                  <div className="flex items-center gap-1">
-                    <Clock size={13} className="text-[#6b7280] shrink-0" />
-                    <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                  <div className="flex items-center gap-1 mb-2">
+                    <MapPin size={12} className="text-[#6b7280] flex-shrink-0" />
+                    <p className="text-[#6b7280] text-[12px]">
+                      {task.source}{task.destination ? ` → ${task.destination}` : ''}
+                    </p>
                   </div>
                 )}
 
                 {/* Tags */}
-                {task.tags && task.tags.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
+                {task.tags?.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap mb-3">
                     {task.tags.map(tag => (
-                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-1 rounded-md">
+                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">
                         {tag}
                       </span>
                     ))}
                   </div>
                 )}
 
-                <div className="border-t border-[#e5e7eb]" />
-
-                {/* Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-3">
+                {/* Status + actions */}
+                <div className="flex items-center justify-between border-t border-[#f3f4f6] pt-3 mt-1">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${getStatusStyle(task.status)}`}>
+                    {getStatusLabel(task.status)}
+                  </span>
+                  <div className="flex items-center gap-3">
                     {task.status === 'in-progress' && (
                       <button onClick={() => markTaskIncomplete(task.id)}
-                        className="text-[#ff9500] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                        className="text-[#ff9500] text-[12px] bg-transparent border-none cursor-pointer p-0">
                         Mark Incomplete
                       </button>
                     )}
                     {task.status !== 'complete' && (
                       <button onClick={() => deleteTask(task.id)}
-                        className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                        className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer p-0">
                         Remove
                       </button>
                     )}
                   </div>
-                  <button onClick={() => navigate('/manager/tasks')}
-                    className="flex items-center gap-0.5 text-[#0a2a3a] text-[12px] hover:text-[#0d9488] bg-transparent border-none cursor-pointer p-0">
-                    View all <ChevronRight size={13} />
-                  </button>
                 </div>
               </div>
             ))}
+          </div>
 
-            {tasks.filter(t => t.status !== 'complete').length === 0 && (
-              <div className="col-span-2 flex items-center justify-center py-20">
-                <p className="text-[#6b7280] text-base">No active tasks. Create one to get started.</p>
+          {/* Empty state */}
+          {filteredTasks.length === 0 && (
+            <div className="text-center mt-16">
+              <ClipboardList size={40} className="text-[#ccedeb] mx-auto" />
+              <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">No tasks found</p>
+              <p className="text-[#6b7280] text-[13px] mt-1">
+                {searchQuery || activeFilter !== 'All' ? 'Try a different search or filter' : 'Create a task to get started'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]">
+
+        <Sidebar mode="pantry" activePath="/manager-tasks" />
+
+        {/* ── Main content ── */}
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+
+          {/* Top bar */}
+          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+            <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
+              Good Morning, Operations Manager
+            </h1>
+            <div className="flex items-center gap-4">
+              <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
+              {isSessionActive ? (
+                <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
+                  <div className="w-2 h-2 rounded-full bg-[#34c759]" />
+                  <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full px-3 py-1">
+                  <div className="w-2 h-2 rounded-full bg-[#9ca3af]" />
+                  <span className="text-[#6b7280] text-[11px] font-medium">No Session</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content area */}
+          <div className="flex flex-1 gap-6 p-6">
+
+            {/* Left column — stats + create button */}
+            <div className="w-[240px] shrink-0 flex flex-col gap-4">
+              <button onClick={() => navigate('/manager/create-task')}
+                className="w-full bg-[#09665e] text-white py-3 rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer">
+                <Plus size={16} />
+                Create Task
+              </button>
+              {STATS.map(stat => (
+                <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
+                  <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
+                  <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Right column — search + task cards grid */}
+            <div className="flex-1 flex flex-col">
+
+              {/* Search bar */}
+              <div className="relative mb-4">
+                <Search
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search tasks by name, location, or tag..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-[#e5e7eb] rounded-xl
+                    pl-9 pr-4 py-2.5 text-[13px] text-[#0a2a3a]
+                    focus:outline-none focus:ring-2 focus:ring-[#0d9488]
+                    placeholder:text-[#9ca3af]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2
+                      text-[#9ca3af] hover:text-[#6b7280] bg-transparent border-none cursor-pointer p-0">
+                    <X size={14} />
+                  </button>
+                )}
               </div>
-            )}
+
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-[#6b7280] text-[12px] mb-3">
+                  {filteredTasks.length} of {activeTasks_.length} tasks
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 content-start">
+              {filteredTasks.map(task => (
+                <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex flex-col gap-2">
+
+                  {/* Name + priority */}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">{task.name || task.item}</p>
+                    {task.priority && (
+                      <span className={`text-[12px] font-semibold px-3 py-1 rounded-full shrink-0 ${getPriorityStyle(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Source → Destination */}
+                  {(task.source || task.destination) && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <MapPin size={13} className="text-[#6b7280] shrink-0" />
+                      <p className="text-[#6b7280] text-[12px]">{task.source}</p>
+                      <ChevronRight size={13} className="text-[#6b7280]" />
+                      <p className="text-[#0a2a3a] text-[12px]">{task.destination}</p>
+                    </div>
+                  )}
+
+                  {/* Special instructions (comments field) */}
+                  {task.comments && (
+                    <div className="flex items-center gap-1">
+                      <Clock size={13} className="text-[#6b7280] shrink-0" />
+                      <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {task.tags && task.tags.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {task.tags.map(tag => (
+                        <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-1 rounded-md">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="border-t border-[#e5e7eb]" />
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-3">
+                      {task.status === 'in-progress' && (
+                        <button onClick={() => markTaskIncomplete(task.id)}
+                          className="text-[#ff9500] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                          Mark Incomplete
+                        </button>
+                      )}
+                      {task.status !== 'complete' && (
+                        <button onClick={() => deleteTask(task.id)}
+                          className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {filteredTasks.length === 0 && searchQuery && (
+                <div className="col-span-2 flex flex-col items-center justify-center py-20">
+                  <Search size={36} className="text-[#ccedeb]" />
+                  <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">No tasks found</p>
+                  <p className="text-[#6b7280] text-[13px] mt-1">Try a different search term</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-[#0d9488] text-[13px] mt-3 bg-transparent border-none cursor-pointer hover:underline p-0">
+                    Clear Search
+                  </button>
+                </div>
+              )}
+
+              {activeTasks_.length === 0 && !searchQuery && (
+                <div className="col-span-2 flex items-center justify-center py-20">
+                  <p className="text-[#6b7280] text-base">No active tasks. Create one to get started.</p>
+                </div>
+              )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -539,7 +853,7 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
                 { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
                 { label: "Tasks",     active: true,  action: () => navigate("/manager-tasks") },
                 { label: "Volunteers",active: false, action: () => {} },
-                { label: "History",   active: false, action: () => navigate("/manager/history") },
+                { label: "History",   active: false, action: () => navigate("/manager-history") },
               ].map(item => (
                 <button key={item.label}
                   onClick={() => { item.action(); setMobileMenuOpen(false); }}
@@ -696,7 +1010,7 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
           </div>
           {["Volunteers", "History"].map(item => (
             <div key={item} className="flex items-center px-6 py-3 cursor-pointer hover:bg-white/5"
-              onClick={() => item === "History" ? navigate("/manager/history") : undefined}>
+              onClick={() => item === "History" ? navigate("/manager-history") : undefined}>
               <span className="text-[#767676] text-[16px] font-semibold">{item}</span>
             </div>
           ))}

@@ -6,7 +6,8 @@ import { useSharedTasks } from "./hooks/useSharedTasks";
 import LandingPage from "./components/LandingPage";
 import ManagerLogin from "./pages/ManagerLogin";
 import ManagerDashboard from "./pages/ManagerDashboard";
-import ManagerTasksPage, { ManagerTasksScreen, CreateTaskScreen } from "./pages/ManagerTasks";
+import ManagerTasksPage from "./pages/ManagerTasks";
+import CreateTask from "./pages/CreateTask";
 import DigitalBoard from "./pages/DigitalBoard";
 import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
 import TaskPool from "./pages/TaskPool";
@@ -32,17 +33,12 @@ function ManagerDashboardWrapper() {
   return <ManagerDashboard tasks={tasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
 }
 
-function ManagerTasksWrapper() {
-  const { tasks, synced, error, deleteTask, markTaskIncomplete } = useSharedTasks();
-  return <ManagerTasksScreen tasks={tasks} synced={synced} error={error} onDeleteTask={deleteTask} onMarkIncomplete={markTaskIncomplete} />;
-}
-
 function CreateTaskScreenWrapper() {
   const navigate = useNavigate();
   const { createTask } = useSharedTasks();
   return (
-    <CreateTaskScreen
-      onBack={() => navigate("/manager/tasks")}
+    <CreateTask
+      onBack={() => navigate("/manager-tasks")}
       onPublishAll={async (rows) => {
         await Promise.all(rows.map(row => createTask({
           item: row.item,
@@ -55,6 +51,7 @@ function CreateTaskScreenWrapper() {
           assignedTo: row.assignTo,
           tags: row.tags,
         })));
+        navigate("/manager-tasks");
       }}
     />
   );
@@ -85,7 +82,7 @@ export default function App() {
         <Route path="/manager-tasks" element={<ManagerTasksPage />} />
         <Route path="/manager/login" element={<ManagerLogin />} />
         <Route path="/manager/dashboard" element={<ManagerDashboardWrapper />} />
-        <Route path="/manager/tasks" element={<ManagerTasksWrapper />} />
+        <Route path="/manager/tasks" element={<Navigate to="/manager-tasks" replace />} />
         <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
         <Route path="/manager/history" element={<TaskHistory />} />
         <Route path="/manager-history" element={<ManagerHistory />} />

@@ -93,7 +93,7 @@ export default function CreateDeliveryRoute() {
     { label: "Dashboard", path: "/manager/dashboard" },
     { label: "Tasks",     path: "/manager-tasks"      },
     { label: "Volunteers",path: "/manager-volunteers"  },
-    { label: "History",   path: "/manager/history"     },
+    { label: "History",   path: "/manager-history"     },
   ];
 
   async function handleSubmit() {
@@ -222,7 +222,7 @@ export default function CreateDeliveryRoute() {
         <Sidebar mode="delivery" activePath="/manager-delivery" />
 
         {/* Main content */}
-        <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
           <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
