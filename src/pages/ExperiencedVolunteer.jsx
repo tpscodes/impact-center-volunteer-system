@@ -354,7 +354,7 @@ export function MyTask() {
               {(myTask.specialInstructions || myTask.comments) && (
                 <div className="border-l-2 border-[#e5e7eb] pl-4 mt-6">
                   <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Special Instructions</p>
-                  <p className="text-[#6b7280] text-[14px] italic leading-relaxed">
+                  <p className="text-[#6b7280] text-[14px] italic leading-relaxed whitespace-pre-wrap">
                     {myTask.specialInstructions || myTask.comments}
                   </p>
                 </div>

@@ -140,7 +140,7 @@ export default function TaskDetail({ task, isMyTask, isLocked, onClaim, onComple
               <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
                 Special Instructions
               </p>
-              <p className="text-[#6b7280] text-[14px] italic leading-relaxed">
+              <p className="text-[#6b7280] text-[14px] italic leading-relaxed whitespace-pre-wrap">
                 {task.specialInstructions || task.comments}
               </p>
             </div>
