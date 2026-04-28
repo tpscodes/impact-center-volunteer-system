@@ -256,7 +256,7 @@ export default function NewVolunteerTasks() {
           {activeTaskForDetail.comments && (
             <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📌 Instructions</div>
-              <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6 }}>{activeTaskForDetail.comments}</div>
+              <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{activeTaskForDetail.comments}</div>
             </div>
           )}
           {shiftLeader && (
@@ -355,7 +355,7 @@ export default function NewVolunteerTasks() {
               <p className="text-white/60 text-[12px]">{myTask.source}</p>
               {myTask.destination && <><ChevronRight size={12} className="text-white/60" /><p className="text-white/60 text-[12px]">{myTask.destination}</p></>}
             </div>
-            {myTask.comments && <p className="text-white/70 text-[12px] italic mb-2">📌 {myTask.comments}</p>}
+            {myTask.comments && <p className="text-white/70 text-[12px] italic mb-2 whitespace-pre-wrap">📌 {myTask.comments}</p>}
             <p className="text-white/50 text-[12px] font-semibold">Tap for details →</p>
           </div>
         )}

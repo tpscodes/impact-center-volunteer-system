@@ -618,7 +618,7 @@ export default function ManagerTasks() {
                   {task.comments && (
                     <div className="flex items-center gap-1">
                       <Clock size={13} className="text-[#6b7280] shrink-0" />
-                      <p className="text-[#6b7280] text-[12px] italic">{task.comments}</p>
+                      <p className="text-[#6b7280] text-[12px] italic whitespace-pre-wrap">{task.comments}</p>
                     </div>
                   )}
 

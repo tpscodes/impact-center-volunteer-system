@@ -292,7 +292,7 @@ export default function TaskPool() {
               {task.specialInstructions && (
                 <div className="flex items-center gap-1 mt-1">
                   <Pin size={14} className="text-[#6b7280] shrink-0" />
-                  <p className="text-[#6b7280] text-[12px] italic">{task.specialInstructions}</p>
+                  <p className="text-[#6b7280] text-[12px] italic whitespace-pre-wrap">{task.specialInstructions}</p>
                 </div>
               )}
               {task.comments && (
