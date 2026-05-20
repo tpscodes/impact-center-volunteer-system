@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db } from '../firebase'
-import { ref, get, set, remove } from 'firebase/database'
-
-const VALID_USERNAME = 'admin'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function ManagerLogin() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,22 +15,14 @@ export default function ManagerLogin() {
     setError('')
     setLoading(true)
     try {
-      // Master recovery: admin/admin always works and resets stored password
-      if (username === VALID_USERNAME && password === 'admin') {
-        await remove(ref(db, 'appSettings/auth/password'))
-        navigate('/manager/dashboard')
-        return
-      }
-      const snap = await get(ref(db, 'appSettings/auth/password'))
-      const storedPassword = snap.exists() ? snap.val() : 'admin'
-      if (username === VALID_USERNAME && password === storedPassword) {
-        navigate('/manager/dashboard')
+      const auth = await login(username, password)
+      if (auth.role === 'superadmin') {
+        navigate('/steve-overview')
       } else {
-        setError('Invalid username or password.')
-        setLoading(false)
+        navigate('/manager/dashboard')
       }
-    } catch {
-      setError('Login failed. Please try again.')
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.')
       setLoading(false)
     }
   }
