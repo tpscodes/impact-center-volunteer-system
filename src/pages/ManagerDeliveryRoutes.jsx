@@ -7,6 +7,7 @@ import {
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DAY_ORDER = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
@@ -149,6 +150,7 @@ let _cachedTemplates     = {};
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryRoutes() {
   const navigate = useNavigate();
+  const { pantryId } = useAuth();
 
   // Initialise state from module-level cache so remounts start with correct data
   const [templates,   _setTemplates]   = useState(_cachedTemplates);
@@ -180,32 +182,32 @@ export default function ManagerDeliveryRoutes() {
     _setSelectedId(id);
   }
 
-  // Firebase listeners — all mounted once, empty deps
+  // Firebase listeners — keyed on pantryId
   useEffect(() => {
-    return onValue(ref(db, "routeTemplates"), snap => {
+    return onValue(ref(db, `pantries/${pantryId}/routeTemplates`), snap => {
       const data = snap.val();
       // Never overwrite valid templates with a null/empty snapshot
       // (can happen during StrictMode re-subscription or brief disconnects)
       if (data) setTemplates(data);
     });
-  }, []); // eslint-disable-line
+  }, [pantryId]); // eslint-disable-line
 
   useEffect(() => {
-    return onValue(ref(db, "routeOccurrences"), snap => {
+    return onValue(ref(db, `pantries/${pantryId}/routeOccurrences`), snap => {
       const data = snap.val();
       setOccurrences(data
         ? Object.entries(data).map(([id, val]) => ({ id, ...val }))
         : []);
     });
-  }, []);
+  }, [pantryId]);
 
   useEffect(() => {
-    return onValue(ref(db, "volunteers"), snap => {
+    return onValue(ref(db, `pantries/${pantryId}/volunteers`), snap => {
       const data = snap.val();
       // Use Object.entries so the Firebase key is preserved as vol.id
       setVolunteers(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
     });
-  }, []);
+  }, [pantryId]);
 
   // Derive sorted list from templates object (preserves Firebase keys as id)
   const templatesList = Object.entries(templates).map(([id, t]) => ({ id, ...t }));
@@ -320,7 +322,7 @@ export default function ManagerDeliveryRoutes() {
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-]/g, "") + "-" + newRoute.dayOfWeek;
 
-      await set(ref(db, `routeTemplates/${templateId}`), {
+      await set(ref(db, `pantries/${pantryId}/routeTemplates/${templateId}`), {
         name:          newRoute.name,
         dayOfWeek:     newRoute.dayOfWeek,
         source:        newRoute.source,
@@ -345,7 +347,7 @@ export default function ManagerDeliveryRoutes() {
       }
 
       for (const date of dates) {
-        await push(ref(db, "routeOccurrences"), {
+        await push(ref(db, `pantries/${pantryId}/routeOccurrences`), {
           templateId,
           date,
           drivers:     [],
@@ -382,10 +384,10 @@ export default function ManagerDeliveryRoutes() {
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleDeleteRoute(templateId) {
     try {
-      await remove(ref(db, `routeTemplates/${templateId}`));
+      await remove(ref(db, `pantries/${pantryId}/routeTemplates/${templateId}`));
       const occurrencesToDelete = occurrences.filter(o => o.templateId === templateId);
       for (const occ of occurrencesToDelete) {
-        await remove(ref(db, `routeOccurrences/${occ.id}`));
+        await remove(ref(db, `pantries/${pantryId}/routeOccurrences/${occ.id}`));
       }
       if (selectedId === templateId) {
         const remaining = sorted.filter(t => t.id !== templateId);
@@ -401,7 +403,7 @@ export default function ManagerDeliveryRoutes() {
     if (!selectedTemplate) return;
     const dates = templateOccs.map(o => o.date).filter(Boolean);
     const newDate = nextOccurrenceDate(selectedTemplate.dayOfWeek, dates);
-    await push(ref(db, "routeOccurrences"), {
+    await push(ref(db, `pantries/${pantryId}/routeOccurrences`), {
       templateId:  selectedTemplate.id,
       date:        newDate,
       drivers:     [],
@@ -414,7 +416,7 @@ export default function ManagerDeliveryRoutes() {
   }
 
   async function handleDeleteOccurrence(occurrenceId) {
-    await remove(ref(db, `routeOccurrences/${occurrenceId}`));
+    await remove(ref(db, `pantries/${pantryId}/routeOccurrences/${occurrenceId}`));
   }
 
   // Writes to drivers[] array so manager assigns and volunteer claims
@@ -433,7 +435,7 @@ export default function ManagerDeliveryRoutes() {
     // Read driversNeeded fresh from template to avoid stale closure
     const tmplNeeded = Number(templates[selectedId]?.driversNeeded) || driversNeeded;
     const newStatus = filledSlots >= tmplNeeded ? "inProgress" : "pending";
-    await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+    await update(ref(db, `pantries/${pantryId}/routeOccurrences/${occurrenceId}`), {
       drivers: updatedDrivers,
       status:  newStatus,
     });
@@ -1032,7 +1034,7 @@ export default function ManagerDeliveryRoutes() {
                   };
 
                   // Write to Firebase — on success patch local state and close popup
-                  update(ref(db, `routeTemplates/${capturedId}`), templateUpdate)
+                  update(ref(db, `pantries/${pantryId}/routeTemplates/${capturedId}`), templateUpdate)
                     .then(() => {
                       setTemplates({
                         ..._cachedTemplates,

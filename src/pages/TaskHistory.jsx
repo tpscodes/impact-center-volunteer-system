@@ -17,7 +17,7 @@ function isToday(ms) {
 
 export default function TaskHistory() {
   const navigate = useNavigate();
-  const { completedTasks, synced, error, session } = useSharedTasks();
+  const { completedTasks, synced, error, session } = useSharedTasks("jason");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("Today");

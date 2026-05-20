@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
+import { useAuth } from "../contexts/AuthContext";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -201,7 +202,8 @@ const MOBILE_TAGS = ['All', 'Warehouse', 'Kitchen', 'Clothing', 'Freezer', 'Frid
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks()
+  const { pantryId } = useAuth()
+  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(pantryId)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)

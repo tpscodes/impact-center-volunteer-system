@@ -6,6 +6,7 @@ import { Search, UserPlus, X, Menu, Check, Pencil } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
+import { useAuth } from "../contexts/AuthContext";
 
 // Default seed derived from VOLUNTEER_PROFILES
 const SEED_VOLUNTEERS = VOLUNTEER_PROFILES.map(v => ({
@@ -124,6 +125,7 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
 
 export default function ManagerVolunteers() {
   const navigate = useNavigate();
+  const { pantryId, displayName, initials, logout } = useAuth();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
@@ -143,12 +145,12 @@ export default function ManagerVolunteers() {
   // ── Firebase real-time listener ────────────────────────────────────────────
   useEffect(() => {
     const unsub = onValue(
-      ref(db, "volunteers"),
+      ref(db, `pantries/${pantryId}/volunteers`),
       (snap) => {
         const data = snap.val();
         if (data === null) {
           // First load — seed Firebase with default volunteers
-          set(ref(db, "volunteers"), volunteersToFirebase(SEED_VOLUNTEERS));
+          set(ref(db, `pantries/${pantryId}/volunteers`), volunteersToFirebase(SEED_VOLUNTEERS));
           setVolunteers(SEED_VOLUNTEERS);
         } else {
           const arr = volunteersFromFirebase(data);
@@ -208,7 +210,7 @@ export default function ManagerVolunteers() {
   async function handleRemoveVolunteer(id) {
     const updated = volunteers.filter(v => v.id !== id);
     setVolunteers(updated);
-    await remove(ref(db, `volunteers/${id}`));
+    await remove(ref(db, `pantries/${pantryId}/volunteers/${id}`));
   }
 
   function handleEditOpen(volunteer) {
@@ -226,7 +228,7 @@ export default function ManagerVolunteers() {
       return;
     }
     try {
-      await update(ref(db, `volunteers/${editingVolunteer.id}`), {
+      await update(ref(db, `pantries/${pantryId}/volunteers/${editingVolunteer.id}`), {
         name: editName.trim(),
         isDriver: editIsDriver,
         active: editIsActive,
@@ -242,7 +244,7 @@ export default function ManagerVolunteers() {
     const newVol = { id, name: fullName, active: false, lastActive: null, isDriver };
     const updated = [...volunteers, newVol];
     setVolunteers(updated);
-    await set(ref(db, "volunteers"), volunteersToFirebase(updated));
+    await set(ref(db, `pantries/${pantryId}/volunteers`), volunteersToFirebase(updated));
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -315,14 +317,14 @@ export default function ManagerVolunteers() {
               <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">JB</span>
+                    <span className="text-white text-[12px] font-semibold">{initials}</span>
                   </div>
                   <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
+                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
                     <p className="text-[#757575] text-[11px]">Operations Manager</p>
                   </div>
                 </div>
-                <button onClick={() => navigate("/")}
+                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
                   className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
                   Logout
                 </button>

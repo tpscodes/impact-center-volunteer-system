@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import { Search, Clock, MapPin, Truck, Calendar, X, Menu } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,7 @@ function RouteCard({ route }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryHistory() {
   const navigate = useNavigate();
+  const { pantryId } = useAuth();
 
   const [routes,     setRoutes]     = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,7 +136,7 @@ export default function ManagerDeliveryHistory() {
 
   // Firebase: routeHistory — written on completion by DeliveryRouteDetail
   useEffect(() => {
-    return onValue(ref(db, "routeHistory"), snap => {
+    return onValue(ref(db, `pantries/${pantryId}/routeHistory`), snap => {
       const data = snap.val();
       setRoutes(data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : []);
     });

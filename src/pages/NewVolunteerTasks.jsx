@@ -15,7 +15,7 @@ function formatDisplayName(first, last) {
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks();
+  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks("jason");
 
   // ── Name entry state ─────────────────────────────────────────────────────────
   const savedName = (() => {
