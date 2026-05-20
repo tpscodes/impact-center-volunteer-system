@@ -10,7 +10,7 @@ const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sort
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks()
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks("jason")
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState('All')
   const [pendingClaim, setPendingClaim] = useState(null)

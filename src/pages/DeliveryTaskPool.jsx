@@ -271,13 +271,13 @@ export default function DeliveryTaskPool() {
   }, [volunteer, navigate]);
 
   useEffect(() => {
-    return onValue(ref(db, "routeTemplates"), snap => {
+    return onValue(ref(db, "pantries/jason/routeTemplates"), snap => {
       setTemplates(snap.val() || {});
     });
   }, []);
 
   useEffect(() => {
-    return onValue(ref(db, "routeOccurrences"), snap => {
+    return onValue(ref(db, "pantries/jason/routeOccurrences"), snap => {
       const data = snap.val();
       if (!data) { setOccurrences([]); return; }
       setOccurrences(Object.entries(data).map(([id, val]) => ({ id, ...val })));
@@ -380,15 +380,15 @@ export default function DeliveryTaskPool() {
 
   async function handleUnclaim(route) {
     const updatedDrivers = (route.drivers || []).filter(d => d !== volunteerName);
-    await update(ref(db, `routeOccurrences/${route.id}`), {
+    await update(ref(db, `pantries/jason/routeOccurrences/${route.id}`), {
       drivers: updatedDrivers,
       status:  updatedDrivers.length === 0 ? "pending" : "inProgress",
     });
   }
 
   async function handleComplete(route) {
-    await update(ref(db, `routeOccurrences/${route.id}`), { status: "complete" });
-    await set(ref(db, `routeHistory/${route.id}`), {
+    await update(ref(db, `pantries/jason/routeOccurrences/${route.id}`), { status: "complete" });
+    await set(ref(db, `pantries/jason/routeHistory/${route.id}`), {
       ...route,
       completedAt: Date.now(),
       completedBy: volunteerName,

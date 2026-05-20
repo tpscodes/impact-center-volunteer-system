@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { Search, UserPlus, UserCheck, X, Menu, Check, User, Truck } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
+import { useAuth } from "../contexts/AuthContext";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -192,6 +193,7 @@ function AddDriverModal({ volunteers, onClose, onAdd }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerDeliveryVolunteers() {
   const navigate = useNavigate();
+  const { pantryId, displayName, initials, logout } = useAuth();
 
   const [volunteers, setVolunteers] = useState([]);
   const [routes,     setRoutes]     = useState([]);
@@ -201,21 +203,20 @@ export default function ManagerDeliveryVolunteers() {
 
   // Firebase listeners
   useEffect(() => {
-    const unsub = onValue(ref(db, "volunteers"), (snap) => {
+    const unsub = onValue(ref(db, `pantries/${pantryId}/volunteers`), (snap) => {
       const data = snap.val();
       setVolunteers(data ? Object.values(data) : []);
     });
     return () => unsub();
-  }, []);
+  }, [pantryId]);
 
-  // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
   useEffect(() => {
-    const unsub = onValue(ref(db, "deliveryRoutes"), (snap) => {
+    const unsub = onValue(ref(db, `pantries/${pantryId}/deliveryRoutes`), (snap) => {
       const data = snap.val();
       setRoutes(data ? Object.entries(data).map(([key, val]) => ({ key, ...val })) : []);
     });
     return () => unsub();
-  }, []);
+  }, [pantryId]);
 
   // Derived
   const drivers    = volunteers.filter(v => v.isDriver === true);
@@ -252,16 +253,16 @@ export default function ManagerDeliveryVolunteers() {
 
   // Handlers
   async function handleRemoveDriverTag(vol) {
-    await set(ref(db, `volunteers/${vol.id}/isDriver`), false);
+    await set(ref(db, `pantries/${pantryId}/volunteers/${vol.id}/isDriver`), false);
   }
 
   async function handleRemoveVolunteer(vol) {
     if (!window.confirm(`Remove ${vol.name} from volunteers entirely?`)) return;
-    await remove(ref(db, `volunteers/${vol.id}`));
+    await remove(ref(db, `pantries/${pantryId}/volunteers/${vol.id}`));
   }
 
   async function handleAddDriver({ fullName, id, isPantry }) {
-    await set(ref(db, `volunteers/${id}`), {
+    await set(ref(db, `pantries/${pantryId}/volunteers/${id}`), {
       id,
       name:       fullName,
       active:     false,
@@ -301,10 +302,10 @@ export default function ManagerDeliveryVolunteers() {
         <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">JB</span>
+              <span className="text-white text-[11px] font-semibold">{initials}</span>
             </div>
             <div>
-              <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+              <p className="text-white text-[13px] font-medium">{displayName}</p>
               <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
             </div>
           </div>
@@ -356,14 +357,14 @@ export default function ManagerDeliveryVolunteers() {
               <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">JB</span>
+                    <span className="text-white text-[12px] font-semibold">{initials}</span>
                   </div>
                   <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
+                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
                     <p className="text-[#757575] text-[11px]">Operations Manager</p>
                   </div>
                 </div>
-                <button onClick={() => navigate("/")}
+                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
                   className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
                   Logout
                 </button>

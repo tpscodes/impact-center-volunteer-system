@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Search, ChevronDown, Clock, MapPin, X, Menu } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,8 @@ const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerHistory() {
   const navigate = useNavigate();
-  const { completedTasks, session } = useSharedTasks();
+  const { pantryId } = useAuth();
+  const { completedTasks, session } = useSharedTasks(pantryId);
 
   const [searchQuery,        setSearchQuery]        = useState("");
   const [dateFilter,         setDateFilter]         = useState("Today");

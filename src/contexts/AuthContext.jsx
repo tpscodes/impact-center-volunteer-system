@@ -100,6 +100,15 @@ export function AuthProvider({ children }) {
     throw new Error('Invalid credentials');
   }
 
+  // ── updateProfile ───────────────────────────────────────────────────────────
+  // Called by ManagerSettings after a successful profile save so Sidebar reflects
+  // the new name/initials immediately without requiring a page refresh.
+  function updateProfile({ displayName, initials }) {
+    const updated = { ...authState, displayName, initials, loading: false };
+    setAuthState(updated);
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+  }
+
   // ── logout ──────────────────────────────────────────────────────────────────
   function logout() {
     setAuthState({
@@ -119,9 +128,10 @@ export function AuthProvider({ children }) {
       role:        authState.role,
       displayName: authState.displayName,
       initials:    authState.initials,
-      loading:     authState.loading,
+      loading:       authState.loading,
       login,
       logout,
+      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,6 +1,7 @@
 // Sidebar.jsx — Reusable desktop manager sidebar
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, ClipboardList, Users, Clock, Truck, UserCheck, Settings } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const PANTRY_NAV = [
   { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard, disabled: false },
@@ -18,6 +19,7 @@ const DELIVERY_NAV = [
 
 export default function Sidebar({ mode, activePath }) {
   const navigate = useNavigate();
+  const { displayName, initials, logout } = useAuth();
   const navItems = mode === "delivery" ? DELIVERY_NAV : PANTRY_NAV;
 
   return (
@@ -75,10 +77,10 @@ export default function Sidebar({ mode, activePath }) {
       <div className="px-4 pb-5 pt-3 border-t border-[#ffffff12]">
         <div className="flex items-center gap-2.5 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-            <span className="text-white text-[11px] font-semibold" id="sidebar-initials">JB</span>
+            <span className="text-white text-[11px] font-semibold">{initials}</span>
           </div>
           <div className="flex-1">
-            <p className="text-white text-[12px] font-medium" id="sidebar-name">Jason Bratina</p>
+            <p className="text-white text-[12px] font-medium">{displayName}</p>
             <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
           </div>
           <button
@@ -89,7 +91,7 @@ export default function Sidebar({ mode, activePath }) {
           </button>
         </div>
         <button
-          onClick={() => navigate("/")}
+          onClick={logout}
           className="text-[#ef4444] text-[12px] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer">
           Logout
         </button>

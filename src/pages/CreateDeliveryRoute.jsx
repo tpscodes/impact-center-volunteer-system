@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { Menu, X } from "lucide-react";
 import { db } from "../firebase";
 import { ref, push } from "firebase/database";
+import { useAuth } from "../contexts/AuthContext";
 
 const VEHICLES = ["F650 26ft Box Truck", "16ft Small Box Truck", "IC Van", "Personal Vehicle"];
 const DRIVERS_NEEDED = [1, 2];
@@ -67,6 +68,7 @@ function Card({ title, children }) {
 
 export default function CreateDeliveryRoute() {
   const navigate = useNavigate();
+  const { pantryId } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -118,8 +120,7 @@ export default function CreateDeliveryRoute() {
     }
 
     try {
-      // TODO: migrate to routeOccurrences/ — deliveryRoutes/ is deprecated
-      await Promise.all(dates.map(d => push(ref(db, "deliveryRoutes"), {
+      await Promise.all(dates.map(d => push(ref(db, `pantries/${pantryId}/deliveryRoutes`), {
         name: routeName.trim(),
         source: source.trim(),
         destination: destination.trim(),

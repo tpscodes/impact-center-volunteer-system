@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { db } from "../firebase";
 import { ref, get } from "firebase/database";
 import { Plus, Menu, X } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 function fmtTime(ms) {
   if (!ms) return "";
@@ -52,6 +53,7 @@ const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E
 
 export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
+  const { pantryId, displayName, initials, logout } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 
@@ -87,7 +89,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
     setStartTimeStr(nowStr);
     setEndTimeStr("");
     setLoadingSettings(true);
-    get(ref(db, `sessionSettings/${dayOfWeek}`)).then(snap => {
+    get(ref(db, `pantries/${pantryId}/sessionSettings/${dayOfWeek}`)).then(snap => {
       const s = snap.val();
       if (s) {
         setStartTimeStr(s.defaultStartTime || nowStr);
@@ -155,10 +157,10 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
         <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-              <span className="text-white text-sm font-semibold">JB</span>
+              <span className="text-white text-sm font-semibold">{initials}</span>
             </div>
             <div>
-              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">{displayName}</p>
               <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
             </div>
           </div>
@@ -188,10 +190,10 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
               <div className="px-8 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-sm font-semibold">JB</span>
+                    <span className="text-white text-sm font-semibold">{initials}</span>
                   </div>
                   <div>
-                    <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">Jason Bratina</p>
+                    <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">{displayName}</p>
                     <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
                   </div>
                 </div>
@@ -243,7 +245,7 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
 
                 {/* Logout */}
                 <button
-                  onClick={() => { setMobileMenuOpen(false); navigate("/"); }}
+                  onClick={() => { setMobileMenuOpen(false); logout(); }}
                   className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer"
                 >
                   Logout

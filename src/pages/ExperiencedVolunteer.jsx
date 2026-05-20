@@ -16,7 +16,7 @@ export function VolunteerIdEntry() {
 
   // Load the live volunteer roster from Firebase (populated by ManagerVolunteers)
   useEffect(() => {
-    const unsub = onValue(ref(db, "volunteers"), (snap) => {
+    const unsub = onValue(ref(db, "pantries/jason/volunteers"), (snap) => {
       const data = snap.val();
       if (data) setFirebaseVolunteers(Object.values(data));
     });
@@ -240,7 +240,7 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
 // ── My Task Screen ───────────────────────────────────────────────────────────
 export function MyTask() {
   const navigate = useNavigate();
-  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks();
+  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks("jason");
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 

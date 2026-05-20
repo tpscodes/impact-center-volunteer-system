@@ -80,7 +80,7 @@ export default function DeliveryRouteDetail() {
   // Live occurrence from Firebase
   useEffect(() => {
     if (!occurrenceId) return;
-    return onValue(ref(db, `routeOccurrences/${occurrenceId}`), snap => {
+    return onValue(ref(db, `pantries/jason/routeOccurrences/${occurrenceId}`), snap => {
       setOccurrence(snap.exists() ? { id: occurrenceId, ...snap.val() } : null);
     });
   }, [occurrenceId]);
@@ -88,7 +88,7 @@ export default function DeliveryRouteDetail() {
   // Live template from Firebase
   useEffect(() => {
     if (!templateId) return;
-    return onValue(ref(db, `routeTemplates/${templateId}`), snap => {
+    return onValue(ref(db, `pantries/jason/routeTemplates/${templateId}`), snap => {
       setTemplate(snap.exists() ? { id: templateId, ...snap.val() } : null);
     });
   }, [templateId]);
@@ -135,7 +135,7 @@ export default function DeliveryRouteDetail() {
     setBusy(true);
     try {
       const updatedDrivers = [...currentDrivers, volunteerName];
-      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+      await update(ref(db, `pantries/jason/routeOccurrences/${occurrenceId}`), {
         drivers: updatedDrivers,
         status:  "inProgress",
       });
@@ -149,7 +149,7 @@ export default function DeliveryRouteDetail() {
     setBusy(true);
     try {
       const updatedDrivers = drivers.filter(d => d !== volunteerName);
-      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+      await update(ref(db, `pantries/jason/routeOccurrences/${occurrenceId}`), {
         drivers: updatedDrivers,
         status:  updatedDrivers.length === 0 ? "pending" : "inProgress",
       });
@@ -163,10 +163,10 @@ export default function DeliveryRouteDetail() {
     if (busy) return;
     setBusy(true);
     try {
-      await update(ref(db, `routeOccurrences/${occurrenceId}`), {
+      await update(ref(db, `pantries/jason/routeOccurrences/${occurrenceId}`), {
         status: "complete",
       });
-      await set(ref(db, `routeHistory/${occurrenceId}`), {
+      await set(ref(db, `pantries/jason/routeHistory/${occurrenceId}`), {
         ...merged,
         completedAt:  Date.now(),
         completedBy:  volunteerName,

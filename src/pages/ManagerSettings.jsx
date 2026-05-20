@@ -5,6 +5,7 @@ import { X, Menu, AlertTriangle, Check } from "lucide-react";
 import { db } from "../firebase";
 import { ref, get, set, remove } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import { useAuth } from "../contexts/AuthContext";
 
 const DAY_OPTIONS = [
   { key: "monday",    label: "Mon" },
@@ -34,6 +35,7 @@ export default function ManagerSettings() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const sidebarMode = location.state?.mode ?? "pantry";
+  const { pantryId, updateProfile, logout, displayName: authDisplayName, initials: authInitials } = useAuth();
 
   // ── Profile state ──────────────────────────────────────────────────────────
   const [displayName,   setDisplayName]   = useState(DEFAULTS.displayName);
@@ -70,7 +72,7 @@ export default function ManagerSettings() {
   // ── Load from Firebase on mount ────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const snap = await get(ref(db, "appSettings"));
+      const snap = await get(ref(db, `pantries/${pantryId}/appSettings`));
       if (!snap.exists()) return;
       const data = snap.val();
       if (data.profile?.displayName) {
@@ -114,37 +116,34 @@ export default function ManagerSettings() {
         setProfileError("New passwords do not match.");
         return;
       }
-      await set(ref(db, "appSettings/auth/password"), newPw);
+      await set(ref(db, `pantries/${pantryId}/appSettings/auth/password`), newPw);
       setStoredPassword(newPw);
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
     }
 
     const derived = deriveInitials(displayName);
-    await set(ref(db, "appSettings/profile"), { displayName, initials: derived });
+    await set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived });
 
-    // Sync sidebar display
-    const nameEl = document.getElementById("sidebar-name");
-    const initEl = document.getElementById("sidebar-initials");
-    if (nameEl) nameEl.textContent = displayName;
-    if (initEl) initEl.textContent = derived;
+    // Sync sidebar and auth context
+    updateProfile({ displayName, initials: derived });
 
     showToast("Profile updated");
   }
 
   async function handleSaveApp() {
-    await set(ref(db, "appSettings/app"), { orgName, location: appLocation, deliveryDays });
+    await set(ref(db, `pantries/${pantryId}/appSettings/app`), { orgName, location: appLocation, deliveryDays });
     showToast("Settings saved");
   }
 
   async function handleReset(scope) {
     try {
       if (scope === "pantry" || scope === "all") {
-        await remove(ref(db, "tasks"));
-        await remove(ref(db, "completedTasks"));
+        await remove(ref(db, `pantries/${pantryId}/tasks`));
+        await remove(ref(db, `pantries/${pantryId}/completedTasks`));
       }
       if (scope === "delivery" || scope === "all") {
-        await remove(ref(db, "routeOccurrences"));
-        await remove(ref(db, "routeHistory"));
+        await remove(ref(db, `pantries/${pantryId}/routeOccurrences`));
+        await remove(ref(db, `pantries/${pantryId}/routeHistory`));
       }
       setShowResetModal(false);
       setResetScope(null);
@@ -219,10 +218,10 @@ export default function ManagerSettings() {
         <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">JB</span>
+              <span className="text-white text-[11px] font-semibold">{authInitials}</span>
             </div>
             <div>
-              <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+              <p className="text-white text-[13px] font-medium">{authDisplayName}</p>
               <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
             </div>
           </div>
@@ -273,14 +272,14 @@ export default function ManagerSettings() {
               <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">JB</span>
+                    <span className="text-white text-[12px] font-semibold">{authInitials}</span>
                   </div>
                   <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
+                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{authDisplayName}</p>
                     <p className="text-[#757575] text-[11px]">Operations Manager</p>
                   </div>
                 </div>
-                <button onClick={() => navigate("/")}
+                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
                   className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
                   Logout
                 </button>

@@ -19,7 +19,7 @@ function TaskTimer({ claimedAt }) {
 
 export default function MyTasks() {
   const navigate = useNavigate()
-  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks()
+  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks("jason")
   const [completing, setCompleting] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 

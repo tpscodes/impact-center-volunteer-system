@@ -170,12 +170,12 @@ const templates = [
   },
 ];
 
-const seedRouteTemplates = async (db) => {
-  const snapshot = await get(ref(db, "routeTemplates"));
+const seedRouteTemplates = async (db, pantryId) => {
+  const snapshot = await get(ref(db, `pantries/${pantryId}/routeTemplates`));
   if (snapshot.exists()) return; // already seeded, do nothing
 
   for (const template of templates) {
-    await set(ref(db, `routeTemplates/${template.id}`), {
+    await set(ref(db, `pantries/${pantryId}/routeTemplates/${template.id}`), {
       name:          template.name,
       dayOfWeek:     template.dayOfWeek,
       source:        template.source,
