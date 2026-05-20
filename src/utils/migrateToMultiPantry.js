@@ -12,13 +12,18 @@
 //        import { runMigration } from '../utils/migrateToMultiPantry';
 //        <button onClick={runMigration}>Run Migration</button>
 //
-// SAFE TO RE-RUN: exits immediately if /pantries/jason/tasks already exists.
+// SAFE TO RE-RUN: skips if pantries/jason/volunteers already has more than 10
+// entries (i.e. real volunteer data has been migrated). Using a count threshold
+// avoids a false-positive from the 5-entry placeholder seed that the app writes
+// on first load when no volunteers exist.
 // ROOT DATA IS PRESERVED — nothing at the root level is deleted.
 
 import { db } from '../firebase';
 import { ref, get, set } from 'firebase/database';
 
 // Root-level paths to copy into /pantries/jason/
+// NOTE: only real operational data is listed here — no placeholder or seed data
+// is created by this migration. Whatever exists at each root path is copied as-is.
 const ROOT_PATHS = [
   'tasks',
   'completedTasks',
@@ -35,10 +40,16 @@ const ROOT_PATHS = [
 export async function runMigration() {
   console.log('[Migration] Starting multi-pantry migration…');
 
-  // ── Guard: skip if already migrated ──────────────────────────────────────
-  const guardSnap = await get(ref(db, 'pantries/jason/tasks'));
-  if (guardSnap.exists()) {
-    console.log('[Migration] Already migrated — /pantries/jason/tasks exists. Skipping.');
+  // ── Guard: skip if pantries/jason/volunteers already has real data ────────
+  // A count > 10 means real volunteers have been migrated. The app seeds only
+  // 5 placeholder entries (IDs 1001–1005) on first load, so ≤ 10 means we
+  // should still run the migration to copy real root-level data.
+  const guardSnap = await get(ref(db, 'pantries/jason/volunteers'));
+  const existingCount = guardSnap.exists()
+    ? Object.keys(guardSnap.val()).length
+    : 0;
+  if (existingCount > 10) {
+    console.log(`[Migration] Already migrated — pantries/jason/volunteers has ${existingCount} entries. Skipping.`);
     return { skipped: true };
   }
 
