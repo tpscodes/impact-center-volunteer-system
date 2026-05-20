@@ -1,6 +1,7 @@
-// App.jsx — Complete routing with shared real-time sync
+// App.jsx — Complete routing with shared real-time sync + multi-pantry auth
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useSharedTasks } from "./hooks/useSharedTasks";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Pages
 import LandingPage from "./components/LandingPage";
@@ -24,18 +25,30 @@ import ManagerDeliveryHistory from "./pages/ManagerDeliveryHistory";
 import DeliveryTaskPool from "./pages/DeliveryTaskPool";
 import DeliveryRouteDetail from "./pages/DeliveryRouteDetail";
 import ManagerSettings from "./pages/ManagerSettings";
+import SteveOverview from "./pages/SteveOverview";
+
+// ── Protected route wrapper ───────────────────────────────────────────────────
+// Redirects to /login if no active session; shows nothing while loading.
+function RequireAuth({ children }) {
+  const { role, loading } = useAuth();
+  if (loading) return null;
+  if (!role) return <Navigate to="/login" replace />;
+  return children;
+}
 
 // ── Wrapper components that inject shared state ──────────────────────────────
 
 function ManagerDashboardWrapper() {
   const navigate = useNavigate();
-  const { tasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks();
+  const { pantryId } = useAuth();
+  const { tasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks(pantryId);
   return <ManagerDashboard tasks={tasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
 }
 
 function CreateTaskScreenWrapper() {
   const navigate = useNavigate();
-  const { createTask } = useSharedTasks();
+  const { pantryId } = useAuth();
+  const { createTask } = useSharedTasks(pantryId);
   return (
     <CreateTask
       onBack={() => navigate("/manager-tasks")}
@@ -58,7 +71,8 @@ function CreateTaskScreenWrapper() {
 }
 
 function DigitalBoardWrapper() {
-  const { tasks, synced, error } = useSharedTasks();
+  const { pantryId } = useAuth();
+  const { tasks, synced, error } = useSharedTasks(pantryId);
   return <DigitalBoard tasks={tasks} synced={synced} error={error} />;
 }
 
@@ -71,46 +85,53 @@ function NewVolunteerWrapper() {
 }
 
 // ── Router ───────────────────────────────────────────────────────────────────
+// AuthProvider is inside BrowserRouter so it can use useNavigate for logout.
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Landing */}
-        <Route path="/" element={<LandingPage />} />
+      <AuthProvider>
+        <Routes>
+          {/* Landing */}
+          <Route path="/" element={<LandingPage />} />
 
-        {/* Manager flow */}
-        <Route path="/manager-tasks" element={<ManagerTasksPage />} />
-        <Route path="/manager/login" element={<ManagerLogin />} />
-        <Route path="/manager/dashboard" element={<ManagerDashboardWrapper />} />
-        <Route path="/manager/tasks" element={<Navigate to="/manager-tasks" replace />} />
-        <Route path="/manager/create-task" element={<CreateTaskScreenWrapper />} />
-        <Route path="/manager/history" element={<TaskHistory />} />
-        <Route path="/manager-history" element={<ManagerHistory />} />
-        <Route path="/manager-volunteers" element={<ManagerVolunteers />} />
-        <Route path="/manager-delivery" element={<ManagerDelivery />} />
-        <Route path="/create-delivery-route" element={<CreateDeliveryRoute />} />
-        <Route path="/manager-delivery-routes" element={<ManagerDeliveryRoutes />} />
-        <Route path="/manager-delivery-volunteers" element={<ManagerDeliveryVolunteers />} />
-        <Route path="/manager-delivery-history" element={<ManagerDeliveryHistory />} />
-        <Route path="/delivery-task-pool" element={<DeliveryTaskPool />} />
-        <Route path="/delivery-route-detail" element={<DeliveryRouteDetail />} />
-        <Route path="/manager-settings" element={<ManagerSettings />} />
+          {/* Login — available at both /login and legacy /manager/login */}
+          <Route path="/login"          element={<ManagerLogin />} />
+          <Route path="/manager/login"  element={<ManagerLogin />} />
 
-        {/* Digital board (Prof. Amy's screen) */}
-        <Route path="/board" element={<DigitalBoardWrapper />} />
+          {/* Steve superadmin overview */}
+          <Route path="/steve-overview" element={<RequireAuth><SteveOverview /></RequireAuth>} />
 
-        {/* Experienced volunteer flow */}
-        <Route path="/volunteer-mode-select" element={<VolunteerModeSelect />} />
-        <Route path="/experienced" element={<VolunteerIdEntry />} />
-        <Route path="/experienced/tasks" element={<TaskPool />} />
-        <Route path="/experienced/mytask" element={<MyTaskWrapper />} />
+          {/* Manager routes — all protected */}
+          <Route path="/manager/dashboard"           element={<RequireAuth><ManagerDashboardWrapper /></RequireAuth>} />
+          <Route path="/manager/tasks"               element={<Navigate to="/manager-tasks" replace />} />
+          <Route path="/manager/create-task"         element={<RequireAuth><CreateTaskScreenWrapper /></RequireAuth>} />
+          <Route path="/manager/history"             element={<RequireAuth><TaskHistory /></RequireAuth>} />
+          <Route path="/manager-tasks"               element={<RequireAuth><ManagerTasksPage /></RequireAuth>} />
+          <Route path="/manager-history"             element={<RequireAuth><ManagerHistory /></RequireAuth>} />
+          <Route path="/manager-volunteers"          element={<RequireAuth><ManagerVolunteers /></RequireAuth>} />
+          <Route path="/manager-delivery"            element={<RequireAuth><ManagerDelivery /></RequireAuth>} />
+          <Route path="/create-delivery-route"       element={<RequireAuth><CreateDeliveryRoute /></RequireAuth>} />
+          <Route path="/manager-delivery-routes"     element={<RequireAuth><ManagerDeliveryRoutes /></RequireAuth>} />
+          <Route path="/manager-delivery-volunteers" element={<RequireAuth><ManagerDeliveryVolunteers /></RequireAuth>} />
+          <Route path="/manager-delivery-history"    element={<RequireAuth><ManagerDeliveryHistory /></RequireAuth>} />
+          <Route path="/delivery-task-pool"          element={<RequireAuth><DeliveryTaskPool /></RequireAuth>} />
+          <Route path="/delivery-route-detail"       element={<RequireAuth><DeliveryRouteDetail /></RequireAuth>} />
+          <Route path="/manager-settings"            element={<RequireAuth><ManagerSettings /></RequireAuth>} />
 
-        {/* New volunteer flow */}
-        <Route path="/new" element={<NewVolunteerWrapper />} />
+          {/* Digital board (Prof. Amy's screen — no auth required) */}
+          <Route path="/board" element={<DigitalBoardWrapper />} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Volunteer flows — no auth required */}
+          <Route path="/volunteer-mode-select" element={<VolunteerModeSelect />} />
+          <Route path="/experienced"           element={<VolunteerIdEntry />} />
+          <Route path="/experienced/tasks"     element={<TaskPool />} />
+          <Route path="/experienced/mytask"    element={<MyTaskWrapper />} />
+          <Route path="/new"                   element={<NewVolunteerWrapper />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

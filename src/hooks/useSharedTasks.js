@@ -1,6 +1,11 @@
 // useSharedTasks.js
 // Real-time shared state via Firebase Realtime Database.
 // onValue listeners push updates to all connected clients instantly.
+//
+// Signature: useSharedTasks(pantryId)
+//   pantryId: e.g. "jason" | "amber" — required.
+//   If null/undefined, returns empty no-op state (no Firebase subscription).
+//   All Firebase paths are scoped to pantries/${pantryId}/.
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "../firebase";
@@ -23,14 +28,12 @@ export const SEED_TASKS = [
   { id: "t4", name: "Rack 15 — Stock Beans", item: "Great Northern Beans (silver bags)", action: "Fill", source: "Donation bins in warehouse", destination: "Rack 15", comments: "Move peanut butter to Rack 18 first, then fill with beans", priority: "Urgent", estimatedTime: "~20 min", status: "available", assignedTo: "", assignedName: "", tags: ["Warehouse", "Sorting"], createdAt: Date.now() },
 ];
 
-// ── Firebase path helpers ─────────────────────────────────────────────────────
-// Firebase doesn't store arrays — tasks are keyed by task.id under "tasks/"
-// e.g. tasks/t1 = { id:"t1", name:..., ... }
+// ── Firebase serialisation helpers ───────────────────────────────────────────
+// Firebase doesn't store arrays — tasks are keyed by task.id
 
 function tasksToFirebase(tasksArray) {
   const obj = {};
   for (const t of tasksArray) {
-    // Firebase doesn't allow undefined values — strip them out
     const clean = {};
     for (const [k, v] of Object.entries(t)) {
       if (v !== undefined) clean[k] = v;
@@ -46,7 +49,6 @@ function tasksFromFirebase(snap) {
 }
 
 function completedTasksToFirebase(arr) {
-  // Store as object keyed by index-safe key (use completedAtMs or index)
   const obj = {};
   arr.forEach((entry, i) => {
     const key = entry.completedAtMs ? String(entry.completedAtMs) : String(i);
@@ -64,8 +66,9 @@ function completedTasksFromFirebase(snap) {
   return Object.values(snap).sort((a, b) => (a.completedAtMs || 0) - (b.completedAtMs || 0));
 }
 
-// ── Main hook ────────────────────────────────────────────────────────────────
-export function useSharedTasks() {
+// ── Main hook ─────────────────────────────────────────────────────────────────
+export function useSharedTasks(pantryId) {
+  // ── State ──────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState(SEED_TASKS);
   const [shiftLeader, _setShiftLeader] = useState(null);
   const [completedTasks, _setCompletedTasks] = useState([]);
@@ -74,28 +77,36 @@ export function useSharedTasks() {
   const [error, setError] = useState(false);
 
   // Ref mirrors so write callbacks always see current values without stale closures
-  const tasksRef = useRef(SEED_TASKS);
-  const slRef = useRef(null);
-  const ctRef = useRef([]);
-  const sessionRef = useRef(null);
-  const endTimerRef = useRef(null);
+  const tasksRef     = useRef(SEED_TASKS);
+  const slRef        = useRef(null);
+  const ctRef        = useRef([]);
+  const sessionRef   = useRef(null);
+  const endTimerRef  = useRef(null);
+  // pantryIdRef lets callbacks always read the latest pantryId without deps churn
+  const pantryIdRef  = useRef(pantryId);
 
-  function updateTasks(val) { tasksRef.current = val; setTasks(val); }
-  function updateShiftLeader(val) { slRef.current = val; _setShiftLeader(val); }
-  function updateCompletedTasks(val) { ctRef.current = val; _setCompletedTasks(val); }
-  function updateSession(val) { sessionRef.current = val; _setSession(val); }
+  useEffect(() => { pantryIdRef.current = pantryId; }, [pantryId]);
+
+  function updateTasks(val)          { tasksRef.current = val;     setTasks(val); }
+  function updateShiftLeader(val)    { slRef.current = val;        _setShiftLeader(val); }
+  function updateCompletedTasks(val) { ctRef.current = val;        _setCompletedTasks(val); }
+  function updateSession(val)        { sessionRef.current = val;   _setSession(val); }
 
   // ── Real-time listeners ───────────────────────────────────────────────────
   useEffect(() => {
-    // tasks/ listener
+    if (!pantryId) return; // no-op until pantryId is available
+
+    const base = `pantries/${pantryId}`;
+
+    // tasks listener
     const unsubTasks = onValue(
-      ref(db, "tasks"),
+      ref(db, `${base}/tasks`),
       (snap) => {
         const data = snap.val();
         if (data === null) {
           // First load — seed Firebase with default tasks
           const seed = SEED_TASKS.map(t => ({ ...t, createdAt: Date.now() }));
-          set(ref(db, "tasks"), tasksToFirebase(seed));
+          set(ref(db, `${base}/tasks`), tasksToFirebase(seed));
           updateTasks(seed);
         } else {
           const arr = tasksFromFirebase(data);
@@ -104,29 +115,26 @@ export function useSharedTasks() {
         setSynced(true);
         setError(false);
       },
-      (err) => {
-        console.error("Firebase tasks error:", err);
-        setError(true);
-      }
+      (err) => { console.error("Firebase tasks error:", err); setError(true); }
     );
 
-    // shiftLeader/ listener
+    // shiftLeader listener
     const unsubSL = onValue(
-      ref(db, "shiftLeader"),
+      ref(db, `${base}/shiftLeader`),
       (snap) => { updateShiftLeader(snap.val() || null); },
       (err) => { console.error("Firebase shiftLeader error:", err); }
     );
 
-    // completedTasks/ listener
+    // completedTasks listener
     const unsubCT = onValue(
-      ref(db, "completedTasks"),
+      ref(db, `${base}/completedTasks`),
       (snap) => { updateCompletedTasks(completedTasksFromFirebase(snap.val())); },
       (err) => { console.error("Firebase completedTasks error:", err); }
     );
 
     // session/current listener
     const unsubSession = onValue(
-      ref(db, "session/current"),
+      ref(db, `${base}/session/current`),
       (snap) => { updateSession(snap.val() || null); },
       (err) => { console.error("Firebase session error:", err); }
     );
@@ -137,7 +145,7 @@ export function useSharedTasks() {
       unsubCT();
       unsubSession();
     };
-  }, []);
+  }, [pantryId]);
 
   // Auto-end timed sessions when endTime is reached
   useEffect(() => {
@@ -145,7 +153,6 @@ export function useSharedTasks() {
     if (!session?.isActive || session.type !== "timed" || !session.endTime) return;
     const msLeft = session.endTime - Date.now();
     if (msLeft <= 0) {
-      // Already past end time — end immediately
       endSession();
       return;
     }
@@ -153,24 +160,24 @@ export function useSharedTasks() {
     return () => { if (endTimerRef.current) clearTimeout(endTimerRef.current); };
   }, [session?.isActive, session?.endTime]);
 
-  // ── Write helpers ─────────────────────────────────────────────────────────
+  // ── Write helpers (use pantryIdRef.current so they're always fresh) ────────
   async function writeTasks(arr) {
-    await set(ref(db, "tasks"), tasksToFirebase(arr));
+    await set(ref(db, `pantries/${pantryIdRef.current}/tasks`), tasksToFirebase(arr));
   }
 
   async function writeShiftLeader(sl) {
     if (sl === null) {
-      await remove(ref(db, "shiftLeader"));
+      await remove(ref(db, `pantries/${pantryIdRef.current}/shiftLeader`));
     } else {
-      await set(ref(db, "shiftLeader"), sl);
+      await set(ref(db, `pantries/${pantryIdRef.current}/shiftLeader`), sl);
     }
   }
 
   async function writeCompletedTasks(arr) {
     if (arr.length === 0) {
-      await remove(ref(db, "completedTasks"));
+      await remove(ref(db, `pantries/${pantryIdRef.current}/completedTasks`));
     } else {
-      await set(ref(db, "completedTasks"), completedTasksToFirebase(arr));
+      await set(ref(db, `pantries/${pantryIdRef.current}/completedTasks`), completedTasksToFirebase(arr));
     }
   }
 
@@ -220,7 +227,6 @@ export function useSharedTasks() {
     const isShiftLeaderTask = completedTask && (completedTask.tags || []).includes("Shift Leader");
     const newShiftLeader = isShiftLeaderTask ? null : slRef.current;
 
-    // Build history entry
     const now = new Date();
     const historyEntry = completedTask ? {
       id: completedTask.id,
@@ -243,7 +249,6 @@ export function useSharedTasks() {
     if (isShiftLeaderTask) updateShiftLeader(null);
     updateCompletedTasks(newCompletedTasks);
 
-    // Write all three paths in parallel
     await Promise.all([
       writeTasks(updated),
       writeShiftLeader(newShiftLeader),
@@ -255,8 +260,7 @@ export function useSharedTasks() {
   const deleteTask = useCallback(async (taskId) => {
     const updated = tasksRef.current.filter(t => t.id !== taskId);
     updateTasks(updated);
-    // Remove the specific task node rather than rewriting all tasks
-    await remove(ref(db, `tasks/${taskId}`));
+    await remove(ref(db, `pantries/${pantryIdRef.current}/tasks/${taskId}`));
   }, []);
 
   // Update a task's editable fields (manager only)
@@ -264,10 +268,10 @@ export function useSharedTasks() {
     const updated = tasksRef.current.map(t => t.id === taskId ? { ...t, ...updates } : t);
     updateTasks(updated);
     const task = updated.find(t => t.id === taskId);
-    if (task) await set(ref(db, `tasks/${taskId}`), task);
+    if (task) await set(ref(db, `pantries/${pantryIdRef.current}/tasks/${taskId}`), task);
   }, []);
 
-  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and new-vol fields
+  // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and volunteer fields
   const markTaskIncomplete = useCallback(async (taskId) => {
     const updated = tasksRef.current.map(t => {
       if (t.id !== taskId) return t;
@@ -292,8 +296,8 @@ export function useSharedTasks() {
     updateCompletedTasks([]);
     await Promise.all([
       writeTasks(fresh),
-      remove(ref(db, "shiftLeader")),
-      remove(ref(db, "completedTasks")),
+      remove(ref(db, `pantries/${pantryIdRef.current}/shiftLeader`)),
+      remove(ref(db, `pantries/${pantryIdRef.current}/completedTasks`)),
     ]);
   }, []);
 
@@ -307,13 +311,13 @@ export function useSharedTasks() {
   // Manually clear the shift leader
   const clearShiftLeader = useCallback(async () => {
     updateShiftLeader(null);
-    await remove(ref(db, "shiftLeader"));
+    await remove(ref(db, `pantries/${pantryIdRef.current}/shiftLeader`));
   }, []);
 
   // Clear all task history (manager only)
   const clearCompletedTasks = useCallback(async () => {
     updateCompletedTasks([]);
-    await remove(ref(db, "completedTasks"));
+    await remove(ref(db, `pantries/${pantryIdRef.current}/completedTasks`));
   }, []);
 
   // Start a session
@@ -329,14 +333,16 @@ export function useSharedTasks() {
       dayOfWeek,
       date,
     };
-    // Save session settings for this day so they pre-fill next time
     if (type === "timed" && startTime && endTime) {
       const startStr = new Date(startTime).toTimeString().slice(0, 5);
-      const endStr = new Date(endTime).toTimeString().slice(0, 5);
-      await set(ref(db, `sessionSettings/${dayOfWeek}`), { defaultStartTime: startStr, defaultEndTime: endStr });
+      const endStr   = new Date(endTime).toTimeString().slice(0, 5);
+      await set(
+        ref(db, `pantries/${pantryIdRef.current}/sessionSettings/${dayOfWeek}`),
+        { defaultStartTime: startStr, defaultEndTime: endStr }
+      );
     }
     updateSession(sessionData);
-    await set(ref(db, "session/current"), sessionData);
+    await set(ref(db, `pantries/${pantryIdRef.current}/session/current`), sessionData);
   }, []);
 
   // End a session — mark all in-progress/incomplete tasks as rolled over
@@ -352,9 +358,30 @@ export function useSharedTasks() {
     updateSession(closedSession);
     await Promise.all([
       writeTasks(updated),
-      set(ref(db, "session/current"), closedSession),
+      set(ref(db, `pantries/${pantryIdRef.current}/session/current`), closedSession),
     ]);
   }, []);
+
+  // ── Return empty no-op state if pantryId not yet available ────────────────
+  // (All hooks above are called unconditionally to satisfy Rules of Hooks)
+  if (!pantryId) {
+    return {
+      tasks: [], shiftLeader: null, completedTasks: [], session: null,
+      synced: false, error: false,
+      createTask:         async () => {},
+      claimTask:          async () => {},
+      completeTask:       async () => {},
+      deleteTask:         async () => {},
+      updateTask:         async () => {},
+      resetTasks:         async () => {},
+      setShiftLeader:     async () => {},
+      clearShiftLeader:   async () => {},
+      clearCompletedTasks: async () => {},
+      markTaskIncomplete: async () => {},
+      startSession:       async () => {},
+      endSession:         async () => {},
+    };
+  }
 
   return {
     tasks, shiftLeader, completedTasks, session, synced, error,
