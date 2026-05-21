@@ -66,7 +66,9 @@ export default function ManagerHistory() {
 
   const dateFiltered = sorted.filter(t => {
     const now = new Date();
-    const completedDate = new Date(t.completedAt);
+    const ts = t.completedAtMs || (typeof t.completedAt === "number" ? t.completedAt : 0);
+    if (!ts) return dateFilter === "All Time";
+    const completedDate = new Date(ts);
     if (dateFilter === "Today") return completedDate.toDateString() === now.toDateString();
     if (dateFilter === "This Week") {
       const startOfWeek = new Date(now);
@@ -91,7 +93,10 @@ export default function ManagerHistory() {
   });
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const todayCount       = sorted.filter(t => new Date(t.completedAt).toDateString() === new Date().toDateString()).length;
+  const todayCount       = sorted.filter(t => {
+    const ts = t.completedAtMs || (typeof t.completedAt === "number" ? t.completedAt : 0);
+    return ts && new Date(ts).toDateString() === new Date().toDateString();
+  }).length;
   const uniqueSessions   = new Set(sorted.map(t => t.sessionDate || "").filter(Boolean)).size;
   const uniqueVolunteers = new Set(
     sorted.map(t => t.completedBy || "").filter(v => v && v !== "Manager")
@@ -227,7 +232,7 @@ export default function ManagerHistory() {
                       </div>
                     )}
                     <div className="flex items-center gap-3 text-[#b3b3b3] text-[11px]">
-                      <span>{formatDate(entry.completedAt)}</span>
+                      <span>{formatDate(entry.completedAtMs || entry.completedAt)}</span>
                       {entry.sessionDate && <span>· {entry.sessionDate}</span>}
                     </div>
                   </div>
@@ -326,7 +331,7 @@ export default function ManagerHistory() {
                           <MapPin size={12} className="shrink-0 text-[#b3b3b3]" />
                           <span className="truncate">{location}</span>
                         </div>
-                        <p className="text-[#6b7280] text-[12px]">{formatDate(entry.completedAt)}</p>
+                        <p className="text-[#6b7280] text-[12px]">{formatDate(entry.completedAtMs || entry.completedAt)}</p>
                         <p className="text-[#6b7280] text-[12px]">{entry.sessionDate || "—"}</p>
                         <div>
                           <span className="bg-[#f0fff4] text-[#34c759] text-[11px] px-2 py-0.5 rounded-full">
