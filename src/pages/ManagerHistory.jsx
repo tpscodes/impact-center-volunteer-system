@@ -38,6 +38,12 @@ const TODAY_DISPLAY = new Date().toLocaleDateString("en-US", {
   weekday: "short", month: "short", day: "numeric", year: "numeric",
 });
 
+// Resolve who completed a task — falls back through legacy field names
+// so old Firebase entries (written before completedBy was standardised) still display correctly.
+function resolveCompletedBy(entry) {
+  return entry.completedBy || entry.claimedByName || entry.assignedName || entry.assignedTo || "";
+}
+
 function formatDate(timestamp) {
   if (!timestamp) return "—";
   const date = new Date(timestamp);
@@ -87,7 +93,7 @@ export default function ManagerHistory() {
     const q = searchQuery.toLowerCase();
     return !q ||
       t.name?.toLowerCase().includes(q) ||
-      t.completedBy?.toLowerCase().includes(q) ||
+      resolveCompletedBy(t).toLowerCase().includes(q) ||
       t.source?.toLowerCase().includes(q) ||
       t.destination?.toLowerCase().includes(q);
   });
@@ -99,7 +105,7 @@ export default function ManagerHistory() {
   }).length;
   const uniqueSessions   = new Set(sorted.map(t => t.sessionDate || "").filter(Boolean)).size;
   const uniqueVolunteers = new Set(
-    sorted.map(t => t.completedBy || "").filter(v => v && v !== "Manager")
+    sorted.map(t => resolveCompletedBy(t)).filter(v => v && v !== "Manager")
   ).size;
 
   const sessionBadge = session?.isActive
@@ -224,7 +230,7 @@ export default function ManagerHistory() {
                         Complete
                       </span>
                     </div>
-                    <p className="text-[#6b7280] text-[12px] mb-1">{entry.completedBy || "—"}</p>
+                    <p className="text-[#6b7280] text-[12px] mb-1">{resolveCompletedBy(entry) || "—"}</p>
                     {location && (
                       <div className="flex items-center gap-1 text-[#6b7280] text-[12px] mb-1">
                         <MapPin size={12} className="shrink-0" />
@@ -325,7 +331,7 @@ export default function ManagerHistory() {
                           {entry.name}
                         </p>
                         <p className="text-[#6b7280] text-[13px] truncate pr-3">
-                          {entry.completedBy || "—"}
+                          {resolveCompletedBy(entry) || "—"}
                         </p>
                         <div className="flex items-center gap-1 text-[#6b7280] text-[12px] pr-3 min-w-0">
                           <MapPin size={12} className="shrink-0 text-[#b3b3b3]" />
