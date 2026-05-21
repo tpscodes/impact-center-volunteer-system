@@ -202,7 +202,7 @@ export default function ManagerDeliveryRoutes() {
   }, [pantryId]);
 
   useEffect(() => {
-    return onValue(ref(db, `pantries/${pantryId}/volunteers`), snap => {
+    return onValue(ref(db, 'volunteers'), snap => {
       const data = snap.val();
       // Use Object.entries so the Firebase key is preserved as vol.id
       setVolunteers(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);

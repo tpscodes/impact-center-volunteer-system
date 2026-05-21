@@ -203,12 +203,12 @@ export default function ManagerDeliveryVolunteers() {
 
   // Firebase listeners
   useEffect(() => {
-    const unsub = onValue(ref(db, `pantries/${pantryId}/volunteers`), (snap) => {
+    const unsub = onValue(ref(db, 'volunteers'), (snap) => {
       const data = snap.val();
       setVolunteers(data ? Object.values(data) : []);
     });
     return () => unsub();
-  }, [pantryId]);
+  }, []);
 
   useEffect(() => {
     const unsub = onValue(ref(db, `pantries/${pantryId}/deliveryRoutes`), (snap) => {
@@ -253,16 +253,16 @@ export default function ManagerDeliveryVolunteers() {
 
   // Handlers
   async function handleRemoveDriverTag(vol) {
-    await set(ref(db, `pantries/${pantryId}/volunteers/${vol.id}/isDriver`), false);
+    await set(ref(db, `volunteers/${vol.id}/isDriver`), false);
   }
 
   async function handleRemoveVolunteer(vol) {
     if (!window.confirm(`Remove ${vol.name} from volunteers entirely?`)) return;
-    await remove(ref(db, `pantries/${pantryId}/volunteers/${vol.id}`));
+    await remove(ref(db, `volunteers/${vol.id}`));
   }
 
   async function handleAddDriver({ fullName, id, isPantry }) {
-    await set(ref(db, `pantries/${pantryId}/volunteers/${id}`), {
+    await set(ref(db, `volunteers/${id}`), {
       id,
       name:       fullName,
       active:     false,

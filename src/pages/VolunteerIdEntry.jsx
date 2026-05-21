@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useVolunteer } from '../context/VolunteerContext'
+import { db } from '../firebase'
+import { ref, onValue } from 'firebase/database'
 import { VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 
 export default function VolunteerIdEntry() {
   const navigate = useNavigate()
-  const { setVolunteerId } = useVolunteer()
   const [inputVal, setInputVal] = useState('')
   const [error, setError] = useState('')
+  const [firebaseVolunteers, setFirebaseVolunteers] = useState(null)
+
+  useEffect(() => {
+    const unsub = onValue(ref(db, 'volunteers'), (snap) => {
+      const data = snap.val()
+      if (data) setFirebaseVolunteers(Object.values(data))
+    })
+    return () => unsub()
+  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -16,13 +25,13 @@ export default function VolunteerIdEntry() {
       setError('Please enter all 4 digits.')
       return
     }
-    const profile = VOLUNTEER_PROFILES.find(p => p.id === id)
+    const roster = firebaseVolunteers || VOLUNTEER_PROFILES
+    const profile = roster.find(p => String(p.id) === String(id))
     if (!profile) {
       setError('ID not recognized. Please check with your session coordinator.')
       return
     }
-    setVolunteerId(profile.id)
-    sessionStorage.setItem('volunteerId', profile.id)
+    sessionStorage.setItem('volunteerId', String(profile.id))
     sessionStorage.setItem('volunteerName', profile.name)
     navigate('/experienced/tasks')
   }
