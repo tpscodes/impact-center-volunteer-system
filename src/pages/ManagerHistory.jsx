@@ -59,8 +59,8 @@ const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerHistory() {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
-  const { completedTasks, session } = useSharedTasks(pantryId);
+  const { activePantryId, role, displayName, initials, logout } = useAuth();
+  const { completedTasks, session } = useSharedTasks(activePantryId);
 
   const [searchQuery,        setSearchQuery]        = useState("");
   const [dateFilter,         setDateFilter]         = useState("Today");
@@ -370,7 +370,7 @@ export default function ManagerHistory() {
                 <X size={20} />
               </button>
             </div>
-            {pantryId !== 'amber' && (
+            {role !== 'superadmin' && activePantryId !== 'amber' && (
               <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
                 <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
                   Pantry

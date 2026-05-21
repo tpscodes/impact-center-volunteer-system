@@ -53,7 +53,7 @@ const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E
 
 export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
+  const { activePantryId, role, displayName, initials, logout } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 
@@ -89,7 +89,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
     setStartTimeStr(nowStr);
     setEndTimeStr("");
     setLoadingSettings(true);
-    get(ref(db, `pantries/${pantryId}/sessionSettings/${dayOfWeek}`)).then(snap => {
+    get(ref(db, `pantries/${activePantryId}/sessionSettings/${dayOfWeek}`)).then(snap => {
       const s = snap.val();
       if (s) {
         setStartTimeStr(s.defaultStartTime || nowStr);
@@ -215,8 +215,8 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               {/* Teal divider */}
               <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
 
-              {/* Mode toggle — hidden for Amber (pantry-only) */}
-              {pantryId !== 'amber' && (
+              {/* Mode toggle — hidden for Amber and Steve */}
+              {role !== 'superadmin' && activePantryId !== 'amber' && (
                 <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
                     Pantry
@@ -342,9 +342,14 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               )}
               {filtered.filter(t => t.status !== "complete").map(task => (
                 <div key={task.id} className="bg-[#f0fafa] border border-[#d1d5db] rounded-lg p-3">
-                  {/* Row 1: name + status */}
+                  {/* Row 1: name + steve badge + status */}
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[#0a2a3a] text-[15px] font-medium flex-1">{task.name || task.item}</p>
+                    <p className="text-[#0a2a3a] text-[15px] font-medium flex-1">
+                      {task.name || task.item}
+                      {task.modifiedBy === 'steve' && (
+                        <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
+                      )}
+                    </p>
                     <span className={`px-2 py-0.5 rounded-lg text-[12px] font-semibold shrink-0 ${
                       task.status === "in-progress" ? "bg-orange-100 text-[#ff9500]" :
                       task.status === "incomplete"  ? "bg-red-100 text-[#dc2626]" :
@@ -516,7 +521,12 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               className={`grid px-6 py-3 border-t border-[#e5e7ea] items-center text-[14px] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"}`}
               style={{ gridTemplateColumns: "1fr 1fr 100px 1fr 120px 200px" }}>
               <div className="flex flex-col gap-1">
-                <span className="text-[#0a2a3a] font-medium">{t.name || t.item}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[#0a2a3a] font-medium">{t.name || t.item}</span>
+                  {t.modifiedBy === 'steve' && (
+                    <span className="bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">Steve</span>
+                  )}
+                </div>
                 {t.tags && t.tags.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
                     {t.tags.map(tag => (

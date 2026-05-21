@@ -27,8 +27,8 @@ import DeliveryRouteDetail from "./pages/DeliveryRouteDetail";
 import ManagerSettings from "./pages/ManagerSettings";
 import SteveOverview from "./pages/SteveOverview";
 
-// ── Protected route wrapper ───────────────────────────────────────────────────
-// Redirects to /login if no active session; shows nothing while loading.
+// ── Protected route wrappers ──────────────────────────────────────────────────
+// RequireAuth: any authenticated user
 function RequireAuth({ children }) {
   const { role, loading } = useAuth();
   if (loading) return null;
@@ -36,19 +36,30 @@ function RequireAuth({ children }) {
   return children;
 }
 
+// RequireSuperAdmin: superadmin only; managers redirected to their dashboard
+function RequireSuperAdmin({ children }) {
+  const { role, loading } = useAuth();
+  if (loading) return null;
+  if (!role) return <Navigate to="/login" replace />;
+  if (role !== 'superadmin') return <Navigate to="/manager/dashboard" replace />;
+  return children;
+}
+
 // ── Wrapper components that inject shared state ──────────────────────────────
 
 function ManagerDashboardWrapper() {
   const navigate = useNavigate();
-  const { pantryId } = useAuth();
-  const { tasks, completedTasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks(pantryId);
+  const { activePantryId, role } = useAuth();
+  const modifiedBy = role === 'superadmin' ? 'steve' : undefined;
+  const { tasks, completedTasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks(activePantryId, { modifiedBy });
   return <ManagerDashboard tasks={tasks} completedTasks={completedTasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
 }
 
 function CreateTaskScreenWrapper() {
   const navigate = useNavigate();
-  const { pantryId } = useAuth();
-  const { createTask } = useSharedTasks(pantryId);
+  const { activePantryId, role } = useAuth();
+  const modifiedBy = role === 'superadmin' ? 'steve' : undefined;
+  const { createTask } = useSharedTasks(activePantryId, { modifiedBy });
   return (
     <CreateTask
       onBack={() => navigate("/manager-tasks")}
@@ -71,8 +82,8 @@ function CreateTaskScreenWrapper() {
 }
 
 function DigitalBoardWrapper() {
-  const { pantryId } = useAuth();
-  const { tasks, synced, error } = useSharedTasks(pantryId);
+  const { activePantryId } = useAuth();
+  const { tasks, synced, error } = useSharedTasks(activePantryId);
   return <DigitalBoard tasks={tasks} synced={synced} error={error} />;
 }
 
@@ -98,8 +109,8 @@ export default function App() {
           <Route path="/login"          element={<ManagerLogin />} />
           <Route path="/manager/login"  element={<ManagerLogin />} />
 
-          {/* Steve superadmin overview */}
-          <Route path="/steve-overview" element={<RequireAuth><SteveOverview /></RequireAuth>} />
+          {/* Steve superadmin overview — superadmin only */}
+          <Route path="/steve-overview" element={<RequireSuperAdmin><SteveOverview /></RequireSuperAdmin>} />
 
           {/* Manager routes — all protected */}
           <Route path="/manager/dashboard"           element={<RequireAuth><ManagerDashboardWrapper /></RequireAuth>} />

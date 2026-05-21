@@ -202,8 +202,9 @@ const MOBILE_TAGS = ['All', 'Warehouse', 'Kitchen', 'Clothing', 'Freezer', 'Frid
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const { pantryId, displayName, initials, logout } = useAuth()
-  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(pantryId)
+  const { activePantryId, role, displayName, initials, logout } = useAuth()
+  const modifiedBy = role === 'superadmin' ? 'steve' : undefined
+  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(activePantryId, { modifiedBy })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -318,7 +319,7 @@ export default function ManagerTasks() {
                   <X size={20} />
                 </button>
               </div>
-              {pantryId !== 'amber' && (
+              {role !== 'superadmin' && activePantryId !== 'amber' && (
                 <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
                     Pantry
@@ -439,6 +440,9 @@ export default function ManagerTasks() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <p className="text-[#0a2a3a] text-[14px] font-semibold leading-snug flex-1">
                     {task.name || task.item}
+                    {task.modifiedBy === 'steve' && (
+                      <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
+                    )}
                   </p>
                   {task.priority && (
                     <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${getPriorityStyle(task.priority)}`}>
@@ -602,7 +606,12 @@ export default function ManagerTasks() {
 
                   {/* Name + priority */}
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">{task.name || task.item}</p>
+                    <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">
+                      {task.name || task.item}
+                      {task.modifiedBy === 'steve' && (
+                        <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
+                      )}
+                    </p>
                     {task.priority && (
                       <span className={`text-[12px] font-semibold px-3 py-1 rounded-full shrink-0 ${getPriorityStyle(task.priority)}`}>
                         {task.priority}

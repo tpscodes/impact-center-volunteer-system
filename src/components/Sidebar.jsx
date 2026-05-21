@@ -1,7 +1,9 @@
 // Sidebar.jsx — Reusable desktop manager sidebar
+// When role === 'superadmin', renders SidebarSteve instead.
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, ClipboardList, Users, Clock, Truck, UserCheck, Settings } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import SidebarSteve from "./SidebarSteve";
 
 const PANTRY_NAV = [
   { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard, disabled: false },
@@ -19,7 +21,11 @@ const DELIVERY_NAV = [
 
 export default function Sidebar({ mode, activePath }) {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
+  const { pantryId, activePantryId, role, displayName, initials, logout } = useAuth();
+
+  // Steve (superadmin) gets his own sidebar — all manager pages auto-inherit it
+  if (role === 'superadmin') return <SidebarSteve />;
+
   const navItems = mode === "delivery" ? DELIVERY_NAV : PANTRY_NAV;
 
   return (
@@ -33,7 +39,7 @@ export default function Sidebar({ mode, activePath }) {
       </div>
 
       {/* Pantry / Delivery toggle — hidden for Amber (pantry-only) */}
-      {pantryId !== 'amber' && (
+      {role !== 'superadmin' && activePantryId !== 'amber' && (
         <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
           <button
             onClick={() => navigate("/manager/dashboard")}
