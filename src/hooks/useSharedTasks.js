@@ -67,7 +67,9 @@ function completedTasksFromFirebase(snap) {
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
-export function useSharedTasks(pantryId) {
+// pantryId:  e.g. "jason" | "amber" — required.
+// options:   { modifiedBy?: string } — when provided, tags task writes with that identifier.
+export function useSharedTasks(pantryId, { modifiedBy } = {}) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState([]);
   const [shiftLeader, _setShiftLeader] = useState(null);
@@ -212,6 +214,7 @@ export function useSharedTasks(pantryId) {
       assignedName: taskData.assignedName || "",
       tags: taskData.tags || [],
       createdAt: Date.now(),
+      ...(modifiedBy ? { modifiedBy } : {}),
     };
     const updated = [...tasksRef.current, newTask];
     updateTasks(updated);
@@ -250,6 +253,7 @@ export function useSharedTasks(pantryId) {
       completedAt: now.getTime(),
       completedAtMs: now.getTime(),
       sessionDate: now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+      ...(modifiedBy ? { modifiedBy } : {}),
     } : null;
 
     const newCompletedTasks = historyEntry
@@ -280,11 +284,12 @@ export function useSharedTasks(pantryId) {
 
   // Update a task's editable fields (manager only)
   const updateTask = useCallback(async (taskId, updates) => {
-    const updated = tasksRef.current.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    const withMod = modifiedBy ? { ...updates, modifiedBy } : updates;
+    const updated = tasksRef.current.map(t => t.id === taskId ? { ...t, ...withMod } : t);
     updateTasks(updated);
     const task = updated.find(t => t.id === taskId);
     if (task) await set(ref(db, `pantries/${pantryIdRef.current}/tasks/${taskId}`), task);
-  }, []);
+  }, [modifiedBy]);
 
   // Mark a task as incomplete — clears assignedTo/assignedName/claimedAt and volunteer fields
   const markTaskIncomplete = useCallback(async (taskId) => {

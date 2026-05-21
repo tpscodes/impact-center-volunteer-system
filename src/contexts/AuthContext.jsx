@@ -1,9 +1,13 @@
 // src/contexts/AuthContext.jsx
 //
-// Provides: { pantryId, role, displayName, initials, login, logout, loading }
-//   role:     "manager" | "superadmin"
-//   pantryId: "jason" | "amber" | null  (superadmin has no pantryId)
-//   loading:  true while rehydrating from localStorage on first mount
+// Provides: { pantryId, activePantryId, role, displayName, initials,
+//             login, logout, loading, updateProfile, switchPantry }
+//
+//   role:           "manager" | "superadmin"
+//   pantryId:       "jason" | "amber" | null  (superadmin has no pantryId)
+//   activePantryId: the pantry currently being managed
+//                   — for managers: always equals pantryId
+//                   — for Steve (superadmin): set via switchPantry(), starts null
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,11 +25,12 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   const [authState, setAuthState] = useState({
-    pantryId:    null,
-    role:        null,
-    displayName: null,
-    initials:    null,
-    loading:     true,
+    pantryId:       null,
+    activePantryId: null,
+    role:           null,
+    displayName:    null,
+    initials:       null,
+    loading:        true,
   });
 
   // ── Rehydrate from localStorage on mount ───────────────────────────────────
@@ -45,11 +50,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── login ───────────────────────────────────────────────────────────────────
-  // Returns auth data on success; throws Error("Invalid credentials") on failure.
   async function login(username, password) {
     const lowerUser = username.trim().toLowerCase();
 
-    // 1. Try every pantry's auth record (post-migration path)
     for (const id of PANTRY_IDS) {
       const snap = await get(ref(db, `pantries/${id}/appSettings/auth`));
       if (!snap.exists()) continue;
@@ -58,38 +61,40 @@ export function AuthProvider({ children }) {
       const storedUsername = (auth.username || '').toLowerCase();
       if (storedUsername !== lowerUser) continue;
 
-      // Username matched — verify password
-      const storedPassword = auth.password || 'admin'; // default 'admin' for Jason
+      const storedPassword = auth.password || 'admin';
       if (password !== storedPassword) {
-        // Username matched but password wrong — fail immediately, don't try others
         throw new Error('Invalid credentials');
       }
 
+      const isSuperAdmin = auth.role === 'superadmin';
+      const ownPantryId  = isSuperAdmin ? null : (auth.pantryId || id);
+
       const data = {
-        pantryId:    auth.role === 'superadmin' ? null : (auth.pantryId || id),
-        role:        auth.role || 'manager',
-        displayName: auth.displayName || auth.username || id,
-        initials:    auth.initials ||
-                     (auth.displayName || id).slice(0, 2).toUpperCase(),
-        loading:     false,
+        pantryId:       ownPantryId,
+        activePantryId: ownPantryId,   // superadmin starts with null; managers mirror pantryId
+        role:           auth.role || 'manager',
+        displayName:    auth.displayName || auth.username || id,
+        initials:       auth.initials ||
+                        (auth.displayName || id).slice(0, 2).toUpperCase(),
+        loading:        false,
       };
       setAuthState(data);
       localStorage.setItem(LS_KEY, JSON.stringify(data));
       return data;
     }
 
-    // 2. Legacy fallback: root appSettings/auth/password (pre-migration)
-    //    Allows Jason to log in even before the migration has been run.
+    // Legacy fallback for Jason
     if (lowerUser === 'admin') {
       const snap = await get(ref(db, 'appSettings/auth/password'));
       const storedPassword = snap.exists() ? snap.val() : 'admin';
       if (password === storedPassword || password === 'admin') {
         const data = {
-          pantryId:    'jason',
-          role:        'manager',
-          displayName: 'Jason Bratina',
-          initials:    'JB',
-          loading:     false,
+          pantryId:       'jason',
+          activePantryId: 'jason',
+          role:           'manager',
+          displayName:    'Jason Bratina',
+          initials:       'JB',
+          loading:        false,
         };
         setAuthState(data);
         localStorage.setItem(LS_KEY, JSON.stringify(data));
@@ -100,9 +105,16 @@ export function AuthProvider({ children }) {
     throw new Error('Invalid credentials');
   }
 
+  // ── switchPantry ────────────────────────────────────────────────────────────
+  // Only meaningful for superadmin. Sets the pantry all manager screens read from.
+  function switchPantry(pantryId) {
+    if (authState.role !== 'superadmin') return;
+    const updated = { ...authState, activePantryId: pantryId, loading: false };
+    setAuthState(updated);
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+  }
+
   // ── updateProfile ───────────────────────────────────────────────────────────
-  // Called by ManagerSettings after a successful profile save so Sidebar reflects
-  // the new name/initials immediately without requiring a page refresh.
   function updateProfile({ displayName, initials }) {
     const updated = { ...authState, displayName, initials, loading: false };
     setAuthState(updated);
@@ -112,11 +124,12 @@ export function AuthProvider({ children }) {
   // ── logout ──────────────────────────────────────────────────────────────────
   function logout() {
     setAuthState({
-      pantryId:    null,
-      role:        null,
-      displayName: null,
-      initials:    null,
-      loading:     false,
+      pantryId:       null,
+      activePantryId: null,
+      role:           null,
+      displayName:    null,
+      initials:       null,
+      loading:        false,
     });
     localStorage.removeItem(LS_KEY);
     navigate('/login');
@@ -124,14 +137,16 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      pantryId:    authState.pantryId,
-      role:        authState.role,
-      displayName: authState.displayName,
-      initials:    authState.initials,
-      loading:       authState.loading,
+      pantryId:       authState.pantryId,
+      activePantryId: authState.activePantryId,
+      role:           authState.role,
+      displayName:    authState.displayName,
+      initials:       authState.initials,
+      loading:        authState.loading,
       login,
       logout,
       updateProfile,
+      switchPantry,
     }}>
       {children}
     </AuthContext.Provider>
