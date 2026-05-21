@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ClipboardList } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
+import { useAuth } from "../contexts/AuthContext";
 
 const TODAY_LABEL = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
@@ -17,7 +18,8 @@ function isToday(ms) {
 
 export default function TaskHistory() {
   const navigate = useNavigate();
-  const { completedTasks, synced, error, session } = useSharedTasks("jason");
+  const { pantryId, displayName, initials, logout } = useAuth();
+  const { completedTasks, synced, error, session } = useSharedTasks(pantryId);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("Today");
@@ -85,14 +87,14 @@ export default function TaskHistory() {
         <div className="mt-auto px-4 pb-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-              <span className="text-white text-[12px] font-semibold">JB</span>
+              <span className="text-white text-[12px] font-semibold">{initials}</span>
             </div>
             <div>
-              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">Jason Bratina</p>
+              <p className="text-[#b3b3b3] text-[13px] font-semibold leading-tight">{displayName}</p>
               <p className="text-[#757575] text-[11px] leading-tight">Operations Manager</p>
             </div>
           </div>
-          <button onClick={() => navigate("/")}
+          <button onClick={logout}
             className="text-[#dc2626] text-[10px] mt-2 ml-12 hover:underline bg-transparent border-none cursor-pointer">
             Logout
           </button>

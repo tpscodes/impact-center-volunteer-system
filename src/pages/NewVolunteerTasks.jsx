@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import { MapPin, ChevronRight } from "lucide-react";
+import { PANTRY_ID } from "../config";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -15,7 +16,7 @@ function formatDisplayName(first, last) {
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks("jason");
+  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks(PANTRY_ID);
 
   // ── Name entry state ─────────────────────────────────────────────────────────
   const savedName = (() => {
