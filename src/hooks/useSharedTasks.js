@@ -69,7 +69,7 @@ function completedTasksFromFirebase(snap) {
 // ── Main hook ─────────────────────────────────────────────────────────────────
 export function useSharedTasks(pantryId) {
   // ── State ──────────────────────────────────────────────────────────────────
-  const [tasks, setTasks] = useState(SEED_TASKS);
+  const [tasks, setTasks] = useState([]);
   const [shiftLeader, _setShiftLeader] = useState(null);
   const [completedTasks, _setCompletedTasks] = useState([]);
   const [session, _setSession] = useState(null);
@@ -77,7 +77,7 @@ export function useSharedTasks(pantryId) {
   const [error, setError] = useState(false);
 
   // Ref mirrors so write callbacks always see current values without stale closures
-  const tasksRef     = useRef(SEED_TASKS);
+  const tasksRef     = useRef([]);
   const slRef        = useRef(null);
   const ctRef        = useRef([]);
   const sessionRef   = useRef(null);
@@ -104,13 +104,10 @@ export function useSharedTasks(pantryId) {
       (snap) => {
         const data = snap.val();
         if (data === null) {
-          // First load — seed Firebase with default tasks
-          const seed = SEED_TASKS.map(t => ({ ...t, createdAt: Date.now() }));
-          set(ref(db, `${base}/tasks`), tasksToFirebase(seed));
-          updateTasks(seed);
+          // No tasks in Firebase — start with empty list, wait for manager to create tasks
+          updateTasks([]);
         } else {
-          const arr = tasksFromFirebase(data);
-          updateTasks(arr && arr.length > 0 ? arr : SEED_TASKS);
+          updateTasks(tasksFromFirebase(data) || []);
         }
         setSynced(true);
         setError(false);

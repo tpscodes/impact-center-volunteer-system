@@ -133,7 +133,7 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
-  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const volunteerId = sessionStorage.getItem("volunteerId") || "";
   const volunteerName = sessionStorage.getItem("volunteerName") || `Vol #${volunteerId}`;
 
   // Show: available tasks + tasks assigned to me
@@ -245,7 +245,7 @@ export function MyTask() {
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
-  const volunteerId = sessionStorage.getItem("volunteerId") || "1234";
+  const volunteerId = sessionStorage.getItem("volunteerId") || "";
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
 
   // Only show shift leader panel if they have actively claimed the Shift Leader task

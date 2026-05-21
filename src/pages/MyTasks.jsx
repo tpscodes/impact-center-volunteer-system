@@ -24,7 +24,7 @@ export default function MyTasks() {
   const [completing, setCompleting] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 
-  const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
+  const volunteerId = sessionStorage.getItem('volunteerId') || ''
   const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId)
   const isProfileShiftLeader = volunteerProfile?.isShiftLeader || false
 
