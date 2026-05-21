@@ -1,10 +1,9 @@
 // ExperiencedVolunteer flows: ID entry → Task Pool → My Task → Complete
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
-import { PANTRY_ID } from "../config";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -241,7 +240,9 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
 // ── My Task Screen ───────────────────────────────────────────────────────────
 export function MyTask() {
   const navigate = useNavigate();
-  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks(PANTRY_ID);
+  const location = useLocation();
+  const pantryId = new URLSearchParams(location.search).get('pantry') || 'jason';
+  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks(pantryId);
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
@@ -273,7 +274,7 @@ export function MyTask() {
   async function handleUnclaim() {
     if (!myTask) return;
     await markTaskIncomplete(myTask.id);
-    navigate("/experienced/tasks");
+    navigate(`/task-pool?pantry=${pantryId}`);
   }
 
   async function handleComplete() {
@@ -283,7 +284,7 @@ export function MyTask() {
     const completedBy = myTask.assignedName || sessionStorage.getItem("volunteerName") || volunteerId;
     await completeTask(myTask.id, completedBy);
     if (isShiftLeaderTask) await clearShiftLeader();
-    setTimeout(() => navigate("/experienced/tasks"), 1200);
+    setTimeout(() => navigate(`/task-pool?pantry=${pantryId}`), 1200);
   }
 
   return (
@@ -325,7 +326,7 @@ export function MyTask() {
             </p>
             {!completing && (
               <button
-                onClick={() => navigate("/experienced/tasks")}
+                onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
                 className="px-6 py-3 bg-[#09665e] text-white rounded-xl text-[14px] font-semibold border-none cursor-pointer hover:opacity-90"
               >
                 ← Back to Tasks
@@ -392,7 +393,7 @@ export function MyTask() {
 
             {/* Back link */}
             <button
-              onClick={() => navigate("/experienced/tasks")}
+              onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
               className="text-center text-[#6b7280] text-[14px] py-2 hover:underline bg-transparent border-none cursor-pointer"
             >
               ← Back to Task Pool
@@ -449,7 +450,7 @@ export function MyTask() {
       {/* Bottom tab bar */}
       <div className="bg-white border-t border-[#e5e7eb] h-14 flex items-center shrink-0">
         <button
-          onClick={() => navigate("/experienced/tasks")}
+          onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
           className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#6b7280] bg-transparent border-none cursor-pointer"
         >
           <span className="text-[18px]">📋</span>

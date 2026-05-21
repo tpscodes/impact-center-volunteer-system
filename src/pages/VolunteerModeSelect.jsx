@@ -42,7 +42,7 @@ export default function VolunteerModeSelect() {
 
           {/* Pantry card */}
           <button
-            onClick={() => navigate("/experienced/tasks")}
+            onClick={() => navigate("/task-pool?pantry=jason")}
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
             <ClipboardList size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Pantry Operations</p>
@@ -60,7 +60,7 @@ export default function VolunteerModeSelect() {
 
           {/* Clothing card */}
           <button
-            onClick={() => navigate("/experienced/tasks", { state: { volunteer } })}
+            onClick={() => navigate("/task-pool?pantry=amber")}
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
             <Shirt size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Clothing Section</p>

@@ -126,6 +126,7 @@ export default function App() {
           <Route path="/volunteer-mode-select" element={<VolunteerModeSelect />} />
           <Route path="/experienced"           element={<VolunteerIdEntry />} />
           <Route path="/experienced/tasks"     element={<TaskPool />} />
+          <Route path="/task-pool"             element={<TaskPool />} />
           <Route path="/experienced/mytask"    element={<MyTaskWrapper />} />
           <Route path="/new"                   element={<NewVolunteerWrapper />} />
 
