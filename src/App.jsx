@@ -114,8 +114,9 @@ export default function App() {
           <Route path="/manager-delivery-routes"     element={<RequireAuth><ManagerDeliveryRoutes /></RequireAuth>} />
           <Route path="/manager-delivery-volunteers" element={<RequireAuth><ManagerDeliveryVolunteers /></RequireAuth>} />
           <Route path="/manager-delivery-history"    element={<RequireAuth><ManagerDeliveryHistory /></RequireAuth>} />
-          <Route path="/delivery-task-pool"          element={<RequireAuth><DeliveryTaskPool /></RequireAuth>} />
-          <Route path="/delivery-route-detail"       element={<RequireAuth><DeliveryRouteDetail /></RequireAuth>} />
+          {/* Volunteer-facing delivery screens — no auth required */}
+          <Route path="/delivery-task-pool"          element={<DeliveryTaskPool />} />
+          <Route path="/delivery-route-detail"       element={<DeliveryRouteDetail />} />
           <Route path="/manager-settings"            element={<RequireAuth><ManagerSettings /></RequireAuth>} />
 
           {/* Digital board (Prof. Amy's screen — no auth required) */}
