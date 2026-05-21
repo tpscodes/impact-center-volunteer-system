@@ -71,6 +71,7 @@ export default function ManagerSettings() {
 
   // ── Load from Firebase on mount ────────────────────────────────────────────
   useEffect(() => {
+    if (!pantryId) return;
     async function load() {
       const snap = await get(ref(db, `pantries/${pantryId}/appSettings`));
       if (!snap.exists()) return;
@@ -82,10 +83,19 @@ export default function ManagerSettings() {
       if (data.auth?.password)  setStoredPassword(data.auth.password);
       if (data.app?.orgName)    setOrgName(data.app.orgName);
       if (data.app?.location)   setAppLocation(data.app.location);
-      if (data.app?.deliveryDays) setDeliveryDays(data.app.deliveryDays);
+      if (data.app?.deliveryDays) {
+        const dd = data.app.deliveryDays;
+        // Firebase may store deliveryDays as an object { monday: true, ... }
+        // or as an array ["monday", ...] — normalise to array either way.
+        if (Array.isArray(dd)) {
+          setDeliveryDays(dd);
+        } else if (dd && typeof dd === "object") {
+          setDeliveryDays(Object.entries(dd).filter(([, v]) => v).map(([k]) => k));
+        }
+      }
     }
     load();
-  }, []);
+  }, [pantryId]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function handleDisplayNameChange(val) {
