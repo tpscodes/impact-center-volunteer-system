@@ -145,12 +145,12 @@ export default function ManagerVolunteers() {
   // ── Firebase real-time listener ────────────────────────────────────────────
   useEffect(() => {
     const unsub = onValue(
-      ref(db, `pantries/${pantryId}/volunteers`),
+      ref(db, 'volunteers'),
       (snap) => {
         const data = snap.val();
         if (data === null) {
           // First load — seed Firebase with default volunteers
-          set(ref(db, `pantries/${pantryId}/volunteers`), volunteersToFirebase(SEED_VOLUNTEERS));
+          set(ref(db, 'volunteers'), volunteersToFirebase(SEED_VOLUNTEERS));
           setVolunteers(SEED_VOLUNTEERS);
         } else {
           const arr = volunteersFromFirebase(data);
@@ -210,7 +210,7 @@ export default function ManagerVolunteers() {
   async function handleRemoveVolunteer(id) {
     const updated = volunteers.filter(v => v.id !== id);
     setVolunteers(updated);
-    await remove(ref(db, `pantries/${pantryId}/volunteers/${id}`));
+    await remove(ref(db, `volunteers/${id}`));
   }
 
   function handleEditOpen(volunteer) {
@@ -228,7 +228,7 @@ export default function ManagerVolunteers() {
       return;
     }
     try {
-      await update(ref(db, `pantries/${pantryId}/volunteers/${editingVolunteer.id}`), {
+      await update(ref(db, `volunteers/${editingVolunteer.id}`), {
         name: editName.trim(),
         isDriver: editIsDriver,
         active: editIsActive,
@@ -242,9 +242,8 @@ export default function ManagerVolunteers() {
 
   async function handleAddVolunteer({ fullName, id, isDriver }) {
     const newVol = { id, name: fullName, active: false, lastActive: null, isDriver };
-    const updated = [...volunteers, newVol];
-    setVolunteers(updated);
-    await set(ref(db, `pantries/${pantryId}/volunteers`), volunteersToFirebase(updated));
+    setVolunteers(prev => [...prev, newVol]);
+    await set(ref(db, `volunteers/${id}`), newVol);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────

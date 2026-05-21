@@ -17,7 +17,7 @@ export function VolunteerIdEntry() {
 
   // Load the live volunteer roster from Firebase (populated by ManagerVolunteers)
   useEffect(() => {
-    const unsub = onValue(ref(db, `pantries/${PANTRY_ID}/volunteers`), (snap) => {
+    const unsub = onValue(ref(db, 'volunteers'), (snap) => {
       const data = snap.val();
       if (data) setFirebaseVolunteers(Object.values(data));
     });

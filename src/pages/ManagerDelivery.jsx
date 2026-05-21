@@ -112,7 +112,7 @@ export default function ManagerDelivery() {
   }, [pantryId]);
 
   useEffect(() => {
-    const unsub = onValue(ref(db, `pantries/${pantryId}/volunteers`), (snap) => {
+    const unsub = onValue(ref(db, 'volunteers'), (snap) => {
       const data = snap.val();
       if (data) {
         setDrivers(Object.values(data).filter(v => v.isDriver === true));
