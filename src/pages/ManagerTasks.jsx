@@ -318,15 +318,17 @@ export default function ManagerTasks() {
                   <X size={20} />
                 </button>
               </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-                  Pantry
-                </button>
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                  Delivery
-                </button>
-              </div>
+              {pantryId !== 'amber' && (
+                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
+                    Pantry
+                  </button>
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+                    Delivery
+                  </button>
+                </div>
+              )}
               <nav className="flex flex-col py-2">
                 {[
                   { label: "Dashboard", path: "/manager/dashboard",  active: false },

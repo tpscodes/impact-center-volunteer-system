@@ -284,16 +284,18 @@ export default function ManagerVolunteers() {
                   <X size={20} />
                 </button>
               </div>
-              {/* Mode toggle */}
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
-                  Pantry
-                </button>
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
-                  Delivery
-                </button>
-              </div>
+              {/* Mode toggle — hidden for Amber (pantry-only) */}
+              {pantryId !== 'amber' && (
+                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
+                    Pantry
+                  </button>
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
+                    Delivery
+                  </button>
+                </div>
+              )}
 
               <nav className="flex flex-col py-2">
                 {[
