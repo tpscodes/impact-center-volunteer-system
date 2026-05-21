@@ -38,6 +38,16 @@ const TODAY_DISPLAY = new Date().toLocaleDateString("en-US", {
   weekday: "short", month: "short", day: "numeric", year: "numeric",
 });
 
+function formatDate(timestamp) {
+  if (!timestamp) return "—";
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  }) + " " + date.toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+
 const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -54,15 +64,20 @@ export default function ManagerHistory() {
   // ── Sorting + filtering ────────────────────────────────────────────────────
   const sorted = [...completedTasks].sort((a, b) => (b.completedAtMs || 0) - (a.completedAtMs || 0));
 
-  const todayStr = getTodayStr();
-  const { start: weekStart, end: weekEnd } = getWeekRange();
-  const { start: monthStart, end: monthEnd } = getMonthRange();
-
   const dateFiltered = sorted.filter(t => {
-    const d = msToDateStr(t.completedAtMs);
-    if (dateFilter === "Today")      return d === todayStr;
-    if (dateFilter === "This Week")  return d >= weekStart && d <= weekEnd;
-    if (dateFilter === "This Month") return d >= monthStart && d <= monthEnd;
+    const now = new Date();
+    const completedDate = new Date(t.completedAt);
+    if (dateFilter === "Today") return completedDate.toDateString() === now.toDateString();
+    if (dateFilter === "This Week") {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      return completedDate >= startOfWeek;
+    }
+    if (dateFilter === "This Month") {
+      return completedDate.getMonth() === now.getMonth() &&
+             completedDate.getFullYear() === now.getFullYear();
+    }
     return true; // All Time
   });
 
@@ -76,7 +91,7 @@ export default function ManagerHistory() {
   });
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const todayCount       = sorted.filter(t => msToDateStr(t.completedAtMs) === todayStr).length;
+  const todayCount       = sorted.filter(t => new Date(t.completedAt).toDateString() === new Date().toDateString()).length;
   const uniqueSessions   = new Set(sorted.map(t => t.sessionDate || "").filter(Boolean)).size;
   const uniqueVolunteers = new Set(
     sorted.map(t => t.completedBy || "").filter(v => v && v !== "Manager")
@@ -212,7 +227,7 @@ export default function ManagerHistory() {
                       </div>
                     )}
                     <div className="flex items-center gap-3 text-[#b3b3b3] text-[11px]">
-                      <span>{entry.completedAt || ""}</span>
+                      <span>{formatDate(entry.completedAt)}</span>
                       {entry.sessionDate && <span>· {entry.sessionDate}</span>}
                     </div>
                   </div>
@@ -311,7 +326,7 @@ export default function ManagerHistory() {
                           <MapPin size={12} className="shrink-0 text-[#b3b3b3]" />
                           <span className="truncate">{location}</span>
                         </div>
-                        <p className="text-[#6b7280] text-[12px]">{entry.completedAt || "—"}</p>
+                        <p className="text-[#6b7280] text-[12px]">{formatDate(entry.completedAt)}</p>
                         <p className="text-[#6b7280] text-[12px]">{entry.sessionDate || "—"}</p>
                         <div>
                           <span className="bg-[#f0fff4] text-[#34c759] text-[11px] px-2 py-0.5 rounded-full">
