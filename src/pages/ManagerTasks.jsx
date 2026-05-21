@@ -250,6 +250,11 @@ export default function ManagerTasks() {
   const volunteersActive = [...new Set(tasks.filter(t => t.assignedTo).map(t => t.assignedTo))].length
   const isSessionActive = session?.isActive
 
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const completedToday = (completedTasks || []).filter(t =>
+    t.completedAtMs && new Date(t.completedAtMs).toISOString().slice(0, 10) === todayIso
+  ).length
+
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 
   const activeTasks_ = tasks.filter(t => t.status !== 'complete')
@@ -271,10 +276,10 @@ export default function ManagerTasks() {
   filteredTasks.sort((a, b) => (statusOrder[a.status] ?? 2) - (statusOrder[b.status] ?? 2));
 
   const STATS = [
-    { label: 'Active Tasks',     value: activeTasks,               color: '#0d9488' },
-    { label: 'In Progress',      value: inProgressTasks,           color: '#ff9500' },
-    { label: 'Completed Today',  value: completedTasks?.length || 0, color: '#34c759' },
-    { label: 'Volunteers Active',value: volunteersActive,          color: '#0a2a3a' },
+    { label: 'Active Tasks',     value: activeTasks,      color: '#0d9488' },
+    { label: 'In Progress',      value: inProgressTasks,  color: '#ff9500' },
+    { label: 'Completed Today',  value: completedToday,   color: '#34c759' },
+    { label: 'Volunteers Active',value: volunteersActive,  color: '#0a2a3a' },
   ]
 
   return (
