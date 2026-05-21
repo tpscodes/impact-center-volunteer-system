@@ -59,7 +59,7 @@ const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerHistory() {
   const navigate = useNavigate();
-  const { pantryId } = useAuth();
+  const { pantryId, displayName, initials, logout } = useAuth();
   const { completedTasks, session } = useSharedTasks(pantryId);
 
   const [searchQuery,        setSearchQuery]        = useState("");
@@ -138,10 +138,10 @@ export default function ManagerHistory() {
       <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-            <span className="text-white text-[11px] font-semibold">JB</span>
+            <span className="text-white text-[11px] font-semibold">{initials}</span>
           </div>
           <div>
-            <p className="text-white text-[13px] font-medium">Jason Bratina</p>
+            <p className="text-white text-[13px] font-medium">{displayName}</p>
             <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
           </div>
         </div>
@@ -395,14 +395,14 @@ export default function ManagerHistory() {
             <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                  <span className="text-white text-[12px] font-semibold">JB</span>
+                  <span className="text-white text-[12px] font-semibold">{initials}</span>
                 </div>
                 <div>
-                  <p className="text-[#b3b3b3] text-[13px] font-semibold">Jason Bratina</p>
+                  <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
                   <p className="text-[#757575] text-[11px]">Operations Manager</p>
                 </div>
               </div>
-              <button onClick={() => navigate("/")}
+              <button onClick={() => { setMobileMenuOpen(false); logout(); }}
                 className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
                 Logout
               </button>

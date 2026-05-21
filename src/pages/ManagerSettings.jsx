@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { X, Menu, AlertTriangle, Check } from "lucide-react";
 import { db } from "../firebase";
-import { ref, get, set, remove } from "firebase/database";
+import { ref, get, set, remove, update } from "firebase/database";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -18,8 +18,8 @@ const DAY_OPTIONS = [
 ];
 
 const DEFAULTS = {
-  displayName:  "Jason Bratina",
-  initials:     "JB",
+  displayName:  "",
+  initials:     "",
   password:     "admin",
   orgName:      "IMPACT Center",
   location:     "Greenwood, IN",
@@ -76,9 +76,14 @@ export default function ManagerSettings() {
       const snap = await get(ref(db, `pantries/${pantryId}/appSettings`));
       if (!snap.exists()) return;
       const data = snap.val();
+      // Profile node takes precedence; fall back to auth node (covers accounts
+      // that have never saved Settings, e.g. Amber on first login).
       if (data.profile?.displayName) {
         setDisplayName(data.profile.displayName);
         setInitials(data.profile.initials ?? deriveInitials(data.profile.displayName));
+      } else if (data.auth?.displayName) {
+        setDisplayName(data.auth.displayName);
+        setInitials(data.auth.initials ?? deriveInitials(data.auth.displayName));
       }
       if (data.auth?.password)  setStoredPassword(data.auth.password);
       if (data.app?.orgName)    setOrgName(data.app.orgName);
@@ -132,9 +137,14 @@ export default function ManagerSettings() {
     }
 
     const derived = deriveInitials(displayName);
-    await set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived });
+    // Write to profile node (Settings source of truth) AND auth node (read on login).
+    // Both must stay in sync so re-login always reflects the latest display name.
+    await Promise.all([
+      set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${pantryId}/appSettings/auth`), { displayName, initials: derived }),
+    ]);
 
-    // Sync sidebar and auth context
+    // Sync sidebar and in-memory auth context immediately (no logout required)
     updateProfile({ displayName, initials: derived });
 
     showToast("Profile updated");
@@ -307,6 +317,7 @@ export default function ManagerSettings() {
         <div className="px-4 pt-2">
           <SettingsContent
             card={card} inputCls={inputCls} labelCls={labelCls} saveBtnCls={saveBtnCls}
+            pantryId={pantryId}
             displayName={displayName} initials={initials}
             onDisplayNameChange={handleDisplayNameChange}
             currentPw={currentPw} setCurrentPw={setCurrentPw}
@@ -341,6 +352,7 @@ export default function ManagerSettings() {
           <div className="p-6 max-w-[640px]">
             <SettingsContent
               card={card} inputCls={inputCls} labelCls={labelCls} saveBtnCls={saveBtnCls}
+              pantryId={pantryId}
               displayName={displayName} initials={initials}
               onDisplayNameChange={handleDisplayNameChange}
               currentPw={currentPw} setCurrentPw={setCurrentPw}
@@ -459,6 +471,7 @@ export default function ManagerSettings() {
 // ── Extracted shared content (used in both mobile and desktop layouts) ────────
 function SettingsContent({
   card, inputCls, labelCls, saveBtnCls,
+  pantryId,
   displayName, initials, onDisplayNameChange,
   currentPw, setCurrentPw, newPw, setNewPw, confirmPw, setConfirmPw,
   profileError, onSaveProfile,
@@ -534,46 +547,51 @@ function SettingsContent({
             className={inputCls} />
         </div>
 
-        <div>
-          <label className={labelCls + " mb-2"}>Active Delivery Days</label>
-          <div className="flex flex-wrap gap-2">
-            {DAY_OPTIONS.map(({ key, label }) => {
-              const active = deliveryDays.includes(key);
-              return (
-                <button key={key} type="button" onClick={() => onToggleDay(key)}
-                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors
-                    ${active
-                      ? "bg-[#0d9488] text-white"
-                      : "bg-[#f0f0f0] text-[#6b7280] hover:bg-[#e5e5e5]"}`}>
-                  {active && <Check size={10} className="inline mr-1" strokeWidth={3} />}
-                  {label}
-                </button>
-              );
-            })}
+        {/* Delivery days only relevant for pantries that run delivery (not Amber) */}
+        {pantryId !== 'amber' && (
+          <div>
+            <label className={labelCls + " mb-2"}>Active Delivery Days</label>
+            <div className="flex flex-wrap gap-2">
+              {DAY_OPTIONS.map(({ key, label }) => {
+                const active = deliveryDays.includes(key);
+                return (
+                  <button key={key} type="button" onClick={() => onToggleDay(key)}
+                    className={`px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors
+                      ${active
+                        ? "bg-[#0d9488] text-white"
+                        : "bg-[#f0f0f0] text-[#6b7280] hover:bg-[#e5e5e5]"}`}>
+                    {active && <Check size={10} className="inline mr-1" strokeWidth={3} />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <button onClick={onSaveApp} className={saveBtnCls}>
           Save Settings
         </button>
       </div>
 
-      {/* ── Section 3: Reset System ───────────────────────────────────────── */}
-      <div className={card}>
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[#0a2a3a] text-[15px] font-semibold">Reset System</p>
-          <AlertTriangle size={16} color="#dc2626" />
+      {/* ── Section 3: Reset System — hidden for Amber ───────────────────── */}
+      {pantryId !== 'amber' && (
+        <div className={card}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[#0a2a3a] text-[15px] font-semibold">Reset System</p>
+            <AlertTriangle size={16} color="#dc2626" />
+          </div>
+          <p className="text-[#6b7280] text-[13px] mt-1 mb-4">
+            Permanently delete data from the system. This cannot be undone.
+          </p>
+          <button onClick={onOpenReset}
+            className="bg-[#fff0f0] text-[#dc2626] border border-[#dc2626] rounded-xl
+              px-4 py-2.5 text-[13px] font-medium w-full cursor-pointer
+              hover:bg-[#dc2626] hover:text-white transition-colors">
+            Reset System Data
+          </button>
         </div>
-        <p className="text-[#6b7280] text-[13px] mt-1 mb-4">
-          Permanently delete data from the system. This cannot be undone.
-        </p>
-        <button onClick={onOpenReset}
-          className="bg-[#fff0f0] text-[#dc2626] border border-[#dc2626] rounded-xl
-            px-4 py-2.5 text-[13px] font-medium w-full cursor-pointer
-            hover:bg-[#dc2626] hover:text-white transition-colors">
-          Reset System Data
-        </button>
-      </div>
+      )}
     </>
   );
 }

@@ -18,7 +18,7 @@ export default function TaskPool() {
   const [slName, setSlName] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
 
-  const volunteerId = sessionStorage.getItem('volunteerId') || '1234'
+  const volunteerId = sessionStorage.getItem('volunteerId') || ''
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
 
   const volunteerProfile = VOLUNTEER_PROFILES.find(v => v.id === volunteerId)
