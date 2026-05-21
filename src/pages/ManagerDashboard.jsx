@@ -145,6 +145,9 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
     filtered = filtered.filter(t => (t.tags || []).includes(activeTag));
   }
 
+  const statusOrder = { incomplete: 0, 'in-progress': 1, available: 2, complete: 3 };
+  filtered = [...filtered].sort((a, b) => (statusOrder[a.status] ?? 2) - (statusOrder[b.status] ?? 2));
+
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
