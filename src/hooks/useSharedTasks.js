@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "../firebase";
-import { ref, onValue, set, remove } from "firebase/database";
+import { ref, onValue, set, remove, update } from "firebase/database";
 
 // ── Named volunteer profiles ──────────────────────────────────────────────────
 export const VOLUNTEER_PROFILES = [
@@ -98,16 +98,31 @@ export function useSharedTasks(pantryId) {
 
     const base = `pantries/${pantryId}`;
 
+    // Legacy seed IDs that were auto-written by old versions of this hook.
+    // Any task found with one of these IDs is removed from Firebase on first read.
+    const LEGACY_SEED_IDS = new Set(["t1", "t2", "t3", "t4"]);
+
     // tasks listener
     const unsubTasks = onValue(
       ref(db, `${base}/tasks`),
       (snap) => {
         const data = snap.val();
         if (data === null) {
-          // No tasks in Firebase — start with empty list, wait for manager to create tasks
+          // No tasks in Firebase — show empty board, wait for manager to create tasks
           updateTasks([]);
         } else {
-          updateTasks(tasksFromFirebase(data) || []);
+          // Strip out any legacy seed tasks (t1–t4) that old code auto-wrote.
+          // Build the cleaned list; if anything was removed, update Firebase too.
+          const allTasks = tasksFromFirebase(data) || [];
+          const legacyKeys = Object.keys(data).filter(k => LEGACY_SEED_IDS.has(k));
+          if (legacyKeys.length > 0) {
+            // Remove each legacy key from Firebase (fire-and-forget)
+            legacyKeys.forEach(k => remove(ref(db, `${base}/tasks/${k}`)));
+            // Show only the non-legacy tasks immediately
+            updateTasks(allTasks.filter(t => !LEGACY_SEED_IDS.has(t.id)));
+          } else {
+            updateTasks(allTasks);
+          }
         }
         setSynced(true);
         setError(false);
@@ -282,20 +297,13 @@ export function useSharedTasks(pantryId) {
     await writeTasks(updated);
   }, []);
 
-  // Reset to seed tasks (manager only — for demo reset)
+  // Reset session data (manager only — clears all tasks and history)
   const resetTasks = useCallback(async () => {
-    const fresh = SEED_TASKS.map(t => ({
-      ...t,
-      status: "available",
-      assignedTo: "",
-      assignedName: "",
-      createdAt: Date.now(),
-    }));
-    updateTasks(fresh);
+    updateTasks([]);
     updateShiftLeader(null);
     updateCompletedTasks([]);
     await Promise.all([
-      writeTasks(fresh),
+      remove(ref(db, `pantries/${pantryIdRef.current}/tasks`)),
       remove(ref(db, `pantries/${pantryIdRef.current}/shiftLeader`)),
       remove(ref(db, `pantries/${pantryIdRef.current}/completedTasks`)),
     ]);
