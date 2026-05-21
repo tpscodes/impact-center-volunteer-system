@@ -1,7 +1,8 @@
 // src/utils/rebuildDatabase.js
 //
 // Writes known-good auth + app settings to Firebase without touching any
-// other data under pantries/jason/ (tasks, volunteers, history, etc.).
+// other data under pantries/jason/ (tasks, history, etc.).
+// Note: volunteers now live at root /volunteers/ — not under pantries/jason/.
 //
 // Uses update() throughout so existing keys are preserved — nothing is
 // deleted or overwritten unless explicitly listed below.
