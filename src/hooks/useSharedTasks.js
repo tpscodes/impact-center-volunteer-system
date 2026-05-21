@@ -235,7 +235,7 @@ export function useSharedTasks(pantryId) {
       destination: completedTask.destination || "",
       completedBy: completedBy || completedTask.claimedByName || completedTask.assignedName || completedTask.assignedTo || "Unknown",
       ...(completedTask.claimedByName ? { claimedByName: completedTask.claimedByName } : {}),
-      completedAt: now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      completedAt: now.getTime(),
       completedAtMs: now.getTime(),
       sessionDate: now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
     } : null;
