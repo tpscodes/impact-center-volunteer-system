@@ -51,7 +51,7 @@ function StatusBadge({ status }) {
 
 const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB" };
 
-export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
+export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
   const { pantryId, displayName, initials, logout } = useAuth();
   const [search, setSearch] = useState("");
@@ -126,8 +126,12 @@ export default function ManagerDashboard({ tasks, onDeleteTask, onMarkIncomplete
 
   const active = tasks.filter(t => t.status !== "complete");
   const inProgress = tasks.filter(t => t.status === "in-progress");
-  const completed = tasks.filter(t => t.status === "complete");
   const incomplete = tasks.filter(t => t.status === "incomplete");
+  // Completed count comes from completedTasks (tasks are removed from the tasks node on completion)
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const completed = completedTasks.filter(t =>
+    t.completedAtMs && new Date(t.completedAtMs).toISOString().slice(0, 10) === todayIso
+  );
   const rolledOver = tasks.filter(t => t.rolledOver === true);
   const volunteersActive = [...new Set(tasks.filter(t => t.assignedTo).map(t => t.assignedTo))].length;
 

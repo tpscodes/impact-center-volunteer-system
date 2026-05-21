@@ -41,8 +41,8 @@ function RequireAuth({ children }) {
 function ManagerDashboardWrapper() {
   const navigate = useNavigate();
   const { pantryId } = useAuth();
-  const { tasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks(pantryId);
-  return <ManagerDashboard tasks={tasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
+  const { tasks, completedTasks, synced, error, session, deleteTask, resetTasks, markTaskIncomplete, startSession, endSession, completeTask } = useSharedTasks(pantryId);
+  return <ManagerDashboard tasks={tasks} completedTasks={completedTasks} synced={synced} error={error} session={session} onDeleteTask={deleteTask} onResetTasks={resetTasks} onMarkIncomplete={markTaskIncomplete} onStartSession={startSession} onEndSession={endSession} onCompleteTask={completeTask} />;
 }
 
 function CreateTaskScreenWrapper() {

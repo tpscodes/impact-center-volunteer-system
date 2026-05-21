@@ -218,12 +218,11 @@ export function useSharedTasks(pantryId) {
     await writeTasks(updated);
   }, []);
 
-  // Complete a task — records history, auto-clears shiftLeader if Shift Leader task
+  // Complete a task — removes it from tasks, writes entry to completedTasks/${taskId}
   const completeTask = useCallback(async (taskId, completedBy) => {
     const completedTask = tasksRef.current.find(t => t.id === taskId);
-    const updated = tasksRef.current.map(t =>
-      t.id === taskId ? { ...t, status: "complete", completedAt: Date.now() } : t
-    );
+    // Remove the completed task from the tasks array entirely
+    const updated = tasksRef.current.filter(t => t.id !== taskId);
     const isShiftLeaderTask = completedTask && (completedTask.tags || []).includes("Shift Leader");
     const newShiftLeader = isShiftLeaderTask ? null : slRef.current;
 
@@ -250,9 +249,13 @@ export function useSharedTasks(pantryId) {
     updateCompletedTasks(newCompletedTasks);
 
     await Promise.all([
-      writeTasks(updated),
+      // Remove task from pantries/${pantryId}/tasks/${taskId}
+      remove(ref(db, `pantries/${pantryIdRef.current}/tasks/${taskId}`)),
       writeShiftLeader(newShiftLeader),
-      writeCompletedTasks(newCompletedTasks),
+      // Write entry to pantries/${pantryId}/completedTasks/${taskId}
+      historyEntry
+        ? set(ref(db, `pantries/${pantryIdRef.current}/completedTasks/${taskId}`), historyEntry)
+        : Promise.resolve(),
     ]);
   }, []);
 
