@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
+import { PANTRY_ID } from '../config'
 import TaskDetail from './TaskDetail'
 import { Search, MapPin, ArrowRight, Pin } from 'lucide-react'
 
@@ -10,7 +11,7 @@ const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sort
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks("jason")
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks(PANTRY_ID)
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState('All')
   const [pendingClaim, setPendingClaim] = useState(null)

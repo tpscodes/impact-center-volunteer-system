@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import TaskDetail from './TaskDetail'
+import { PANTRY_ID } from '../config'
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" }
 
@@ -19,7 +20,7 @@ function TaskTimer({ claimedAt }) {
 
 export default function MyTasks() {
   const navigate = useNavigate()
-  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks("jason")
+  const { tasks, synced, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks(PANTRY_ID)
   const [completing, setCompleting] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 

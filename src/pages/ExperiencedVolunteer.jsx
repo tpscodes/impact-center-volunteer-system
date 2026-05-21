@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
+import { PANTRY_ID } from "../config";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -16,7 +17,7 @@ export function VolunteerIdEntry() {
 
   // Load the live volunteer roster from Firebase (populated by ManagerVolunteers)
   useEffect(() => {
-    const unsub = onValue(ref(db, "pantries/jason/volunteers"), (snap) => {
+    const unsub = onValue(ref(db, `pantries/${PANTRY_ID}/volunteers`), (snap) => {
       const data = snap.val();
       if (data) setFirebaseVolunteers(Object.values(data));
     });
@@ -240,7 +241,7 @@ export function ExperiencedTaskPool({ tasks, onClaimTask, synced, error }) {
 // ── My Task Screen ───────────────────────────────────────────────────────────
 export function MyTask() {
   const navigate = useNavigate();
-  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks("jason");
+  const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks(PANTRY_ID);
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
