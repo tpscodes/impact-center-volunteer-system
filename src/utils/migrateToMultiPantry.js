@@ -12,10 +12,11 @@
 //        import { runMigration } from '../utils/migrateToMultiPantry';
 //        <button onClick={runMigration}>Run Migration</button>
 //
-// SAFE TO RE-RUN: skips if pantries/jason/volunteers already has more than 10
-// entries (i.e. real volunteer data has been migrated). Using a count threshold
-// avoids a false-positive from the 5-entry placeholder seed that the app writes
+// SAFE TO RE-RUN: skips if root /volunteers/ already has more than 10 entries
+// (i.e. real volunteer data exists). Using a count threshold avoids a
+// false-positive from the 5-entry placeholder seed that the app writes
 // on first load when no volunteers exist.
+// Note: volunteers now live at root /volunteers/ — not copied to pantry paths.
 // ROOT DATA IS PRESERVED — nothing at the root level is deleted.
 
 import { db } from '../firebase';
@@ -28,7 +29,7 @@ const ROOT_PATHS = [
   'tasks',
   'completedTasks',
   'shiftLeader',
-  'volunteers',
+  // 'volunteers' intentionally omitted — volunteers live at root /volunteers/ (not pantry-specific)
   'session',
   'sessionSettings',
   'routeTemplates',
@@ -40,16 +41,15 @@ const ROOT_PATHS = [
 export async function runMigration() {
   console.log('[Migration] Starting multi-pantry migration…');
 
-  // ── Guard: skip if pantries/jason/volunteers already has real data ────────
-  // A count > 10 means real volunteers have been migrated. The app seeds only
-  // 5 placeholder entries (IDs 1001–1005) on first load, so ≤ 10 means we
-  // should still run the migration to copy real root-level data.
-  const guardSnap = await get(ref(db, 'pantries/jason/volunteers'));
+  // ── Guard: skip if root /volunteers/ already has real data ───────────────
+  // A count > 10 means real volunteers exist. The app seeds only 5 placeholder
+  // entries (IDs 1001–1005) on first load, so ≤ 10 means we should still run.
+  const guardSnap = await get(ref(db, 'volunteers'));
   const existingCount = guardSnap.exists()
     ? Object.keys(guardSnap.val()).length
     : 0;
   if (existingCount > 10) {
-    console.log(`[Migration] Already migrated — pantries/jason/volunteers has ${existingCount} entries. Skipping.`);
+    console.log(`[Migration] Already migrated — root /volunteers/ has ${existingCount} entries. Skipping.`);
     return { skipped: true };
   }
 
