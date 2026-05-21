@@ -1,7 +1,7 @@
 // SidebarSteve.jsx — Super-admin sidebar for Steve
-// Three modes: Overview / Food Pantry / Clothing
+// Modes: Overview / Food Pantry / Clothing / Volunteers
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBasket, Shirt, Settings } from "lucide-react";
+import { LayoutDashboard, ShoppingBasket, Shirt, Users, Settings } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const MANAGER_PATHS = [
@@ -14,10 +14,11 @@ export default function SidebarSteve() {
   const location   = useLocation();
   const { activePantryId, displayName, initials, logout, switchPantry } = useAuth();
 
-  const isOverview    = location.pathname === "/steve-overview";
-  const isManagerPage = MANAGER_PATHS.some(p => location.pathname.startsWith(p));
-  const isFoodPantry  = isManagerPage && activePantryId === "jason";
-  const isClothing    = isManagerPage && activePantryId === "amber";
+  const isOverview      = location.pathname === "/steve-overview";
+  const isVolunteers    = location.pathname === "/manager-volunteers";
+  const isManagerPage   = MANAGER_PATHS.some(p => location.pathname.startsWith(p));
+  const isFoodPantry    = isManagerPage && !isVolunteers && activePantryId === "jason";
+  const isClothing      = isManagerPage && !isVolunteers && activePantryId === "amber";
 
   function goToFoodPantry() {
     switchPantry("jason");
@@ -47,6 +48,12 @@ export default function SidebarSteve() {
       icon: Shirt,
       active: isClothing,
       onClick: goToClothing,
+    },
+    {
+      label: "Volunteers",
+      icon: Users,
+      active: isVolunteers,
+      onClick: () => navigate("/manager-volunteers"),
     },
   ];
 
