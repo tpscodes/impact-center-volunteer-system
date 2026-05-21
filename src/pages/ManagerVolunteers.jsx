@@ -38,8 +38,9 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
   const firstNameRef = useRef(null);
   const lastNameRef  = useRef(null);
   const idRef        = useRef(null);
-  const [isDriver, setIsDriver] = useState(false);
-  const [error,    setError]    = useState("");
+  const [isDriver,   setIsDriver]   = useState(false);
+  const [isClothing, setIsClothing] = useState(false);
+  const [error,      setError]      = useState("");
 
   async function handleSubmit() {
     const firstName = firstNameRef.current?.value?.trim() ?? "";
@@ -53,7 +54,7 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
     if (volunteers.some(v => v.id === id)) {
       setError("A volunteer with this ID already exists"); return;
     }
-    await onAdd({ fullName, id, isDriver });
+    await onAdd({ fullName, id, isDriver, isClothing });
     onClose();
   }
 
@@ -104,6 +105,14 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
                 {isDriver && <Check size={12} strokeWidth={2.5} />}
                 Driver
               </button>
+              <button type="button"
+                onClick={() => setIsClothing(c => !c)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
+                  isClothing ? "bg-[#f3e8ff] text-[#7c3aed]" : "bg-[#f0f0f0] text-[#6b7280]"
+                }`}>
+                {isClothing && <Check size={12} strokeWidth={2.5} />}
+                Clothing
+              </button>
             </div>
           </div>
           {error && <p className="text-[#dc2626] text-[13px]">{error}</p>}
@@ -138,7 +147,8 @@ export default function ManagerVolunteers() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editIsDriver, setEditIsDriver] = useState(false);
+  const [editIsDriver,   setEditIsDriver]   = useState(false);
+  const [editIsClothing, setEditIsClothing] = useState(false);
   const [editIsActive, setEditIsActive] = useState(true);
   const [editErrors, setEditErrors] = useState({});
 
@@ -178,10 +188,11 @@ export default function ManagerVolunteers() {
         v.active !== true;
 
       const matchesRole =
-        roleFilter === "all"    ? true :
-        roleFilter === "pantry" ? !v.isDriver :
-        roleFilter === "driver" ? v.isDriver === true && !v.active :
-        roleFilter === "both"   ? v.isDriver === true : true;
+        roleFilter === "all"      ? true :
+        roleFilter === "pantry"   ? !v.isDriver && !v.isClothing :
+        roleFilter === "driver"   ? v.isDriver === true :
+        roleFilter === "clothing" ? v.isClothing === true :
+        roleFilter === "both"     ? v.isDriver === true && v.isClothing === true : true;
 
       return matchesSearch && matchesStatus && matchesRole;
     })
@@ -217,6 +228,7 @@ export default function ManagerVolunteers() {
     setEditingVolunteer(volunteer);
     setEditName(volunteer.name || "");
     setEditIsDriver(volunteer.isDriver || false);
+    setEditIsClothing(volunteer.isClothing || false);
     setEditIsActive(volunteer.active !== false);
     setEditErrors({});
     setShowEditModal(true);
@@ -231,6 +243,7 @@ export default function ManagerVolunteers() {
       await update(ref(db, `volunteers/${editingVolunteer.id}`), {
         name: editName.trim(),
         isDriver: editIsDriver,
+        isClothing: editIsClothing,
         active: editIsActive,
       });
       setShowEditModal(false);
@@ -240,8 +253,8 @@ export default function ManagerVolunteers() {
     }
   }
 
-  async function handleAddVolunteer({ fullName, id, isDriver }) {
-    const newVol = { id, name: fullName, active: false, lastActive: null, isDriver };
+  async function handleAddVolunteer({ fullName, id, isDriver, isClothing }) {
+    const newVol = { id, name: fullName, active: false, lastActive: null, isDriver, isClothing };
     setVolunteers(prev => [...prev, newVol]);
     await set(ref(db, `volunteers/${id}`), newVol);
   }
@@ -383,10 +396,11 @@ export default function ManagerVolunteers() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { value: "all",    label: "All Roles"   },
-              { value: "pantry", label: "Pantry Only" },
-              { value: "driver", label: "Driver"      },
-              { value: "both",   label: "Both"        },
+              { value: "all",      label: "All Roles"   },
+              { value: "pantry",   label: "Pantry Only" },
+              { value: "driver",   label: "Driver"      },
+              { value: "clothing", label: "Clothing"    },
+              { value: "both",     label: "Both"        },
             ].map(r => (
               <button key={r.value} onClick={() => setRoleFilter(r.value)}
                 className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
@@ -433,6 +447,9 @@ export default function ManagerVolunteers() {
                     <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
                     {vol.isDriver && (
                       <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
+                    )}
+                    {vol.isClothing && (
+                      <span className="bg-[#f3e8ff] text-[#7c3aed] text-[11px] px-2 py-0.5 rounded-full">Clothing</span>
                     )}
                   </div>
                   <p className="text-[#6b7280] text-[11px] mt-0.5">{vol.lastActive || "Never active"}</p>
@@ -711,6 +728,15 @@ export default function ManagerVolunteers() {
                     }`}>
                     {editIsDriver && <Check size={12} />}
                     Driver
+                  </button>
+                  <button type="button" onClick={() => setEditIsClothing(c => !c)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium cursor-pointer border transition-colors ${
+                      editIsClothing
+                        ? "bg-[#f3e8ff] text-[#7c3aed] border-[#7c3aed]"
+                        : "bg-[#f0f0f0] text-[#6b7280] border-transparent"
+                    }`}>
+                    {editIsClothing && <Check size={12} />}
+                    Clothing
                   </button>
                 </div>
               </div>
