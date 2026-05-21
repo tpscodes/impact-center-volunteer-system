@@ -19,7 +19,7 @@ const DELIVERY_NAV = [
 
 export default function Sidebar({ mode, activePath }) {
   const navigate = useNavigate();
-  const { displayName, initials, logout } = useAuth();
+  const { pantryId, displayName, initials, logout } = useAuth();
   const navItems = mode === "delivery" ? DELIVERY_NAV : PANTRY_NAV;
 
   return (
@@ -32,23 +32,25 @@ export default function Sidebar({ mode, activePath }) {
         <div className="w-8 h-0.5 bg-[#0d9488] mt-3" />
       </div>
 
-      {/* Pantry / Delivery toggle */}
-      <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
-        <button
-          onClick={() => navigate("/manager/dashboard")}
-          className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-            mode === "pantry" ? "bg-[#09665e] text-white" : "text-[#6b7280] hover:text-[#b3b3b3]"
-          }`}>
-          Pantry
-        </button>
-        <button
-          onClick={() => navigate("/manager-delivery")}
-          className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-            mode === "delivery" ? "bg-[#09665e] text-white" : "text-[#6b7280] hover:text-[#b3b3b3]"
-          }`}>
-          Delivery
-        </button>
-      </div>
+      {/* Pantry / Delivery toggle — hidden for Amber (pantry-only) */}
+      {pantryId !== 'amber' && (
+        <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
+          <button
+            onClick={() => navigate("/manager/dashboard")}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              mode === "pantry" ? "bg-[#09665e] text-white" : "text-[#6b7280] hover:text-[#b3b3b3]"
+            }`}>
+            Pantry
+          </button>
+          <button
+            onClick={() => navigate("/manager-delivery")}
+            className={`flex-1 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              mode === "delivery" ? "bg-[#09665e] text-white" : "text-[#6b7280] hover:text-[#b3b3b3]"
+            }`}>
+            Delivery
+          </button>
+        </div>
+      )}
 
       {/* Nav items */}
       <nav className="flex-1 px-3 space-y-0.5">
