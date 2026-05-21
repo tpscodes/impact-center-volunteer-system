@@ -1,6 +1,6 @@
 // VolunteerModeSelect.jsx — Driver volunteers choose Pantry vs Delivery
 import { useNavigate, useLocation } from "react-router-dom";
-import { ClipboardList, Truck, ChevronLeft } from "lucide-react";
+import { ClipboardList, Truck, Shirt, ChevronLeft } from "lucide-react";
 import { useEffect } from "react";
 
 export default function VolunteerModeSelect() {
@@ -56,6 +56,15 @@ export default function VolunteerModeSelect() {
             <Truck size={32} color="#0d9488" />
             <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Delivery Routes</p>
             <p className="text-[#6b7280] text-[13px] mt-1">View and claim your delivery routes</p>
+          </button>
+
+          {/* Clothing card */}
+          <button
+            onClick={() => navigate("/experienced/tasks", { state: { volunteer } })}
+            className="bg-white border border-[#e5e7eb] rounded-2xl p-6 text-left hover:border-[#0d9488] hover:shadow-sm transition-all cursor-pointer w-full">
+            <Shirt size={32} color="#0d9488" />
+            <p className="text-[#0a2a3a] text-[16px] font-semibold mt-3">Clothing Section</p>
+            <p className="text-[#6b7280] text-[13px] mt-1">Help sort and organize clothing donations</p>
           </button>
 
         </div>
