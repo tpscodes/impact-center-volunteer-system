@@ -1,8 +1,7 @@
 // TaskPool.jsx — Experienced volunteer task pool with tag filtering
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
-import { PANTRY_ID } from '../config'
 import TaskDetail from './TaskDetail'
 import { Search, MapPin, ArrowRight, Pin } from 'lucide-react'
 
@@ -11,9 +10,11 @@ const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sort
 
 export default function TaskPool() {
   const navigate = useNavigate()
-  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks(PANTRY_ID)
+  const location = useLocation()
+  const pantryId = new URLSearchParams(location.search).get('pantry') || 'jason'
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks(pantryId)
   const [search, setSearch] = useState('')
-  const [activeTag, setActiveTag] = useState('All')
+  const [activeTag, setActiveTag] = useState(pantryId === 'amber' ? 'Clothing' : 'All')
   const [pendingClaim, setPendingClaim] = useState(null)
   const [slName, setSlName] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
@@ -69,7 +70,7 @@ export default function TaskPool() {
       setPendingClaim(task)
       setSelectedTask(null)
     } else {
-      navigate('/experienced/mytask')
+      navigate(`/experienced/mytask?pantry=${pantryId}`)
     }
   }
 
@@ -78,7 +79,7 @@ export default function TaskPool() {
     await setShiftLeader({ name: slName.trim(), taskId: pendingClaim.id })
     setPendingClaim(null)
     setSlName('')
-    navigate('/experienced/mytask')
+    navigate(`/experienced/mytask?pantry=${pantryId}`)
   }
 
   // Session lock check
@@ -120,7 +121,7 @@ export default function TaskPool() {
           isMyTask={isMyTask}
           isLocked={!!myTask && !isMyTask}
           onClaim={() => handleClaim(liveTask)}
-          onComplete={() => navigate('/experienced/mytask')}
+          onComplete={() => navigate(`/experienced/mytask?pantry=${pantryId}`)}
           onUnclaim={isMyTask ? async () => { await markTaskIncomplete(liveTask.id); setSelectedTask(null) } : undefined}
           onBack={() => setSelectedTask(null)}
         />
@@ -153,7 +154,7 @@ export default function TaskPool() {
                   Set as Shift Leader
                 </button>
                 <button
-                  onClick={() => { setPendingClaim(null); setSlName(''); navigate('/experienced/mytask') }}
+                  onClick={() => { setPendingClaim(null); setSlName(''); navigate(`/experienced/mytask?pantry=${pantryId}`) }}
                   style={{ width: '100%', marginTop: 8, padding: '10px 0', background: 'none', color: GRAY.light, border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   Skip
@@ -193,7 +194,7 @@ export default function TaskPool() {
         {/* Active task banner */}
         {myTask && (
           <div
-            onClick={() => navigate('/experienced/mytask')}
+            onClick={() => navigate(`/experienced/mytask?pantry=${pantryId}`)}
             className="bg-[#0a2a3a] rounded-lg p-4 flex items-center justify-between cursor-pointer"
           >
             <div>
@@ -367,7 +368,7 @@ export default function TaskPool() {
           Available
         </button>
         <button
-          onClick={() => navigate('/experienced/mytask')}
+          onClick={() => navigate(`/experienced/mytask?pantry=${pantryId}`)}
           className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
         >
           My task {myTask ? '(1)' : ''}
@@ -404,7 +405,7 @@ export default function TaskPool() {
                 Set as Shift Leader
               </button>
               <button
-                onClick={() => { setPendingClaim(null); setSlName(''); navigate('/experienced/mytask') }}
+                onClick={() => { setPendingClaim(null); setSlName(''); navigate(`/experienced/mytask?pantry=${pantryId}`) }}
                 style={{ width: '100%', marginTop: 8, padding: '10px 0', background: 'none', color: GRAY.light, border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Skip
