@@ -266,6 +266,8 @@ export default function ManagerTasks() {
     const matchesTag = activeFilter === 'All' ? true : task.tags?.includes(activeFilter)
     return matchesSearch && matchesTag
   })
+  const statusOrder = { incomplete: 0, 'in-progress': 1, available: 2, complete: 3 };
+  filteredTasks.sort((a, b) => (statusOrder[a.status] ?? 2) - (statusOrder[b.status] ?? 2));
 
   const STATS = [
     { label: 'Active Tasks',     value: activeTasks,               color: '#0d9488' },
