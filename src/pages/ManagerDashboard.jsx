@@ -216,7 +216,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
 
               {/* Mode toggle — hidden for Amber and Steve */}
-              {role !== 'superadmin' && activePantryId !== 'amber' && (
+              {activePantryId !== 'amber' && (
                 <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
                     Pantry

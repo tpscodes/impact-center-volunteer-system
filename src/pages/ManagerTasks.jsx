@@ -324,7 +324,7 @@ export default function ManagerTasks() {
                   <X size={20} />
                 </button>
               </div>
-              {role !== 'superadmin' && activePantryId !== 'amber' && (
+              {activePantryId !== 'amber' && (
                 <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
                     Pantry
