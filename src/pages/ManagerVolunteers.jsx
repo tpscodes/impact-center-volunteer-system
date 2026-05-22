@@ -569,10 +569,11 @@ export default function ManagerVolunteers() {
 
                 <div className="flex gap-2">
                   {[
-                    { value: "all",    label: "All Roles"   },
-                    { value: "pantry", label: "Pantry Only" },
-                    { value: "driver", label: "Driver"      },
-                    { value: "both",   label: "Both"        },
+                    { value: "all",      label: "All Roles"   },
+                    { value: "pantry",   label: "Pantry Only" },
+                    { value: "driver",   label: "Driver"      },
+                    { value: "both",     label: "Both"        },
+                    { value: "clothing", label: "Clothing"    },
                   ].map(r => (
                     <button key={r.value} onClick={() => setRoleFilter(r.value)}
                       className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
@@ -629,6 +630,9 @@ export default function ManagerVolunteers() {
                           <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
                           {vol.isDriver && (
                             <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
+                          )}
+                          {vol.isClothing && (
+                            <span className="bg-[#f3e8ff] text-[#7c3aed] text-[11px] px-2 py-0.5 rounded-full">Clothing</span>
                           )}
                         </div>
                       </div>
