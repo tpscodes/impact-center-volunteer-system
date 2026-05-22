@@ -215,8 +215,8 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               {/* Teal divider */}
               <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
 
-              {/* Mode toggle — hidden for Amber and Steve */}
-              {activePantryId !== 'amber' && (
+              {/* Mode toggle — hidden for Amber and superadmin */}
+              {role !== 'superadmin' && activePantryId !== 'amber' && (
                 <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
                     Pantry
@@ -267,6 +267,19 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
               </nav>
             </div>
           </>
+        )}
+
+        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
+        {role === 'superadmin' && activePantryId === 'jason' && (
+          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
+            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
+              Pantry
+            </button>
+            <button onClick={() => navigate('/manager-delivery')}
+              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+              Delivery
+            </button>
+          </div>
         )}
 
         {/* Scrollable content */}

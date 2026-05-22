@@ -324,7 +324,7 @@ export default function ManagerTasks() {
                   <X size={20} />
                 </button>
               </div>
-              {activePantryId !== 'amber' && (
+              {role !== 'superadmin' && activePantryId !== 'amber' && (
                 <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
                     Pantry
@@ -375,6 +375,19 @@ export default function ManagerTasks() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
+        {role === 'superadmin' && activePantryId === 'jason' && (
+          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
+            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
+              Pantry
+            </button>
+            <button onClick={() => navigate('/manager-delivery')}
+              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+              Delivery
+            </button>
+          </div>
         )}
 
         {/* Mobile page title */}

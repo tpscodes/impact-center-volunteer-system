@@ -75,7 +75,7 @@ function getInitials(name) {
 
 export default function ManagerDelivery() {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
+  const { pantryId, activePantryId, role, displayName, initials, logout } = useAuth();
   const hasSeeded = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
@@ -374,6 +374,19 @@ export default function ManagerDelivery() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
+        {role === 'superadmin' && activePantryId === 'jason' && (
+          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
+            <button onClick={() => navigate('/manager-tasks')}
+              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+              Pantry
+            </button>
+            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
+              Delivery
+            </button>
+          </div>
         )}
 
         {/* Mobile page title */}
