@@ -75,7 +75,7 @@ function getInitials(name) {
 
 export default function ManagerDelivery() {
   const navigate = useNavigate();
-  const { pantryId, activePantryId, role, displayName, initials, logout } = useAuth();
+  const { pantryId, activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
   const hasSeeded = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
@@ -329,25 +329,20 @@ export default function ManagerDelivery() {
                   <X size={20} />
                 </button>
               </div>
-              {/* Mode toggle — Delivery active */}
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                  Pantry
-                </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
-                  Delivery
-                </button>
-              </div>
               <nav className="flex flex-col py-2">
-                {[
-                  { label: "Dashboard", path: "/manager-delivery",            active: true  },
-                  { label: "Routes",    path: "/manager-delivery-routes",     active: false },
-                  { label: "Drivers",   path: "/manager-delivery-volunteers", active: false },
-                  { label: "History",   path: "/manager-delivery-history",    active: false },
-                ].map(item => (
+                {(role === 'superadmin' ? [
+                  { label: "Overview",    active: false, action: () => navigate("/steve-overview") },
+                  { label: "Food Pantry", active: true,  action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+                  { label: "Clothing",    active: false, action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+                  { label: "Volunteers",  active: false, action: () => navigate("/manager-volunteers") },
+                ] : [
+                  { label: "Dashboard", active: true,  action: () => {} },
+                  { label: "Routes",    active: false, action: () => navigate("/manager-delivery-routes") },
+                  { label: "Drivers",   active: false, action: () => navigate("/manager-delivery-volunteers") },
+                  { label: "History",   active: false, action: () => navigate("/manager-delivery-history") },
+                ]).map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
                     className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                       item.active
                         ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
