@@ -53,7 +53,7 @@ const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E
 
 export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
-  const { activePantryId, role, displayName, initials, logout } = useAuth();
+  const { activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 
@@ -230,12 +230,17 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
 
               {/* Nav items */}
               <nav className="flex flex-col py-2">
-                {[
+                {(role === 'superadmin' ? [
+                  { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+                  { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+                  { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+                  { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
+                ] : [
                   { label: "Dashboard", active: true,  action: () => {} },
                   { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
                   { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
                   { label: "History",   active: false, action: () => navigate("/manager-history") },
-                ].map(item => (
+                ]).map(item => (
                   <button
                     key={item.label}
                     onClick={() => { item.action(); setMobileMenuOpen(false); }}

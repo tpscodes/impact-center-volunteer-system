@@ -59,7 +59,7 @@ const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerHistory() {
   const navigate = useNavigate();
-  const { activePantryId, role, displayName, initials, logout } = useAuth();
+  const { activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
   const { completedTasks, session } = useSharedTasks(activePantryId);
 
   const [searchQuery,        setSearchQuery]        = useState("");
@@ -118,11 +118,16 @@ export default function ManagerHistory() {
     { label: "Volunteers Participated", value: uniqueVolunteers, color: "#0d9488" },
   ];
 
-  const MOBILE_NAV = [
-    { label: "Dashboard",  path: "/manager/dashboard",  active: false },
-    { label: "Tasks",      path: "/manager-tasks",       active: false },
-    { label: "Volunteers", path: "/manager-volunteers",  active: false },
-    { label: "History",    path: "/manager-history",     active: true  },
+  const MOBILE_NAV = role === 'superadmin' ? [
+    { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+    { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+    { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+    { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
+  ] : [
+    { label: "Dashboard",  active: false, action: () => navigate("/manager/dashboard") },
+    { label: "Tasks",      active: false, action: () => navigate("/manager-tasks") },
+    { label: "Volunteers", active: false, action: () => navigate("/manager-volunteers") },
+    { label: "History",    active: true,  action: () => {} },
   ];
 
   return (
@@ -384,7 +389,7 @@ export default function ManagerHistory() {
             <nav className="flex flex-col py-2">
               {MOBILE_NAV.map(item => (
                 <button key={item.label}
-                  onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                  onClick={() => { item.action(); setMobileMenuOpen(false); }}
                   className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                     item.active
                       ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"

@@ -202,7 +202,7 @@ const MOBILE_TAGS = ['All', 'Warehouse', 'Kitchen', 'Clothing', 'Freezer', 'Frid
 // ── Self-contained Manager Tasks (used by /manager-tasks route) ──────────────
 export default function ManagerTasks() {
   const navigate = useNavigate()
-  const { activePantryId, role, displayName, initials, logout } = useAuth()
+  const { activePantryId, role, displayName, initials, logout, switchPantry } = useAuth()
   const modifiedBy = role === 'superadmin' ? 'steve' : undefined
   const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(activePantryId, { modifiedBy })
 
@@ -336,14 +336,19 @@ export default function ManagerTasks() {
                 </div>
               )}
               <nav className="flex flex-col py-2">
-                {[
-                  { label: "Dashboard", path: "/manager/dashboard",  active: false },
-                  { label: "Tasks",     path: "/manager-tasks",       active: true  },
-                  { label: "Volunteers",path: "/manager-volunteers",  active: false },
-                  { label: "History",   path: "/manager-history",     active: false },
-                ].map(item => (
+                {(role === 'superadmin' ? [
+                  { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+                  { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+                  { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+                  { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
+                ] : [
+                  { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
+                  { label: "Tasks",     active: true,  action: () => {} },
+                  { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
+                  { label: "History",   active: false, action: () => navigate("/manager-history") },
+                ]).map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
                     className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                       item.active
                         ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
@@ -944,6 +949,7 @@ export function ManagerTasksScreen({ tasks, onDeleteTask, onMarkIncomplete, sync
 // ── Bulk Create Tasks Screen ──────────────────────────────────────────────────
 export function CreateTaskScreen({ onPublishAll, onBack }) {
   const navigate = useNavigate();
+  const { activePantryId, role, switchPantry } = useAuth();
   const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow()]);
   const [publishing, setPublishing] = useState(false);
   const [done, setDone] = useState(false);
@@ -1049,12 +1055,17 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
             <div className="w-10 h-0.5 bg-[#0d9488] mx-6 mb-2" />
             {/* Nav items */}
             <nav className="flex flex-col py-2">
-              {[
+              {(role === 'superadmin' ? [
+                { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+                { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+                { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+                { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
+              ] : [
                 { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
                 { label: "Tasks",     active: true,  action: () => navigate("/manager-tasks") },
                 { label: "Volunteers",active: false, action: () => {} },
                 { label: "History",   active: false, action: () => navigate("/manager-history") },
-              ].map(item => (
+              ]).map(item => (
                 <button key={item.label}
                   onClick={() => { item.action(); setMobileMenuOpen(false); }}
                   className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${

@@ -134,7 +134,7 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
 
 export default function ManagerVolunteers() {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
+  const { pantryId, activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
@@ -297,8 +297,8 @@ export default function ManagerVolunteers() {
                   <X size={20} />
                 </button>
               </div>
-              {/* Mode toggle — hidden for Amber (pantry-only) */}
-              {pantryId !== 'amber' && (
+              {/* Mode toggle — hidden for Amber and superadmin */}
+              {role !== 'superadmin' && pantryId !== 'amber' && (
                 <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
                   <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
                     Pantry
@@ -311,15 +311,20 @@ export default function ManagerVolunteers() {
               )}
 
               <nav className="flex flex-col py-2">
-                {[
-                  { label: "Dashboard", path: "/manager/dashboard", active: false },
-                  { label: "Tasks",     path: "/manager-tasks",      active: false },
-                  { label: "Volunteers",path: "/manager-volunteers", active: true  },
-                  { label: "History",   path: "/manager-history",    active: false },
-                ].map(item => (
+                {(role === 'superadmin' ? [
+                  { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+                  { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+                  { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+                  { label: "Volunteers",  active: true,                       action: () => {} },
+                ] : [
+                  { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
+                  { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
+                  { label: "Volunteers",active: true,  action: () => {} },
+                  { label: "History",   active: false, action: () => navigate("/manager-history") },
+                ]).map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none ${
+                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                       item.active
                         ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
                         : "text-[#9ca3af] border-l-[3px] border-transparent"
