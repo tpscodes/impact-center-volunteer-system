@@ -1,6 +1,7 @@
 // SteveOverview.jsx — Super-admin read-only overview of both pantries
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -123,13 +124,22 @@ function PantryCard({ pantry }) {
 }
 
 export default function SteveOverview() {
-  const { displayName } = useAuth();
+  const { displayName, initials } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = () => setMobileMenuOpen(false);
+    if (mobileMenuOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [mobileMenuOpen]);
 
   const todayStr = new Date().toLocaleDateString("en-US", {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   });
 
-  const hour    = new Date().getHours();
+  const hour     = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
   const firstName = (displayName || "Steve").split(" ")[0];
 
@@ -137,40 +147,54 @@ export default function SteveOverview() {
     <div style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
          className="min-h-screen bg-[#f5f5f5]">
 
-      {/* Desktop layout */}
-      <div className="hidden lg:flex min-h-screen">
-        <SidebarSteve />
+      {/* SidebarSteve: desktop sidebar + mobile overlay (always rendered) */}
+      <SidebarSteve mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+      {/* ── Desktop layout ──────────────────────────────────────────────── */}
+      <div className="hidden lg:flex flex-col lg:ml-[220px] min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-            <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
-              {greeting}, {firstName}
-            </h1>
-            <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-          </div>
+        {/* Top bar */}
+        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
+            {greeting}, {firstName}
+          </h1>
+          <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
+        </div>
 
-          {/* Pantry cards */}
-          <div className="p-6">
-            <p className="text-[#6b7280] text-[13px] mb-5">
-              Live overview — read only. Click <strong>Manage →</strong> to switch into a pantry.
-            </p>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {PANTRIES.map(p => <PantryCard key={p.id} pantry={p} />)}
-            </div>
+        {/* Pantry cards */}
+        <div className="p-6">
+          <p className="text-[#6b7280] text-[13px] mb-5">
+            Live overview — read only. Click <strong>Manage →</strong> to switch into a pantry.
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {PANTRIES.map(p => <PantryCard key={p.id} pantry={p} />)}
           </div>
         </div>
       </div>
 
-      {/* Mobile layout */}
+      {/* ── Mobile layout ───────────────────────────────────────────────── */}
       <div className="lg:hidden min-h-screen">
-        <div className="bg-[#0a2a3a] px-5 py-5">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-1">Super Admin</p>
-          <h1 className="text-white text-[22px] font-semibold">{greeting}, {firstName}</h1>
-          <p className="text-[#6b7280] text-[13px] mt-0.5">{todayStr}</p>
+
+        {/* Mobile top bar with hamburger trigger */}
+        <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-semibold">{initials || "ST"}</span>
+            </div>
+            <div>
+              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">{displayName || "Steve"}</p>
+              <p className="text-[#757575] text-[14px] leading-tight">Super Admin</p>
+            </div>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+            className="text-white p-1 bg-transparent border-none cursor-pointer"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
 
+        {/* Pantry cards */}
         <div className="px-4 py-5 flex flex-col gap-5">
           {PANTRIES.map(p => <PantryCard key={p.id} pantry={p} />)}
         </div>

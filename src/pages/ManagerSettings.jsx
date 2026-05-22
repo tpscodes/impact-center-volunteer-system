@@ -35,7 +35,7 @@ export default function ManagerSettings() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const sidebarMode = location.state?.mode ?? "pantry";
-  const { pantryId, updateProfile, logout, displayName: authDisplayName, initials: authInitials } = useAuth();
+  const { accountId, pantryId, updateProfile, logout, displayName: authDisplayName, initials: authInitials } = useAuth();
 
   // ── Profile state ──────────────────────────────────────────────────────────
   const [displayName,   setDisplayName]   = useState(DEFAULTS.displayName);
@@ -71,9 +71,9 @@ export default function ManagerSettings() {
 
   // ── Load from Firebase on mount ────────────────────────────────────────────
   useEffect(() => {
-    if (!pantryId) return;
+    if (!accountId) return;
     async function load() {
-      const snap = await get(ref(db, `pantries/${pantryId}/appSettings`));
+      const snap = await get(ref(db, `pantries/${accountId}/appSettings`));
       if (!snap.exists()) return;
       const data = snap.val();
       // Profile node takes precedence; fall back to auth node (covers accounts
@@ -100,7 +100,7 @@ export default function ManagerSettings() {
       }
     }
     load();
-  }, [pantryId]);
+  }, [accountId]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function handleDisplayNameChange(val) {
@@ -131,7 +131,7 @@ export default function ManagerSettings() {
         setProfileError("New passwords do not match.");
         return;
       }
-      await set(ref(db, `pantries/${pantryId}/appSettings/auth/password`), newPw);
+      await set(ref(db, `pantries/${accountId}/appSettings/auth/password`), newPw);
       setStoredPassword(newPw);
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
     }
@@ -140,8 +140,8 @@ export default function ManagerSettings() {
     // Write to profile node (Settings source of truth) AND auth node (read on login).
     // Both must stay in sync so re-login always reflects the latest display name.
     await Promise.all([
-      set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived }),
-      update(ref(db, `pantries/${pantryId}/appSettings/auth`), { displayName, initials: derived }),
+      set(ref(db, `pantries/${accountId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${accountId}/appSettings/auth`), { displayName, initials: derived }),
     ]);
 
     // Sync sidebar and in-memory auth context immediately (no logout required)
@@ -151,7 +151,7 @@ export default function ManagerSettings() {
   }
 
   async function handleSaveApp() {
-    await set(ref(db, `pantries/${pantryId}/appSettings/app`), { orgName, location: appLocation, deliveryDays });
+    await set(ref(db, `pantries/${accountId}/appSettings/app`), { orgName, location: appLocation, deliveryDays });
     showToast("Settings saved");
   }
 

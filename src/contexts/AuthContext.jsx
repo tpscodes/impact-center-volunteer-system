@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   const [authState, setAuthState] = useState({
+    accountId:      null,
     pantryId:       null,
     activePantryId: null,
     role:           null,
@@ -70,6 +71,7 @@ export function AuthProvider({ children }) {
       const ownPantryId  = isSuperAdmin ? null : (auth.pantryId || id);
 
       const data = {
+        accountId:      id,            // firebase node where this user's own auth lives
         pantryId:       ownPantryId,
         activePantryId: ownPantryId,   // superadmin starts with null; managers mirror pantryId
         role:           auth.role || 'manager',
@@ -137,6 +139,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
+      accountId:      authState.accountId,
       pantryId:       authState.pantryId,
       activePantryId: authState.activePantryId,
       role:           authState.role,
