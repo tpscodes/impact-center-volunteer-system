@@ -240,6 +240,95 @@ function TagsCell({ tags, onChange }) {
   );
 }
 
+// ─── Mobile: field wrapper ────────────────────────────────────────────────────
+function FieldGroup({ label, children }) {
+  return (
+    <div className="mb-3">
+      <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">{label}</p>
+      <div className="border border-[#e5e7eb] rounded-lg bg-white min-h-[44px] flex items-center">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mobile: vertical task card ──────────────────────────────────────────────
+function TaskCard({ row, index, onUpdate, onRemove, onItemSelect }) {
+  return (
+    <div className="bg-white rounded-xl border border-[#e5e7eb] p-4 mb-3">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[#0a2a3a] text-[13px] font-semibold">Task {index + 1}</span>
+        <button onClick={onRemove}
+          className="text-[#dc2626] bg-transparent border-none cursor-pointer p-1 hover:bg-[#fff0f0] rounded">
+          <X size={16} />
+        </button>
+      </div>
+
+      <FieldGroup label="Item Name">
+        <AutoInput value={row.item} onChange={v => onUpdate("item", v)}
+          onSelect={onItemSelect} suggestions={ITEM_NAMES} placeholder="Item name…" />
+      </FieldGroup>
+
+      <FieldGroup label="Source">
+        <AutoInput value={row.source} onChange={v => onUpdate("source", v)}
+          suggestions={SOURCE_SUGGESTIONS} placeholder="Source…" />
+      </FieldGroup>
+
+      <FieldGroup label="Destination">
+        <AutoInput value={row.destination} onChange={v => onUpdate("destination", v)}
+          suggestions={DEST_SUGGESTIONS} placeholder="Destination…" />
+      </FieldGroup>
+
+      <FieldGroup label="Action">
+        <AutoInput value={row.action} onChange={v => onUpdate("action", v)}
+          suggestions={ACTION_SUGGESTIONS} placeholder="Action…" />
+      </FieldGroup>
+
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Assign To</p>
+          <select value={row.assignTo} onChange={e => onUpdate("assignTo", e.target.value)}
+            className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
+              text-[#0a2a3a] bg-white focus:outline-none focus:ring-1 focus:ring-[#0d9488]">
+            {ASSIGN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Priority</p>
+          <select value={row.priority} onChange={e => onUpdate("priority", e.target.value)}
+            className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
+              text-[#0a2a3a] bg-white focus:outline-none focus:ring-1 focus:ring-[#0d9488]">
+            {PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Tags</p>
+        <TagsCell tags={row.tags} onChange={newTags => onUpdate("tags", newTags)} />
+      </div>
+
+      <button onClick={() => onUpdate("showInstructions", !row.showInstructions)}
+        className="text-[#0d9488] text-[12px] hover:text-[#09665e] cursor-pointer
+          bg-transparent border-none flex items-center gap-1 mb-2">
+        {row.showInstructions
+          ? <><ChevronUp size={12} />Hide special instructions</>
+          : <><ChevronDown size={12} />Add special instructions</>
+        }
+      </button>
+      {row.showInstructions && (
+        <div className="border border-[#e5e7eb] rounded-lg">
+          <input value={row.specialInstructions} onChange={e => onUpdate("specialInstructions", e.target.value)}
+            placeholder="Special instructions for this task…"
+            className="w-full border-0 bg-transparent text-[14px] text-[#0a2a3a]
+              focus:outline-none focus:bg-[#f0fafa] rounded-lg px-3 py-2.5
+              placeholder:text-[#d1d5db]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Row component (module-level to avoid remount on parent re-render) ────────
 function TaskRow({ row, index, onUpdate, onRemove, onItemSelect }) {
   return (
@@ -488,10 +577,50 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
           </div>
         </div>
 
-        {/* Scrollable table on mobile */}
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: 700 }}>
-            {renderFormContent(true)}
+        {/* Mobile card content */}
+        <div className="px-4 py-4 pb-28">
+
+          {/* Hint */}
+          <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 mb-4">
+            <p className="text-[#6b7280] text-[14px]">
+              Fill in as many tasks as needed. Start typing an item to see suggestions.
+            </p>
+          </div>
+
+          {/* Task cards */}
+          {rows.map((row, index) => (
+            <TaskCard
+              key={row._id}
+              row={row}
+              index={index}
+              onUpdate={(field, value) => updateField(row._id, field, value)}
+              onRemove={() => removeRow(row._id)}
+              onItemSelect={name => handleItemSelect(row._id, name)}
+            />
+          ))}
+
+          {/* Add Task */}
+          <button onClick={addRow}
+            className="w-full border-2 border-dashed border-[#e5e7eb] rounded-xl py-3
+              text-[#6b7280] text-[14px] hover:border-[#0d9488] hover:text-[#0d9488]
+              transition-colors flex items-center justify-center gap-2
+              bg-transparent cursor-pointer mb-4">
+            <Plus size={15} />
+            Add Task
+          </button>
+
+          {/* General Notes */}
+          <div className="bg-white rounded-xl border border-[#e5e7eb] p-4">
+            <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-2">
+              General Notes (Optional)
+            </p>
+            <textarea
+              value={generalNotes}
+              onChange={e => setGeneralNotes(e.target.value)}
+              placeholder="Any notes for the whole session…"
+              className="w-full border-0 bg-transparent text-[14px] text-[#0a2a3a]
+                resize-none focus:outline-none placeholder:text-[#d1d5db] min-h-[80px]"
+            />
           </div>
         </div>
       </div>
@@ -534,16 +663,16 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
       </div>
 
       {/* ── Fixed bottom bar (shared) ─────────────────────────────────────────── */}
-      <div
-        className="fixed bottom-0 right-0 left-0 lg:left-[220px] bg-white
-          border-t border-[#e5e7eb] px-6 py-3 flex items-center justify-between z-20">
+      <div className="fixed bottom-0 right-0 left-0 lg:left-[220px] bg-white
+        border-t border-[#e5e7eb] px-4 lg:px-6 py-3 z-20
+        flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
         <p className="text-[#6b7280] text-[13px]">
           {!hasItems ? "Fill in at least one item" : ""}
         </p>
         <button
           onClick={handlePublish}
           disabled={!hasItems}
-          className={`bg-[#09665e] text-white px-6 py-2.5 rounded-xl text-[14px]
+          className={`w-full lg:w-auto bg-[#09665e] text-white px-6 py-2.5 rounded-xl text-[14px]
             font-semibold border-none transition-colors
             ${hasItems
               ? "hover:bg-[#0d9488] cursor-pointer"
