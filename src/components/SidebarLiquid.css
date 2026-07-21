@@ -1,0 +1,432 @@
+/* SidebarLiquid.css — liquid/goo sidebar design */
+
+.sl-shell {
+  --teal-500: #0D9488;
+  --teal-600: #0F7A70;
+  --teal-700: #09665E;
+  --navy-900: #0A2A3A;
+  --neutral-0: #FFFFFF;
+  --neutral-200: #E5E7EB;
+  --neutral-500: #6B7280;
+  --surface-rail: var(--teal-700);
+  --surface-raised: var(--neutral-0);
+  --on-rail: rgba(255,255,255,.82);
+  --on-rail-quiet: rgba(255,255,255,.66);
+  --text-primary: var(--navy-900);
+  --text-secondary: var(--neutral-500);
+
+  --rail-w: 264px;
+  --rail-w-collapsed: 88px;
+  --item-h: 52px;
+  --item-gap: 8px;
+  --item-step: 60px;
+  --nav-top: 196px;
+  --inset: 16px;
+  --inset-collapsed: 18px;
+
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --dur-liquid: 520ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-liquid: cubic-bezier(0.34, 1.32, 0.44, 1);
+
+  position: fixed;
+  left: 0; top: 0;
+  /* width controlled by React style prop to avoid flex-container override */
+  height: 100vh;
+  background: var(--surface-rail);
+  z-index: 20;
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: visible;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+/* ── GOO LAYER ─────────────────────────────────────────────── */
+/* Clipped to sidebar bounds — the goo merge effect is between the two
+   blobs themselves (lead stretches ahead, trail follows). No panel
+   extends into the content area. */
+.sl-goo {
+  position: absolute;
+  inset: 0;
+  filter: url(#sl-goo-filter);
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sl-blob {
+  position: absolute;
+  left: var(--inset);
+  top: var(--nav-top);
+  /* Symmetric inset so blur never reaches the sidebar boundary */
+  width: calc(var(--rail-w) - var(--inset) * 2);
+  height: var(--item-h);
+  border-radius: calc(var(--item-h) / 2);
+  background: var(--surface-raised);
+  transform: translateY(var(--y, 0));
+  will-change: transform;
+}
+
+.sl-collapsed .sl-blob {
+  left: var(--inset-collapsed);
+  width: calc(var(--rail-w-collapsed) - var(--inset-collapsed) * 2);
+}
+
+.sl-blob-lead {
+  transition:
+    transform var(--dur-slow) var(--ease-liquid),
+    left var(--dur-slow) var(--ease-out),
+    width var(--dur-slow) var(--ease-out);
+}
+
+.sl-blob-trail {
+  transition:
+    transform var(--dur-liquid) var(--ease-out),
+    left var(--dur-slow) var(--ease-out),
+    width var(--dur-slow) var(--ease-out);
+  transition-delay: 60ms;
+}
+
+/* ── UI LAYER ──────────────────────────────────────────────── */
+.sl-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  /* clip so text never escapes the rail */
+  overflow: hidden;
+}
+
+/* ── HEADER ────────────────────────────────────────────────── */
+.sl-rail-head { margin: 24px 20px 0; }
+
+.sl-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+}
+
+.sl-brand-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    flex var(--dur-slow) var(--ease-out);
+}
+
+.sl-collapsed .sl-brand-text {
+  opacity: 0;
+  flex: 0 0 0;
+  width: 0;
+}
+
+.sl-brand-name {
+  display: block;
+  font: 600 14px/18px "Inter", sans-serif;
+  letter-spacing: .09em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.sl-brand-sub {
+  display: block;
+  margin-top: 3px;
+  font: 400 12px/16px "Inter", sans-serif;
+  color: var(--on-rail-quiet);
+  white-space: nowrap;
+}
+
+.sl-toggle {
+  order: -1;
+  flex: 0 0 48px;
+  width: 48px; height: 48px;
+  border: 0; border-radius: 50%;
+  background: var(--teal-500);
+  color: #fff;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-std);
+}
+
+.sl-toggle:hover { background: var(--teal-600); }
+.sl-toggle:active { transform: scale(.94); }
+
+.sl-toggle svg {
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.sl-collapsed .sl-toggle svg {
+  transform: rotate(180deg);
+}
+
+.sl-rule {
+  height: 3px;
+  width: 56px;
+  margin-top: 18px;
+  background: var(--teal-500);
+  border-radius: 2px;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.sl-collapsed .sl-rule { width: 28px; }
+
+/* ── MODE SWITCHER ─────────────────────────────────────────── */
+.sl-modes {
+  display: flex;
+  gap: 4px;
+  height: 44px;
+  margin-top: 20px;
+  padding: 4px;
+  background: rgba(255,255,255,.12);
+  border-radius: 22px;
+}
+
+.sl-mode {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  font: 500 13px/18px "Inter", sans-serif;
+  color: var(--on-rail-quiet);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+
+.sl-mode:hover { color: #fff; }
+
+.sl-mode[aria-pressed="true"] {
+  background: var(--navy-900);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sl-mode svg { flex: 0 0 16px; }
+
+.sl-collapsed .sl-mode span { display: none; }
+.sl-collapsed .sl-mode[aria-pressed="false"] { display: none; }
+
+/* ── NAV ITEMS ─────────────────────────────────────────────── */
+.sl-nav {
+  position: absolute;
+  top: var(--nav-top);
+  left: 0; right: 0;
+}
+
+.sl-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - var(--inset) * 2);
+  height: var(--item-h);
+  margin: 0 var(--inset) var(--item-gap);
+  padding: 0 16px;
+  border: 0;
+  border-radius: calc(var(--item-h) / 2);
+  background: transparent;
+  font: 500 15px/22px "Inter", sans-serif;
+  color: var(--on-rail);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    color var(--dur-base) var(--ease-out),
+    width var(--dur-slow) var(--ease-out),
+    margin var(--dur-slow) var(--ease-out);
+}
+
+.sl-item:hover:not(.sl-item-active) {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+.sl-item svg { flex: 0 0 24px; }
+
+.sl-item-active {
+  color: var(--text-primary);
+  font-weight: 600;
+  transition-delay: 140ms;
+}
+
+.sl-item-label {
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.sl-collapsed .sl-item {
+  width: calc(100% - var(--inset-collapsed) * 2);
+  margin: 0 var(--inset-collapsed) var(--item-gap);
+  padding: 0 14px;
+}
+
+.sl-collapsed .sl-item-label {
+  opacity: 0;
+  transition-duration: var(--dur-fast);
+}
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+.sl-rail-foot {
+  position: absolute;
+  left: 0; right: 0; bottom: 20px;
+  padding: 0 var(--inset);
+}
+
+.sl-collapsed .sl-rail-foot { padding: 0 var(--inset-collapsed); }
+
+.sl-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 56px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease-std);
+}
+
+.sl-profile:hover,
+.sl-profile[aria-expanded="true"] {
+  background: rgba(255,255,255,.14);
+}
+
+.sl-avatar {
+  flex: 0 0 40px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  display: grid;
+  place-items: center;
+  font: 600 14px/1 "Inter", sans-serif;
+  color: #fff;
+  letter-spacing: .02em;
+}
+
+.sl-profile-text {
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.sl-profile-name {
+  display: block;
+  font: 600 14px/18px "Inter", sans-serif;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.sl-profile-role {
+  display: block;
+  font: 400 12px/16px "Inter", sans-serif;
+  color: var(--on-rail-quiet);
+  white-space: nowrap;
+}
+
+.sl-collapsed .sl-profile-text {
+  opacity: 0;
+  width: 0;
+}
+
+/* ── POPOVER ───────────────────────────────────────────────── */
+.sl-popover {
+  position: absolute;
+  left: var(--inset);
+  bottom: 84px;
+  width: 236px;
+  padding: 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--neutral-200);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(10,42,58,.28);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(.97);
+  transform-origin: bottom left;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out),
+    visibility 0s linear var(--dur-base);
+}
+
+.sl-popover-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+.sl-collapsed .sl-popover { left: var(--inset-collapsed); }
+
+.sl-popover-name {
+  font: 600 16px/22px "Inter", sans-serif;
+  color: var(--text-primary);
+}
+
+.sl-popover-role {
+  margin-top: 2px;
+  font: 400 13px/18px "Inter", sans-serif;
+  color: var(--text-secondary);
+}
+
+.sl-popover-div {
+  height: 1px;
+  margin: 14px -16px;
+  background: var(--neutral-200);
+}
+
+.sl-popover-link {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  font: 500 14px/20px "Inter", sans-serif;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.sl-popover-link:hover { color: var(--teal-700); }
+
+/* ── FOCUS ─────────────────────────────────────────────────── */
+.sl-item:focus-visible,
+.sl-toggle:focus-visible,
+.sl-mode:focus-visible,
+.sl-profile:focus-visible {
+  outline: 2px solid var(--neutral-0);
+  outline-offset: 2px;
+}
+
+.sl-popover-link:focus-visible {
+  outline: 2px solid var(--teal-700);
+  outline-offset: 2px;
+}
+
+/* ── REDUCED MOTION ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sl-shell *, .sl-shell *::before, .sl-shell *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+  }
+  .sl-goo { filter: none; }
+  .sl-blob-trail { display: none; }
+}

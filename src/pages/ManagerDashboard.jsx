@@ -2,6 +2,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
+import StatCards from "../components/StatCards";
+import LeftoverBanner from "../components/LeftoverBanner";
+import TaskTable from "../components/TaskTable";
+import VolunteerBreakdownCard from "../components/VolunteerBreakdownCard";
 import { db } from "../firebase";
 import { ref, get } from "firebase/database";
 import { Plus, Menu, X } from "lucide-react";
@@ -134,8 +139,6 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
   );
   const rolledOver = tasks.filter(t => t.rolledOver === true);
   const volunteersActive = [...new Set(tasks.filter(t => t.assignedTo).map(t => t.assignedTo))].length;
-
-  const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
   const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing"];
 
@@ -393,183 +396,48 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
       <Sidebar mode="pantry" activePath="/manager/dashboard" />
 
       {/* ── Main content ── */}
-      <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+      <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-        {/* Top bar */}
-        <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
-            Good Morning, Operations Manager
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-            {isSessionActive ? (
-              <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
-                <div className="w-2 h-2 rounded-full bg-[#34c759]" />
-                <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 border border-[#e5e7eb] rounded-full px-3 py-1">
-                <div className="w-2 h-2 rounded-full bg-[#6b7280]" />
-                <span className="text-[#6b7280] text-[11px]">No Session</span>
-              </div>
-            )}
-          </div>
+        {/* Pill header */}
+        <div className="px-6 pt-5 pb-3">
+          <DashboardHeader
+            initials={initials}
+            isSessionActive={isSessionActive}
+            onStartSessionClick={() => { setModalType("open"); setShowModal(true); }}
+            onEndSessionClick={() => setShowEndConfirm(true)}
+            onCreateTaskClick={() => navigate("/manager/create-task")}
+          />
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-end gap-3 px-6 py-4">
-          {isSessionActive ? (
-            <button onClick={() => setShowEndConfirm(true)}
-              className="flex items-center gap-2 border border-[#dc2626] bg-[#fdd3d0] text-[#dc2626] px-4 py-2 rounded-lg text-[13px] hover:opacity-90 cursor-pointer border-none">
-              End Session
-            </button>
-          ) : (
-            <button onClick={() => { setModalType("open"); setShowModal(true); }}
-              className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 cursor-pointer border-none">
-              ▶ Start Session
-            </button>
+        {/* Stat Cards */}
+        <div className="px-6 pb-4">
+          <StatCards tasks={tasks} completedTasks={completedTasks}/>
+        </div>
+
+        {/* Middle row: Leftover banner (left) + Volunteer Breakdown Card (right) */}
+        <div className="px-6 pb-4 flex gap-4 items-start">
+          {rolledOver.length > 0 && (
+            <div className="flex-1 min-w-0">
+              <LeftoverBanner
+                tasks={rolledOver}
+                onComplete={(id) => onCompleteTask(id, "Manager")}
+                onRemove={onDeleteTask}
+              />
+            </div>
           )}
-          <button onClick={() => navigate("/manager/create-task")}
-            className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 cursor-pointer border-none">
-            <Plus size={14} /> Create Task
-          </button>
+          <div style={{ width: 340, flexShrink: 0 }}>
+            <VolunteerBreakdownCard tasks={tasks}/>
+          </div>
         </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 pb-4">
-          {[
-            { label: "Active Tasks",      value: active.length,       color: "#0d9488" },
-            { label: "In Progress",       value: inProgress.length,   color: "#ff9500" },
-            { label: "Completed Today",   value: completed.length,    color: "#34c759" },
-            { label: "Volunteers Active", value: volunteersActive,     color: "#0a2a3a" },
-          ].map(m => (
-            <div key={m.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
-              <p className="text-[#6b7280] text-[12px] mb-1">{m.label}</p>
-              <p className="text-[28px] font-semibold leading-none" style={{ color: m.color }}>{m.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Rolled-over tasks */}
-        {rolledOver.length > 0 && (
-          <div className="mx-8 mb-4 bg-[#fff5f5] rounded-lg border border-[#fecaca] overflow-hidden">
-            <div className="px-6 py-3 border-b border-[#fecaca]">
-              <span className="text-[14px] font-semibold text-[#dc2626]">⚠️ Leftover from Previous Session ({rolledOver.length})</span>
-            </div>
-            {rolledOver.map((t, i) => (
-              <div key={t.id} className={`px-6 py-3 flex items-center justify-between border-t border-[#fecaca] ${i === 0 ? "border-t-0" : ""}`}>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#dc2626]">{t.name}</p>
-                  <p className="text-[12px] text-[#9ca3af]">Rolled over from {t.rolledOverFrom} · {t.estimatedTime}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => onCompleteTask(t.id, "Manager")}
-                    className="text-[#16a34a] text-[14px] font-semibold hover:underline bg-transparent border-none cursor-pointer">
-                    Mark Complete
-                  </button>
-                  <button onClick={() => onDeleteTask(t.id)}
-                    className="text-[#900b09] text-[14px] hover:underline bg-transparent border-none cursor-pointer">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Task table */}
-        <div className="mx-6 mb-8 bg-white rounded-lg border border-[#e5e7eb] overflow-hidden">
-          {/* Table header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
-            <h2 className="text-[24px] font-semibold text-[#1e1e1e] tracking-tight">Active Tasks</h2>
-            <div className="flex items-center gap-3">
-              {/* Search */}
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
-                className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[14px] text-[#1e1e1e] outline-none focus:border-[#0d9488]"
-                style={{ width: 180 }} />
-              {/* Tag filters */}
-              <div className="flex gap-2">
-                {TAG_FILTERS.map(tag => (
-                  <button key={tag} onClick={() => setActiveTag(tag)}
-                    className={`px-3 py-1.5 rounded-lg text-[14px] font-semibold cursor-pointer border-none ${
-                      activeTag === tag ? "bg-[#09665e] text-[#f0fafa]" : "bg-[#f0fafa] text-[#09665e]"
-                    }`}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Column headers */}
-          <div className="grid px-6 py-3 bg-[#f5f5f5] text-[14px] font-semibold text-[#1e1e1e]"
-            style={{ gridTemplateColumns: "1fr 1fr 100px 1fr 120px 200px" }}>
-            <span>Tasks</span>
-            <span>Locations</span>
-            <span>Priority</span>
-            <span>Assigned To</span>
-            <span>Status</span>
-            <span>Actions</span>
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="px-6 py-10 text-center text-[#9ca3af] text-[14px]">No tasks yet — create one above!</div>
-          )}
-
-          {filtered.map((t, i) => (
-            <div key={t.id}
-              className={`grid px-6 py-3 border-t border-[#e5e7ea] items-center text-[14px] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"}`}
-              style={{ gridTemplateColumns: "1fr 1fr 100px 1fr 120px 200px" }}>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[#0a2a3a] font-medium">{t.name || t.item}</span>
-                  {t.modifiedBy === 'steve' && (
-                    <span className="bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">Steve</span>
-                  )}
-                </div>
-                {t.tags && t.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
-                    {t.tags.map(tag => (
-                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-0.5 rounded-md">{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <span className="text-[#6b7280]">{t.source || t.destination || "—"}</span>
-              <span>
-                {t.priority && (
-                  <span className={`text-[12px] font-semibold px-3 py-1 rounded-full ${getPriorityStyle(t.priority)}`}>
-                    {t.priority}
-                  </span>
-                )}
-              </span>
-              <span className="text-[#1e1e1e]">
-                {t.claimedByName || t.assignedName || "—"}
-                {t.claimedByType === "new" && <span className="text-[#9ca3af] text-[12px] ml-1">(new)</span>}
-              </span>
-              <span><StatusBadge status={t.status} /></span>
-              <span className="flex gap-3 items-center flex-wrap">
-                {t.status !== "complete" && (
-                  <button onClick={() => onCompleteTask(t.id, "Manager")}
-                    className="text-[#303030] text-[14px] font-semibold hover:text-[#0d9488] bg-transparent border-none cursor-pointer">
-                    Mark Complete
-                  </button>
-                )}
-                {t.status === "in-progress" && (
-                  <button onClick={() => onMarkIncomplete(t.id)}
-                    className="text-[#bf6a02] text-[14px] hover:underline bg-transparent border-none cursor-pointer">
-                    Incomplete
-                  </button>
-                )}
-                {t.status !== "complete" && (
-                  <button onClick={() => onDeleteTask(t.id)}
-                    className="text-[#900b09] text-[14px] hover:underline bg-transparent border-none cursor-pointer">
-                    Remove
-                  </button>
-                )}
-              </span>
-            </div>
-          ))}
+        {/* Active Tasks table — explicitly excludes rolledOver tasks */}
+        <div className="px-6 pb-8">
+          <TaskTable
+            tasks={tasks.filter(t => !t.rolledOver && t.status !== "complete")}
+            onComplete={(id) => onCompleteTask(id, "Manager")}
+            onMarkIncomplete={onMarkIncomplete}
+            onRemove={onDeleteTask}
+          />
         </div>
       </div>
 

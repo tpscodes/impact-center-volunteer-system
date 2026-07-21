@@ -102,7 +102,7 @@ export default function TaskHistory() {
       </div>
 
       {/* ── Main content ── */}
-      <div className="ml-[220px] flex-1 flex flex-col min-h-screen">
+      <div className="ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
         {/* Top bar */}
         <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">

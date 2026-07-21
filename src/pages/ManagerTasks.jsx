@@ -2,9 +2,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import { useAuth } from "../contexts/AuthContext";
+import TaskTable from "../components/TaskTable";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -528,179 +530,28 @@ export default function ManagerTasks() {
         <Sidebar mode="pantry" activePath="/manager-tasks" />
 
         {/* ── Main content ── */}
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-            <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">
-              Good Morning, Operations Manager
-            </h1>
-            <div className="flex items-center gap-4">
-              <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-              {isSessionActive ? (
-                <div className="flex items-center gap-1.5 bg-[#f0fff4] border border-[#34c759] rounded-full px-3 py-1">
-                  <div className="w-2 h-2 rounded-full bg-[#34c759]" />
-                  <span className="text-[#34c759] text-[11px] font-medium">Session Active</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full px-3 py-1">
-                  <div className="w-2 h-2 rounded-full bg-[#9ca3af]" />
-                  <span className="text-[#6b7280] text-[11px] font-medium">No Session</span>
-                </div>
-              )}
-            </div>
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Tasks"
+              action={{
+                label: "+ Create Task",
+                onClick: () => navigate("/manager/create-task"),
+              }}
+            />
           </div>
 
-          {/* Content area */}
-          <div className="flex flex-1 gap-6 p-6">
-
-            {/* Left column — stats + create button */}
-            <div className="w-[240px] shrink-0 flex flex-col gap-4">
-              <button onClick={() => navigate('/manager/create-task')}
-                className="w-full bg-[#09665e] text-white py-3 rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 hover:opacity-90 border-none cursor-pointer">
-                <Plus size={16} />
-                Create Task
-              </button>
-              {STATS.map(stat => (
-                <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
-                  <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
-                  <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Right column — search + task cards grid */}
-            <div className="flex-1 flex flex-col">
-
-              {/* Search bar */}
-              <div className="relative mb-4">
-                <Search
-                  size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]"
-                />
-                <input
-                  type="text"
-                  placeholder="Search tasks by name, location, or tag..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-[#e5e7eb] rounded-xl
-                    pl-9 pr-4 py-2.5 text-[13px] text-[#0a2a3a]
-                    focus:outline-none focus:ring-2 focus:ring-[#0d9488]
-                    placeholder:text-[#9ca3af]"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2
-                      text-[#9ca3af] hover:text-[#6b7280] bg-transparent border-none cursor-pointer p-0">
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              {/* Result count */}
-              {searchQuery && (
-                <p className="text-[#6b7280] text-[12px] mb-3">
-                  {filteredTasks.length} of {activeTasks_.length} tasks
-                </p>
-              )}
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 content-start">
-              {filteredTasks.map(task => (
-                <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex flex-col gap-2">
-
-                  {/* Name + priority */}
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-[#0a2a3a] text-[15px] font-semibold leading-snug flex-1">
-                      {task.name || task.item}
-                      {task.modifiedBy === 'steve' && (
-                        <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
-                      )}
-                    </p>
-                    {task.priority && (
-                      <span className={`text-[12px] font-semibold px-3 py-1 rounded-full shrink-0 ${getPriorityStyle(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Source → Destination */}
-                  {(task.source || task.destination) && (
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <MapPin size={13} className="text-[#6b7280] shrink-0" />
-                      <p className="text-[#6b7280] text-[12px]">{task.source}</p>
-                      <ChevronRight size={13} className="text-[#6b7280]" />
-                      <p className="text-[#0a2a3a] text-[12px]">{task.destination}</p>
-                    </div>
-                  )}
-
-                  {/* Special instructions (comments field) */}
-                  {task.comments && (
-                    <div className="flex items-center gap-1">
-                      <Clock size={13} className="text-[#6b7280] shrink-0" />
-                      <p className="text-[#6b7280] text-[12px] italic whitespace-pre-wrap">{task.comments}</p>
-                    </div>
-                  )}
-
-                  {/* Tags */}
-                  {task.tags && task.tags.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {task.tags.map(tag => (
-                        <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] font-medium px-2.5 py-1 rounded-md">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="border-t border-[#e5e7eb]" />
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-3">
-                      {task.status === 'in-progress' && (
-                        <button onClick={() => markTaskIncomplete(task.id)}
-                          className="text-[#ff9500] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
-                          Mark Incomplete
-                        </button>
-                      )}
-                      {task.status !== 'complete' && (
-                        <button onClick={() => deleteTask(task.id)}
-                          className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer p-0">
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    {task.status !== 'complete' && (
-                      <button onClick={() => openEdit(task)}
-                        className="text-[#0d9488] hover:text-[#09665e] bg-transparent border-none cursor-pointer p-1 rounded-lg hover:bg-[#f0fafa] transition-colors">
-                        <Pencil size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {filteredTasks.length === 0 && searchQuery && (
-                <div className="col-span-2 flex flex-col items-center justify-center py-20">
-                  <Search size={36} className="text-[#ccedeb]" />
-                  <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">No tasks found</p>
-                  <p className="text-[#6b7280] text-[13px] mt-1">Try a different search term</p>
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="text-[#0d9488] text-[13px] mt-3 bg-transparent border-none cursor-pointer hover:underline p-0">
-                    Clear Search
-                  </button>
-                </div>
-              )}
-
-              {activeTasks_.length === 0 && !searchQuery && (
-                <div className="col-span-2 flex items-center justify-center py-20">
-                  <p className="text-[#6b7280] text-base">No active tasks. Create one to get started.</p>
-                </div>
-              )}
-              </div>
-            </div>
+          {/* Task planning table */}
+          <div className="px-6 pb-8">
+            <TaskTable
+              tasks={activeTasks_}
+              mode="planning"
+              onEdit={openEdit}
+              onRemove={deleteTask}
+            />
           </div>
         </div>
       </div>
@@ -709,128 +560,163 @@ export default function ManagerTasks() {
       {editingTask && (
         <>
           <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setEditingTask(null)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                          bg-white rounded-2xl shadow-xl w-[92vw] max-w-[480px] max-h-[90vh]
-                          overflow-y-auto"
-               style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-
+          <div
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                        bg-white w-[92vw] max-w-[480px] max-h-[90vh] overflow-y-auto"
+            style={{ borderRadius: 20, boxShadow: "0 24px 60px rgba(10,42,58,0.28)",
+                     fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+          >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#e5e7eb]">
+            <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-[#e5e7eb]">
               <div className="flex items-center gap-2">
-                <Pencil size={16} className="text-[#0d9488]" />
-                <p className="text-[#0a2a3a] text-[16px] font-semibold">Edit Task</p>
+                <Pencil size={18} color="#09665E" />
+                <p style={{ font: "600 20px/26px 'Inter', sans-serif", color: "#09665E" }}>Edit Task</p>
               </div>
               <button onClick={() => setEditingTask(null)}
-                className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer p-1">
-                <X size={20} />
+                style={{ border: 0, background: "none", cursor: "pointer", color: "#6B7280",
+                         display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8 }}>
+                <X size={18} />
               </button>
             </div>
 
             {/* Form */}
-            <div className="px-5 py-4 flex flex-col gap-4">
+            <div className="px-7 py-5 flex flex-col gap-5">
 
               {/* Task Name */}
-              <div>
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Task Name</p>
+              <div className="flex flex-col" style={{ gap: 6 }}>
+                <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                                color: "#6B7280", textTransform: "uppercase" }}>
+                  Task Name
+                </label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
-                             text-[#0a2a3a] outline-none focus:border-[#0d9488] focus:ring-1
-                             focus:ring-[#0d9488]"
+                  style={{ width: "100%", height: 44, padding: "0 14px", border: "1px solid #E5E7EB",
+                           borderRadius: 10, font: "400 14px/20px 'Inter', sans-serif", color: "#0A2A3A",
+                           outline: "none", boxSizing: "border-box", transition: "border-color 120ms" }}
+                  onFocus={e => (e.target.style.borderColor = "#09665E")}
+                  onBlur={e  => (e.target.style.borderColor = "#E5E7EB")}
                 />
               </div>
 
               {/* Source + Destination */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Source</p>
-                  <input
-                    type="text"
-                    value={editForm.source}
-                    onChange={e => setEditForm(f => ({ ...f, source: e.target.value }))}
-                    placeholder="Where to pick up from"
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
-                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]"
-                  />
-                </div>
-                <div>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Destination</p>
-                  <input
-                    type="text"
-                    value={editForm.destination}
-                    onChange={e => setEditForm(f => ({ ...f, destination: e.target.value }))}
-                    placeholder="Where it goes"
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
-                               text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]"
-                  />
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {[
+                  { key: "source",      label: "Source",      placeholder: "Where to pick up from" },
+                  { key: "destination", label: "Destination", placeholder: "Where it goes" },
+                ].map(f => (
+                  <div key={f.key} className="flex flex-col" style={{ gap: 6, minWidth: 0 }}>
+                    <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                                    color: "#6B7280", textTransform: "uppercase" }}>
+                      {f.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm[f.key]}
+                      onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      style={{ width: "100%", height: 44, padding: "0 14px", border: "1px solid #E5E7EB",
+                               borderRadius: 10, font: "400 14px/20px 'Inter', sans-serif", color: "#0A2A3A",
+                               outline: "none", boxSizing: "border-box", transition: "border-color 120ms" }}
+                      onFocus={e => (e.target.style.borderColor = "#09665E")}
+                      onBlur={e  => (e.target.style.borderColor = "#E5E7EB")}
+                    />
+                  </div>
+                ))}
               </div>
 
-              {/* Comments */}
-              <div>
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Special Instructions</p>
+              {/* Special Instructions */}
+              <div className="flex flex-col" style={{ gap: 6 }}>
+                <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                                color: "#6B7280", textTransform: "uppercase" }}>
+                  Special Instructions
+                </label>
                 <textarea
                   value={editForm.comments}
                   onChange={e => setEditForm(f => ({ ...f, comments: e.target.value }))}
                   placeholder="Any notes for volunteers..."
                   rows={2}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[13px]
-                             text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]
-                             resize-none"
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #E5E7EB",
+                           borderRadius: 10, font: "400 14px/20px 'Inter', sans-serif", color: "#0A2A3A",
+                           outline: "none", resize: "vertical", boxSizing: "border-box",
+                           transition: "border-color 120ms", fontFamily: "inherit" }}
+                  onFocus={e => (e.target.style.borderColor = "#09665E")}
+                  onBlur={e  => (e.target.style.borderColor = "#E5E7EB")}
                 />
               </div>
 
-              {/* Priority */}
-              <div>
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Priority</p>
-                <div className="flex gap-2">
-                  {PRIORITY_OPTIONS.map(p => (
-                    <button key={p} type="button"
-                      onClick={() => setEditForm(f => ({ ...f, priority: p }))}
-                      className={`flex-1 py-2 rounded-lg text-[13px] font-medium border-none cursor-pointer transition-colors ${
-                        editForm.priority === p
-                          ? p === 'Urgent' ? 'bg-[#fff0f0] text-[#dc2626] ring-1 ring-[#dc2626]'
-                          : p === 'High'   ? 'bg-[#fff3e0] text-[#ff9500] ring-1 ring-[#ff9500]'
-                          :                  'bg-[#ccedeb] text-[#09665e] ring-1 ring-[#09665e]'
-                          : 'bg-[#f3f4f6] text-[#6b7280]'
-                      }`}>
-                      {p}
-                    </button>
-                  ))}
+              {/* Priority — segmented 3-option row, each with its own active color */}
+              <div className="flex flex-col" style={{ gap: 6 }}>
+                <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                                color: "#6B7280", textTransform: "uppercase" }}>
+                  Priority
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {PRIORITY_OPTIONS.map(p => {
+                    const active = editForm.priority === p;
+                    const activeStyle =
+                      p === 'Urgent' ? { background: "#FFF0F0", borderColor: "#FFF0F0", color: "#DC2626" } :
+                      p === 'High'   ? { background: "#FFF3E0", borderColor: "#FFF3E0", color: "#9A5000" } :
+                                       { background: "#E6F5F3", borderColor: "#E6F5F3", color: "#09665E" };
+                    return (
+                      <button key={p} type="button"
+                        onClick={() => setEditForm(f => ({ ...f, priority: p }))}
+                        style={{
+                          flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+                          font: `${active ? 600 : 500} 14px/20px 'Inter', sans-serif`,
+                          border: `1px solid ${active ? activeStyle.borderColor : "#E5E7EB"}`,
+                          background: active ? activeStyle.background : "#FFFFFF",
+                          color: active ? activeStyle.color : "#6B7280",
+                          transition: "background 120ms, color 120ms, border-color 120ms",
+                        }}>
+                        {p}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Tags */}
-              <div>
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1.5">Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_TAGS.map(tag => (
-                    <button key={tag} type="button"
-                      onClick={() => toggleEditTag(tag)}
-                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
-                        editForm.tags.includes(tag)
-                          ? 'bg-[#0d9488] text-white'
-                          : 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]'
-                      }`}>
-                      {tag}
-                    </button>
-                  ))}
+              {/* Tags — teal-tint when selected, no checkmark */}
+              <div className="flex flex-col" style={{ gap: 6 }}>
+                <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                                color: "#6B7280", textTransform: "uppercase" }}>
+                  Tags
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {ALL_TAGS.map(tag => {
+                    const on = editForm.tags.includes(tag);
+                    return (
+                      <button key={tag} type="button"
+                        onClick={() => toggleEditTag(tag)}
+                        style={{
+                          height: 32, padding: "0 14px", borderRadius: 9999, cursor: "pointer",
+                          font: `${on ? 600 : 500} 13px/18px 'Inter', sans-serif`,
+                          border: `1px solid ${on ? "#E6F5F3" : "#E5E7EB"}`,
+                          background: on ? "#E6F5F3" : "#FFFFFF",
+                          color: on ? "#09665E" : "#6B7280",
+                          transition: "background 120ms, color 120ms, border-color 120ms",
+                        }}>
+                        {tag}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex gap-3 px-5 pb-5">
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "0 28px 28px" }}>
               <button onClick={() => setEditingTask(null)}
-                className="flex-1 py-2.5 border border-[#e5e7eb] text-[#6b7280] rounded-lg text-[14px]
-                           bg-transparent cursor-pointer hover:bg-[#f9fafb]">
+                style={{ height: 44, padding: "0 20px", borderRadius: 9999,
+                         border: "1px solid #E5E7EB", background: "#FFFFFF", color: "#0A2A3A",
+                         font: "600 14px/20px 'Inter', sans-serif", cursor: "pointer" }}>
                 Cancel
               </button>
               <button onClick={saveEdit}
-                className="flex-1 py-2.5 bg-[#09665e] hover:bg-[#0d9488] text-white rounded-lg
-                           text-[14px] font-medium border-none cursor-pointer transition-colors">
+                style={{ height: 44, padding: "0 20px", borderRadius: 9999,
+                         border: "none", background: "#09665E", color: "#FFFFFF",
+                         font: "600 14px/20px 'Inter', sans-serif", cursor: "pointer" }}>
                 Save Changes
               </button>
             </div>
@@ -944,6 +830,7 @@ export function ManagerTasksScreen({ tasks, onDeleteTask, onMarkIncomplete, sync
 // ── Bulk Create Tasks Screen ──────────────────────────────────────────────────
 export function CreateTaskScreen({ onPublishAll, onBack }) {
   const navigate = useNavigate();
+  const { initials } = useAuth();
   const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow()]);
   const [publishing, setPublishing] = useState(false);
   const [done, setDone] = useState(false);
@@ -1237,16 +1124,15 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
       {/* ── Main content ── */}
       <div className="ml-[240px] flex-1 flex flex-col min-h-screen bg-white">
 
-        {/* Header bar */}
-        <div className="bg-[#0a2a3a] px-8 py-5 flex items-center gap-4 shrink-0">
-          <button onClick={onBack}
-            className="flex items-center gap-1 border border-white/40 text-white text-[13px] px-3 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-white/10">
-            ← Back
-          </button>
-          <div>
-            <p className="text-[#0d9488] text-[11px] font-semibold uppercase tracking-widest leading-none">Operations Manager</p>
-            <p className="text-white text-[22px] font-semibold leading-tight mt-0.5">Create Tasks</p>
-          </div>
+        {/* Pill header */}
+        <div className="px-6 pt-5 pb-3 shrink-0">
+          <PageHeader
+            initials={initials}
+            showBack={true}
+            onBack={onBack}
+            label="Create Task"
+            action={{ label: "Done", onClick: handleDone }}
+          />
         </div>
 
         {/* Scrollable form area */}

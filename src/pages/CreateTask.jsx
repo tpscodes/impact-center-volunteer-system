@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { ChevronLeft, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── REAL DATA seeded from Jason's task sheets (2021–2026) ──────────────────
@@ -240,6 +241,69 @@ function TagsCell({ tags, onChange }) {
   );
 }
 
+const PRIORITY_DOT_COLORS = { Normal: null, High: "#FF9500", Urgent: "#DC2626" };
+
+function PriorityPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const dot = PRIORITY_DOT_COLORS[value];
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 4, padding: "6px 8px", border: "1px solid #e5e7eb", borderRadius: 8,
+          fontSize: 13, color: "#0a2a3a", background: "white", cursor: "pointer",
+          width: "100%", fontFamily: "inherit",
+        }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+            background: dot ?? "#d1d5db",
+          }} />
+          {value}
+        </span>
+        <ChevronDown size={11} style={{ color: "#9ca3af", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, zIndex: 300, background: "white",
+          border: "1px solid #e5e7eb", borderRadius: 8,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)", marginTop: 2, minWidth: "100%", overflow: "hidden",
+        }}>
+          {PRIORITY.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => { onChange(p); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                background: value === p ? "#f0fafa" : "white",
+                border: "none", cursor: "pointer", width: "100%",
+                fontSize: 13, color: "#0a2a3a", fontFamily: "inherit",
+              }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                background: PRIORITY_DOT_COLORS[p] ?? "#d1d5db",
+              }} />
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Row component (module-level to avoid remount on parent re-render) ────────
 function TaskRow({ row, index, onUpdate, onRemove, onItemSelect }) {
   return (
@@ -296,12 +360,7 @@ function TaskRow({ row, index, onUpdate, onRemove, onItemSelect }) {
         </select>
 
         {/* Priority */}
-        <select value={row.priority} onChange={e => onUpdate("priority", e.target.value)}
-          className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-[13px]
-            text-[#0a2a3a] bg-white focus:outline-none focus:ring-1
-            focus:ring-[#0d9488]">
-          {PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+        <PriorityPicker value={row.priority} onChange={v => onUpdate("priority", v)} />
 
         {/* Tags */}
         <div className="px-1">
@@ -381,19 +440,22 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
   // ── Publish ──────────────────────────────────────────────────────────────────
   function handlePublish() {
     const filled = rows.filter(r => r.item.trim());
-    if (!filled.length) return;
-    const payload = filled.map(r => ({
-      item:        r.item,
-      action:      r.action,
-      source:      r.source,
-      destination: r.destination,
-      comments:    r.specialInstructions,
-      assignTo:    r.assignTo,
-      priority:    r.priority,
-      tags:        r.tags,
-    }));
-    if (onPublishAll) onPublishAll(payload);
-    else if (onPublish) onPublish(payload[0]);
+    if (filled.length) {
+      const payload = filled.map(r => ({
+        item:        r.item,
+        action:      r.action,
+        source:      r.source,
+        destination: r.destination,
+        comments:    r.specialInstructions,
+        assignTo:    r.assignTo,
+        priority:    r.priority,
+        tags:        r.tags,
+      }));
+      if (onPublishAll) { onPublishAll(payload); return; }
+      if (onPublish)    { onPublish(payload[0]); return; }
+    }
+    if (onBack) onBack();
+    else navigate("/manager-tasks");
   }
 
   const hasItems = rows.some(r => r.item.trim());
@@ -505,53 +567,25 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
       >
         <Sidebar mode="pantry" activePath="/create-task" />
 
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center
-            justify-between px-6 sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onBack ? onBack() : navigate("/manager/dashboard")}
-                className="text-[#6b7280] hover:text-[#0a2a3a] transition-colors
-                  bg-transparent border-none cursor-pointer p-0">
-                <ChevronLeft size={20} />
-              </button>
-              <div>
-                <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">
-                  Operations Manager
-                </p>
-                <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">
-                  Create Tasks
-                </h1>
-              </div>
-            </div>
-            <span className="text-[#6b7280] text-[13px]">{TODAY}</span>
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              label="Create Task"
+              showBack={true}
+              onBack={() => onBack ? onBack() : navigate("/manager-tasks")}
+              action={{
+                label: "Done",
+                onClick: handlePublish,
+              }}
+            />
           </div>
 
           {renderFormContent(false)}
         </div>
       </div>
 
-      {/* ── Fixed bottom bar (shared) ─────────────────────────────────────────── */}
-      <div
-        className="fixed bottom-0 right-0 left-0 lg:left-[220px] bg-white
-          border-t border-[#e5e7eb] px-6 py-3 flex items-center justify-between z-20">
-        <p className="text-[#6b7280] text-[13px]">
-          {!hasItems ? "Fill in at least one item" : ""}
-        </p>
-        <button
-          onClick={handlePublish}
-          disabled={!hasItems}
-          className={`bg-[#09665e] text-white px-6 py-2.5 rounded-xl text-[14px]
-            font-semibold border-none transition-colors
-            ${hasItems
-              ? "hover:bg-[#0d9488] cursor-pointer"
-              : "opacity-40 cursor-not-allowed"
-            }`}>
-          Done — Publish
-        </button>
-      </div>
     </>
   );
 }

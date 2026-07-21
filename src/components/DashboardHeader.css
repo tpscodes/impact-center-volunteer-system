@@ -1,0 +1,194 @@
+/* DashboardHeader.css — navy pill header with goo button animations */
+
+.dh-bar {
+  --teal-500: #0D9488;
+  --teal-600: #0F7A70;
+  --navy-900: #0A2A3A;
+  --complete-fg: #15703C;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-liquid: 520ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-liquid: cubic-bezier(0.34, 1.32, 0.44, 1);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 64px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: var(--navy-900);
+  box-shadow: 0 8px 20px rgba(10, 42, 58, 0.18);
+  /* starts as a 56px dot, grows to full pill */
+  clip-path: inset(0 calc(100% - 56px) 0 0 round 9999px);
+  animation: dh-bar-reveal 700ms var(--ease-liquid) both;
+}
+
+@keyframes dh-bar-reveal {
+  from { clip-path: inset(0 calc(100% - 56px) 0 0 round 9999px); }
+  to   { clip-path: inset(0 0 0 0 round 9999px); }
+}
+
+@keyframes dh-fade-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Left: identity ──────────────────────────────────────── */
+.dh-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 0 4px;
+}
+
+.dh-avatar {
+  flex: 0 0 44px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  font: 600 15px/1 "Inter", sans-serif;
+  color: #fff;
+  opacity: 0;
+  animation: dh-fade-in 260ms var(--ease-out) 60ms both;
+}
+
+.dh-role {
+  font: 500 16px/22px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  opacity: 0;
+  animation: dh-fade-in 260ms var(--ease-out) 300ms both;
+}
+
+/* ── Right: date + buttons ───────────────────────────────── */
+.dh-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dh-date {
+  font: 400 14px/20px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  margin-right: 8px;
+  opacity: 0;
+  animation: dh-fade-in 260ms var(--ease-out) 480ms both;
+}
+
+/* ── Shared button chrome ────────────────────────────────── */
+.dh-btn {
+  position: relative;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  font: 600 14px/20px "Inter", sans-serif;
+  white-space: nowrap;
+  isolation: isolate;
+  overflow: hidden;
+  opacity: 0;
+  animation: dh-fade-in 260ms var(--ease-out) both;
+}
+
+/* ── Start / End Session — liquid fill reveal ────────────── */
+.dh-btn-start {
+  animation-delay: 620ms;
+  border: 1.5px solid var(--teal-500);
+  color: var(--teal-500);
+  padding: 0 20px;
+  background: transparent;
+  transition:
+    color var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.dh-btn-start--active {
+  color: #fff;
+  border-color: var(--complete-fg);
+}
+
+.dh-btn-start__goo {
+  position: absolute;
+  inset: -2px;
+  filter: url(#dh-btn-goo);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dh-btn-start__blob {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--complete-fg);
+  width: 0; height: 0;
+  left: var(--origin-x, 24px);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition:
+    width  var(--dur-liquid) var(--ease-liquid),
+    height var(--dur-liquid) var(--ease-liquid);
+}
+
+.dh-btn-start--active .dh-btn-start__blob {
+  width: 340px;
+  height: 340px;
+}
+
+.dh-btn-start__label {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Create Task — ripple burst ──────────────────────────── */
+.dh-btn-create {
+  animation-delay: 700ms;
+  padding: 0 20px;
+  background: var(--teal-500);
+  color: #fff;
+  transition: background var(--dur-fast) var(--ease-std);
+}
+
+.dh-btn-create:hover { background: var(--teal-600); }
+
+.dh-btn-create__goo {
+  position: absolute;
+  inset: -2px;
+  filter: url(#dh-btn-goo);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dh-btn-create__label {
+  position: relative;
+  z-index: 1;
+}
+
+.dh-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  width: 10px; height: 10px;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  pointer-events: none;
+  animation: dh-ripple-burst var(--dur-liquid) var(--ease-out) forwards;
+}
+
+@keyframes dh-ripple-burst {
+  to { transform: translate(-50%, -50%) scale(14); opacity: 0; }
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .dh-bar { animation: none; clip-path: inset(0 0 0 0 round 9999px); }
+  .dh-avatar, .dh-role, .dh-date, .dh-btn { animation: none; opacity: 1; }
+  .dh-btn-start__blob { transition-duration: 0.01ms; }
+  .dh-ripple { animation-duration: 0.01ms; }
+}

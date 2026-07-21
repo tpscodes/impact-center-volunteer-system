@@ -1,0 +1,205 @@
+.tt-card {
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(10, 42, 58, 0.06);
+}
+
+/* ── Header ── */
+.tt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.tt-title {
+  font: 700 22px/1.1 "Inter", system-ui, sans-serif;
+  color: #0A2A3A;
+  letter-spacing: -0.01em;
+}
+
+.tt-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Search ── */
+.tt-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 9999px;
+  color: #9CA3AF;
+  transition: border-color 150ms ease, color 150ms ease;
+  cursor: text;
+}
+
+.tt-search:focus-within {
+  border-color: #0D9488;
+  color: #0A2A3A;
+}
+
+.tt-search__input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font: 400 14px/1 "Inter", system-ui, sans-serif;
+  color: #0A2A3A;
+  width: 150px;
+}
+
+.tt-search__input::placeholder { color: #9CA3AF; }
+
+/* ── Filter chips ── */
+.tt-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.tt-filter {
+  padding: 7px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 9999px;
+  background: transparent;
+  font: 500 13px/1 "Inter", system-ui, sans-serif;
+  color: #6B7280;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+}
+
+.tt-filter:hover {
+  background: #F0FAFA;
+  border-color: #0D9488;
+  color: #09665E;
+}
+
+.tt-filter[aria-pressed="true"] {
+  background: #0A2A3A;
+  border-color: #0A2A3A;
+  color: #fff;
+}
+
+/* ── Table ── */
+.tt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tt-table thead tr {
+  background: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.tt-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font: 600 11px/1 "Inter", system-ui, sans-serif;
+  color: #6B7280;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tt-table th:last-child { width: 48px; }
+
+.tt-table tbody tr {
+  border-top: 1px solid #F3F4F6;
+  transition: background 100ms ease;
+}
+
+.tt-table tbody tr:hover { background: #FAFAFA; }
+
+.tt-table td {
+  padding: 12px 16px;
+  font: 400 14px/1.4 "Inter", system-ui, sans-serif;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.tt-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 500;
+  color: #0A2A3A;
+}
+
+.tt-muted { color: #6B7280; }
+
+/* ── Tags ── */
+.tt-tag {
+  display: inline-block;
+  background: #CCEDEB;
+  color: #09665E;
+  font: 500 11px/1 "Inter", system-ui, sans-serif;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+  margin-right: 4px;
+}
+
+.tt-steve-badge {
+  background: #0D9488;
+  color: #fff;
+  font: 600 10px/1 "Inter", system-ui, sans-serif;
+  padding: 2px 6px;
+  border-radius: 9999px;
+}
+
+/* ── Priority / Status pills ── */
+.tt-pill {
+  display: inline-flex;
+  align-items: center;
+  font: 600 12px/1 "Inter", system-ui, sans-serif;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.tt-pill--progress { background: #FFF3E0; color: #9A5000; }
+.tt-pill--urgent   { background: #FFF0F0; color: #DC2626; }
+.tt-pill--complete { background: #F0FFF4; color: #15703C; }
+.tt-pill--error    { background: #FFF0F0; color: #DC2626; }
+.tt-pill--neutral  { background: #F3F4F6; color: #6B7280; }
+
+/* ── Actions ── */
+.tt-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tt-kebab {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #CCEDEB;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #09665E;
+  transition: background 150ms ease;
+}
+
+.tt-kebab:hover,
+.tt-kebab--open { background: #99DBD6; }
+
+/* ── Empty state ── */
+.tt-empty {
+  padding: 48px 24px;
+  text-align: center;
+  font: 400 14px/1.5 "Inter", system-ui, sans-serif;
+  color: #9CA3AF;
+}

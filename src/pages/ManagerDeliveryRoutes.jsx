@@ -2,15 +2,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil, MoreHorizontal, Trash2,
+  Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil, MoreHorizontal, Trash2, ChevronDown,
 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
+import "./ManagerDeliveryRoutes.css";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DAY_ORDER = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+const VEHICLES  = ["F650 26ft Box Truck","16ft Small Box Truck","IC Van","Personal Vehicle","Small/Large Box Truck"];
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
 function getTodayStr() {
@@ -31,24 +34,21 @@ function monthLabel(dateStr) {
   });
 }
 function nextOccurrenceDate(dayOfWeek, existingDates) {
-  const target = DAY_ORDER.indexOf(dayOfWeek); // 0=Mon
+  const target = DAY_ORDER.indexOf(dayOfWeek);
   if (existingDates.length > 0) {
     const sorted = [...existingDates].sort();
     const latest = new Date(sorted[sorted.length - 1] + "T12:00:00");
     latest.setDate(latest.getDate() + 7);
     return latest.toISOString().slice(0, 10);
   }
-  // No existing — find next upcoming occurrence of that day
   const now = new Date();
-  const todayDow = (now.getDay() + 6) % 7; // Mon=0
+  const todayDow = (now.getDay() + 6) % 7;
   let daysUntil = (target - todayDow + 7) % 7;
   if (daysUntil === 0) daysUntil = 7;
   const result = new Date(now);
   result.setDate(now.getDate() + daysUntil);
   return result.toISOString().slice(0, 10);
 }
-
-// Sort templates: by day order, then alphabetically by name
 function sortTemplates(templates) {
   return [...templates].sort((a, b) => {
     const ai = DAY_ORDER.indexOf(a.dayOfWeek ?? "");
@@ -59,8 +59,6 @@ function sortTemplates(templates) {
     return (a.name || "").localeCompare(b.name || "");
   });
 }
-
-// Group occurrences by month (already sorted ascending)
 function groupByMonth(occs) {
   const groups = [];
   let cur = null;
@@ -72,11 +70,103 @@ function groupByMonth(occs) {
   return groups;
 }
 
+// ── Custom Vehicle Dropdown ───────────────────────────────────────────────────
+// Same pattern as Assign To / Priority / Sort — custom trigger + floating panel,
+// never a native <select>. Used in both Edit modal and Add wizard.
+function VehicleDropdown({ value, onChange, hasError }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const borderCls = hasError
+    ? "border-[#dc2626]"
+    : open
+    ? "border-[#09665e]"
+    : "border-[#e5e7eb] hover:border-[#d1d5db]";
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center justify-between gap-2 w-full h-[44px] px-[14px]
+          border rounded-[10px] bg-white cursor-pointer transition-colors
+          font-[400] text-[14px] leading-[20px]
+          ${value ? "text-[#0a2a3a]" : "text-[#d1d5db]"}
+          ${borderCls}`}
+      >
+        <span>{value || "Select vehicle…"}</span>
+        <ChevronDown
+          size={10}
+          className={`text-[#6b7280] transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute top-[calc(100%+4px)] left-0 right-0 z-20
+            bg-white border border-[#e5e7eb] rounded-[12px]
+            shadow-[0_8px_24px_rgba(10,42,58,.14)] py-[6px] max-h-[220px] overflow-y-auto"
+        >
+          {VEHICLES.map(v => (
+            <button
+              key={v}
+              type="button"
+              role="option"
+              aria-selected={value === v}
+              onClick={() => { onChange(v); setOpen(false); }}
+              className={`block w-full text-left border-0 rounded-[8px] px-[10px] py-[9px]
+                text-[14px] leading-[20px] cursor-pointer transition-colors
+                ${value === v
+                  ? "bg-[#E6F5F3] text-[#09665E] font-semibold"
+                  : "bg-transparent text-[#0a2a3a] hover:bg-[#f5f5f5]"}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Segmented Drivers Needed ──────────────────────────────────────────────────
+// Plain segmented control — all options same colour when active (no per-option
+// tone), used in both wizard and Edit modal.
+function SegmentedDrivers({ value, onChange }) {
+  return (
+    <div className="flex gap-2">
+      {[1, 2, 3].map(n => (
+        <button
+          key={n}
+          type="button"
+          aria-pressed={value === n}
+          onClick={() => onChange(n)}
+          className={`flex-1 h-[40px] rounded-[10px] cursor-pointer text-[14px] font-medium
+            transition-colors border
+            ${value === n
+              ? "bg-[#0d9488] border-[#0d9488] text-white font-semibold"
+              : "bg-white border-[#e5e7eb] text-[#6b7280] hover:border-[#d1d5db]"}`}
+        >
+          {n} {n === 1 ? "Driver" : "Drivers"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Driver input with autocomplete ───────────────────────────────────────────
 // Defined outside main component — stable reference, no remount on parent render.
-// Pill vs input is driven PURELY by the value prop — no useEffect sync needed.
-// editing only tracks whether the manager explicitly clicked a filled pill to
-// reassign; it defaults false so a freshly-claimed slot shows its pill instantly.
 function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSave }) {
   const [editing,  setEditing]  = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -94,7 +184,6 @@ function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSa
     await onSave(occKey, driverIndex, name, currentDrivers);
   }
 
-  // Show pill when a driver is assigned AND manager hasn't clicked to reassign
   if (value && !editing) {
     return (
       <span
@@ -103,7 +192,7 @@ function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSa
           setInputVal(value);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 inline-block">
+        className="bg-[#E6F5F3] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 inline-block">
         {value}
       </span>
     );
@@ -138,12 +227,6 @@ function DriverInput({ value, occKey, driverIndex, currentDrivers, drivers, onSa
 }
 
 // ── Module-level persistence ──────────────────────────────────────────────────
-// These survive React component remounts (StrictMode double-mount, router
-// re-renders, etc.) because they live in module scope, not component state.
-// selectedId: remembers which route the user last clicked so the right panel
-//   never flashes to "Select a route" on remount.
-// cachedTemplates: remembers the last loaded templates so the right panel has
-//   data immediately on remount — no waiting for Firebase to re-fire.
 let _persistedSelectedId = null;
 let _cachedTemplates     = {};
 
@@ -152,7 +235,6 @@ export default function ManagerDeliveryRoutes() {
   const navigate = useNavigate();
   const { pantryId, displayName, initials, logout } = useAuth();
 
-  // Initialise state from module-level cache so remounts start with correct data
   const [templates,   _setTemplates]   = useState(_cachedTemplates);
   const [occurrences, setOccurrences]  = useState([]);
   const [volunteers,  setVolunteers]   = useState([]);
@@ -169,8 +251,10 @@ export default function ManagerDeliveryRoutes() {
   });
   const [addErrors,       setAddErrors]       = useState({});
   const [pendingSelectId, setPendingSelectId] = useState(null);
-  const [openMenuId,      setOpenMenuId]      = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  // Floating popover state — tracks which kebab is open + fixed position
+  const [popover, setPopover] = useState({ open: false, routeId: null, top: 0, left: 0 });
 
   // Wrap setters so module-level cache stays in sync
   function setTemplates(data) {
@@ -182,12 +266,10 @@ export default function ManagerDeliveryRoutes() {
     _setSelectedId(id);
   }
 
-  // Firebase listeners — keyed on pantryId
+  // Firebase listeners
   useEffect(() => {
     return onValue(ref(db, `pantries/${pantryId}/routeTemplates`), snap => {
       const data = snap.val();
-      // Never overwrite valid templates with a null/empty snapshot
-      // (can happen during StrictMode re-subscription or brief disconnects)
       if (data) setTemplates(data);
     });
   }, [pantryId]); // eslint-disable-line
@@ -204,18 +286,13 @@ export default function ManagerDeliveryRoutes() {
   useEffect(() => {
     return onValue(ref(db, 'volunteers'), snap => {
       const data = snap.val();
-      // Use Object.entries so the Firebase key is preserved as vol.id
       setVolunteers(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
     });
   }, [pantryId]);
 
-  // Derive sorted list from templates object (preserves Firebase keys as id)
   const templatesList = Object.entries(templates).map(([id, t]) => ({ id, ...t }));
   const sorted = sortTemplates(templatesList);
 
-  // Auto-select the default route when templates load and nothing is selected yet.
-  // Uses !selectedId instead of a ref guard so StrictMode's unmount/remount cycle
-  // (which resets state but preserves refs) correctly re-triggers the selection.
   useEffect(() => {
     if (sorted.length === 0 || selectedId) return;
     const today = getTodayDayKey();
@@ -223,8 +300,6 @@ export default function ManagerDeliveryRoutes() {
     if (match) setSelectedId(match.id);
   }, [templates]); // eslint-disable-line
 
-  // Once a newly-created template arrives in state, select it.
-  // Avoids selecting an ID that doesn't exist in templates yet.
   useEffect(() => {
     if (pendingSelectId && templates[pendingSelectId]) {
       setSelectedId(pendingSelectId);
@@ -232,20 +307,35 @@ export default function ManagerDeliveryRoutes() {
     }
   }, [templates, pendingSelectId]); // eslint-disable-line
 
-  // Derive selectedTemplate directly from the templates object (O(1) lookup)
   const selectedTemplate = templates[selectedId]
     ? { id: selectedId, ...templates[selectedId] }
     : null;
 
   const drivers = volunteers.filter(v => v.isDriver === true);
 
-  // Occurrences for selected template, sorted by date
   const templateOccs = occurrences
     .filter(o => o.templateId === selectedId)
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
   const today = getTodayStr();
   const monthGroups = groupByMonth(templateOccs);
+
+  // ── Popover helpers ───────────────────────────────────────────────────────
+  function openPopover(e, routeId) {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    setPopover({ open: true, routeId, top: r.bottom + 6, left: Math.max(8, r.right - 160) });
+  }
+  function closePopover() {
+    setPopover(p => ({ ...p, open: false, routeId: null }));
+  }
+
+  // Close popover on outside click
+  useEffect(() => {
+    function handleClick() { if (popover.open) closePopover(); }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [popover.open]);
 
   // ── Add-modal helpers ─────────────────────────────────────────────────────
   function closeAddModal() {
@@ -257,12 +347,8 @@ export default function ManagerDeliveryRoutes() {
     setAddErrors({});
   }
 
-  function formatTimeTo12h(timeStr) {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(":").map(Number);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const hour = h % 12 || 12;
-    return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+  function formatDateShortLocal(dateStr) {
+    return formatDateShort(dateStr);
   }
 
   function countOccurrences(firstDate, repeatUntil, dayOfWeek) {
@@ -276,20 +362,6 @@ export default function ManagerDeliveryRoutes() {
       cur.setDate(cur.getDate() + 1);
     }
     return count;
-  }
-
-  function generateOccurrenceDates(firstDate, repeatUntil, dayOfWeek) {
-    if (!repeatUntil) return [firstDate];
-    const target = DAY_ORDER.indexOf(dayOfWeek);
-    let cur = new Date(firstDate + "T12:00:00");
-    const end = new Date(repeatUntil + "T12:00:00");
-    const dates = [];
-    while (cur <= end) {
-      const dow = (cur.getDay() + 6) % 7;
-      if (dow === target) dates.push(cur.toISOString().slice(0, 10));
-      cur.setDate(cur.getDate() + 1);
-    }
-    return dates.length ? dates : [firstDate];
   }
 
   function validateStep(step) {
@@ -306,7 +378,7 @@ export default function ManagerDeliveryRoutes() {
     if (step === 3) {
       if (!newRoute.firstDate) errs.firstDate = "First occurrence date is required";
       if (newRoute.repeatsWeekly) {
-        if (!newRoute.repeatUntil)                       errs.repeatUntil = "Repeat until date is required";
+        if (!newRoute.repeatUntil)                           errs.repeatUntil = "Repeat until date is required";
         else if (newRoute.repeatUntil <= newRoute.firstDate) errs.repeatUntil = "Must be after first date";
       }
     }
@@ -316,11 +388,8 @@ export default function ManagerDeliveryRoutes() {
 
   async function handleSaveNewRoute() {
     try {
-      console.log("Creating route...", newRoute);
-
       const templateId = newRoute.name.toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, "") + "-" + newRoute.dayOfWeek;
+        .replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + newRoute.dayOfWeek;
 
       await set(ref(db, `pantries/${pantryId}/routeTemplates/${templateId}`), {
         name:          newRoute.name,
@@ -348,14 +417,9 @@ export default function ManagerDeliveryRoutes() {
 
       for (const date of dates) {
         await push(ref(db, `pantries/${pantryId}/routeOccurrences`), {
-          templateId,
-          date,
-          drivers:     [],
-          status:      "pending",
-          isSpecial:   false,
-          specialNote: "",
-          notes:       "",
-          createdAt:   Date.now(),
+          templateId, date,
+          drivers: [], status: "pending", isSpecial: false,
+          specialNote: "", notes: "", createdAt: Date.now(),
         });
       }
 
@@ -368,25 +432,17 @@ export default function ManagerDeliveryRoutes() {
       });
       setAddErrors({});
       setPendingSelectId(templateId);
-
     } catch (error) {
       console.error("Error creating route:", error);
     }
   }
 
-  // Close ⋯ menu when clicking anywhere outside
-  useEffect(() => {
-    const handleClick = () => setOpenMenuId(null);
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, []);
-
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleDeleteRoute(templateId) {
     try {
       await remove(ref(db, `pantries/${pantryId}/routeTemplates/${templateId}`));
-      const occurrencesToDelete = occurrences.filter(o => o.templateId === templateId);
-      for (const occ of occurrencesToDelete) {
+      const toDelete = occurrences.filter(o => o.templateId === templateId);
+      for (const occ of toDelete) {
         await remove(ref(db, `pantries/${pantryId}/routeOccurrences/${occ.id}`));
       }
       if (selectedId === templateId) {
@@ -404,14 +460,9 @@ export default function ManagerDeliveryRoutes() {
     const dates = templateOccs.map(o => o.date).filter(Boolean);
     const newDate = nextOccurrenceDate(selectedTemplate.dayOfWeek, dates);
     await push(ref(db, `pantries/${pantryId}/routeOccurrences`), {
-      templateId:  selectedTemplate.id,
-      date:        newDate,
-      drivers:     [],
-      status:      "pending",
-      notes:       "",
-      specialNote: "",
-      isSpecial:   false,
-      createdAt:   Date.now(),
+      templateId: selectedTemplate.id, date: newDate,
+      drivers: [], status: "pending", notes: "", specialNote: "",
+      isSpecial: false, createdAt: Date.now(),
     });
   }
 
@@ -419,10 +470,7 @@ export default function ManagerDeliveryRoutes() {
     await remove(ref(db, `pantries/${pantryId}/routeOccurrences/${occurrenceId}`));
   }
 
-  // Writes to drivers[] array so manager assigns and volunteer claims
-  // use the same field — preserves other slots via update() not set()
   async function handleDriverAssign(occurrenceId, driverIndex, value, currentDrivers) {
-    // Normalize: Firebase RTDB may return arrays as plain objects
     const normalized = Array.isArray(currentDrivers)
       ? currentDrivers
       : currentDrivers && typeof currentDrivers === "object"
@@ -430,45 +478,74 @@ export default function ManagerDeliveryRoutes() {
       : [];
     const updatedDrivers = [...normalized];
     updatedDrivers[driverIndex] = value;
-    // Safely count filled slots — guard against non-string entries
     const filledSlots = updatedDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
-    // Read driversNeeded fresh from template to avoid stale closure
     const tmplNeeded = Number(templates[selectedId]?.driversNeeded) || driversNeeded;
     const newStatus = filledSlots >= tmplNeeded ? "inProgress" : "pending";
     await update(ref(db, `pantries/${pantryId}/routeOccurrences/${occurrenceId}`), {
-      drivers: updatedDrivers,
-      status:  newStatus,
+      drivers: updatedDrivers, status: newStatus,
     });
   }
 
-  const todayDisplay = new Date().toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric", year: "numeric",
-  });
-
-  // Precompute driversNeeded so schedule table and header stay in sync
   const driversNeeded = selectedTemplate ? Number(selectedTemplate.driversNeeded) || 1 : 1;
 
-  // Precompute META array for the route info grid
-  const META = selectedTemplate ? [
-    { icon: MapPin, color: "#6b7280",  label: "Pickup",         value: selectedTemplate.source },
-    { icon: MapPin, color: "#0d9488",  label: "Drop-off",       value: selectedTemplate.destination },
-    { icon: Clock,  color: "#6b7280",  label: "Departs",        value: selectedTemplate.departureTime },
-    { icon: Clock,  color: "#6b7280",  label: "Arrives",        value: selectedTemplate.arrivalTime },
-    { icon: Truck,  color: "#6b7280",  label: "Vehicle",        value: selectedTemplate.vehicle },
-    { icon: Users,  color: "#6b7280",  label: "Drivers needed", value: selectedTemplate.driversNeeded
-        ? `${selectedTemplate.driversNeeded} ${selectedTemplate.driversNeeded === 1 ? "driver" : "drivers"}` : null },
-  ].filter(m => m.value) : [];
+  // Info grid — 3 semantic groups per reference
+  const infoGroups = selectedTemplate ? [
+    {
+      label: "Locations",
+      facts: [
+        { icon: MapPin, label: "Pickup",   value: selectedTemplate.source      },
+        { icon: MapPin, label: "Drop-off", value: selectedTemplate.destination },
+      ].filter(f => f.value),
+    },
+    {
+      label: "Schedule",
+      facts: [
+        { icon: Clock, label: "Departs", value: selectedTemplate.departureTime },
+        { icon: Clock, label: "Arrives", value: selectedTemplate.arrivalTime   },
+      ].filter(f => f.value),
+    },
+    {
+      label: "Resources",
+      facts: [
+        { icon: Truck, label: "Vehicle",         value: selectedTemplate.vehicle },
+        { icon: Users, label: "Drivers needed",  value: selectedTemplate.driversNeeded
+            ? `${selectedTemplate.driversNeeded} ${selectedTemplate.driversNeeded === 1 ? "driver" : "drivers"}` : null },
+      ].filter(f => f.value),
+    },
+  ] : [];
+
+  // ── Shared field style helpers ────────────────────────────────────────────
+  const inputCls = (err) =>
+    `w-full border ${err ? "border-[#dc2626]" : "border-[#e5e7eb]"} rounded-[10px]
+     h-[44px] px-[14px] text-[14px] text-[#0a2a3a] bg-white
+     focus:outline-none focus:border-[#09665e] transition-colors`;
+  const labelCls = "text-[#0a2a3a] text-[13px] font-medium mb-1.5 block";
+  const fieldErrCls = "text-[#dc2626] text-[12px] font-medium mt-1";
+
+  const previewCount = newRoute.firstDate && newRoute.repeatsWeekly && newRoute.repeatUntil
+    ? countOccurrences(newRoute.firstDate, newRoute.repeatUntil, newRoute.dayOfWeek)
+    : 1;
+
+  const WIZARD_STEP_TITLES = { 1: "Route Info", 2: "Route Details", 3: "First Schedule" };
+
+  const DAY_PILLS = [
+    { label: "Mon", value: "monday" },
+    { label: "Tue", value: "tuesday" },
+    { label: "Wed", value: "wednesday" },
+    { label: "Thu", value: "thursday" },
+    { label: "Fri", value: "friday" },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          MOBILE LAYOUT  (hidden on desktop)
+          MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen flex flex-col">
 
-        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
               <span className="text-white text-[11px] font-semibold">{initials}</span>
@@ -517,7 +594,7 @@ export default function ManagerDeliveryRoutes() {
                 ].map(item => (
                   <button key={item.label}
                     onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none ${
+                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                       item.active
                         ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
                         : "text-[#9ca3af] border-l-[3px] border-transparent"
@@ -545,7 +622,6 @@ export default function ManagerDeliveryRoutes() {
           </>
         )}
 
-        {/* Mobile page title */}
         <div className="lg:hidden px-4 pt-5 pb-3">
           <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
           <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Routes</h1>
@@ -561,7 +637,7 @@ export default function ManagerDeliveryRoutes() {
           </div>
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">
-              <Truck size={40} color="#ccedeb" />
+              <Truck size={40} color="#E6F5F3" />
               <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">No route templates</p>
               <p className="text-[#6b7280] text-[13px] mt-1">Templates load from Firebase automatically</p>
             </div>
@@ -570,7 +646,7 @@ export default function ManagerDeliveryRoutes() {
               <div key={tmpl.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4 mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[#0a2a3a] text-[14px] font-semibold">{tmpl.name}</p>
-                  <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full capitalize">
+                  <span className="bg-[#E6F5F3] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full capitalize">
                     {tmpl.dayOfWeek}
                   </span>
                 </div>
@@ -581,14 +657,12 @@ export default function ManagerDeliveryRoutes() {
                 <div className="flex items-center gap-3">
                   {tmpl.departureTime && (
                     <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
-                      <Clock size={13} color="#6b7280" />
-                      {tmpl.departureTime}
+                      <Clock size={13} color="#6b7280" />{tmpl.departureTime}
                     </span>
                   )}
                   {tmpl.vehicle && (
                     <span className="flex items-center gap-1 text-[#6b7280] text-[12px]">
-                      <Truck size={13} color="#6b7280" />
-                      {tmpl.vehicle}
+                      <Truck size={13} color="#6b7280" />{tmpl.vehicle}
                     </span>
                   )}
                 </div>
@@ -599,112 +673,138 @@ export default function ManagerDeliveryRoutes() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT  (hidden on mobile)
+          DESKTOP LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="hidden lg:flex min-h-screen">
 
         <Sidebar mode="delivery" activePath="/manager-delivery-routes" />
 
-        <div className="lg:ml-[220px] flex-1 flex flex-col" style={{ height: "100vh" }}>
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col" style={{ height: "100vh" }}>
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 shrink-0 z-10">
-            <div>
-              <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Routes</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[#6b7280] text-[13px]">{todayDisplay}</span>
-              <button onClick={() => { setShowAddModal(true); setAddStep(1); }}
-                className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg
-                           text-[13px] font-medium hover:opacity-90 border-none cursor-pointer">
-                <Plus size={14} />
-                Add Route
-              </button>
-            </div>
+          {/* PageHeader */}
+          <div className="px-6 pt-5 pb-3 shrink-0">
+            <PageHeader
+              initials={initials}
+              label="Routes"
+              action={{
+                label: "+ Add Route",
+                onClick: () => { setShowAddModal(true); setAddStep(1); },
+              }}
+            />
           </div>
 
-          {/* Master-detail — flex row, fills remaining height */}
-          <div className="flex flex-1 overflow-hidden">
+          {/* Master-detail shell */}
+          <div className="flex flex-1 overflow-hidden mx-6 mb-6 bg-white border border-[#e5e7eb]
+            rounded-[20px] shadow-[0_1px_2px_rgba(10,42,58,.04),0_8px_20px_rgba(10,42,58,.05)]">
 
-            {/* Left panel — always mounted, no key */}
-            <div className="w-[220px] min-w-[220px] bg-white border-r border-[#e5e7eb] overflow-y-auto flex flex-col">
-              <div className="px-4 py-3 border-b border-[#e5e7eb] shrink-0">
-                <p className="text-[12px] text-[#6b7280] uppercase tracking-widest">Routes</p>
+            {/* ── Left: route list (tablist) ── */}
+            <div
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Routes"
+              className="w-[260px] min-w-[260px] border-r border-[#e5e7eb] overflow-y-auto flex flex-col"
+            >
+              <div className="px-5 pt-4 pb-3 shrink-0">
+                <p className="text-[11px] text-[#6b7280] uppercase tracking-[.06em] font-semibold">Routes</p>
               </div>
+
               {sorted.length === 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
                   <p className="text-[#6b7280] text-[12px]">Loading templates…</p>
                 </div>
               ) : (
-                sorted.map(tmpl => {
+                sorted.map((tmpl, i) => {
                   const active = tmpl.id === selectedId;
                   return (
-                    <div key={tmpl.id} className="relative group">
-                      {/* Route item */}
-                      <div
-                        onClick={() => setSelectedId(tmpl.id)}
-                        className={`px-4 py-3 cursor-pointer border-b border-[#f3f4f6] transition-colors
-                          ${active ? "bg-[#0d9488]" : "hover:bg-[#f9fafb]"}`}>
-                        <p className={`text-[13px] font-medium ${active ? "text-white" : "text-[#0a2a3a]"}`}>
-                          {tmpl.name}
-                        </p>
-                        <p className={`text-[11px] capitalize mt-0.5 ${active ? "text-white" : "text-[#6b7280]"}`}>
-                          {tmpl.dayOfWeek}
-                        </p>
-                      </div>
-
-                      {/* ⋯ button — visible on hover */}
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === tmpl.id ? null : tmpl.id);
-                        }}
-                        className={`absolute right-2 top-1/2 -translate-y-1/2
-                          w-6 h-6 flex items-center justify-center rounded
-                          opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer
-                          ${active ? "text-white hover:bg-[#0b7a70]" : "text-[#6b7280] hover:bg-[#f0f0f0]"}`}>
-                        <MoreHorizontal size={14} />
-                      </button>
-
-                      {/* Dropdown */}
-                      {openMenuId === tmpl.id && (
-                        <div className="absolute right-2 top-10 z-30 bg-white
-                          border border-[#e5e7eb] rounded-lg shadow-md py-1 w-[140px]">
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              setDeleteConfirmId(tmpl.id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-[13px]
-                              text-[#dc2626] hover:bg-[#fff0f0] bg-transparent border-none cursor-pointer">
-                            Delete Route
-                          </button>
+                    <div
+                      key={tmpl.id}
+                      role="tab"
+                      id={`tab-${tmpl.id}`}
+                      aria-selected={active}
+                      aria-controls={`panel-${tmpl.id}`}
+                      tabIndex={active ? 0 : -1}
+                      onClick={() => setSelectedId(tmpl.id)}
+                      onKeyDown={e => {
+                        let nextIdx = null;
+                        if (e.key === "ArrowDown") nextIdx = (i + 1) % sorted.length;
+                        else if (e.key === "ArrowUp") nextIdx = (i - 1 + sorted.length) % sorted.length;
+                        else if (e.key === "Home") nextIdx = 0;
+                        else if (e.key === "End") nextIdx = sorted.length - 1;
+                        if (nextIdx !== null) {
+                          e.preventDefault();
+                          const next = sorted[nextIdx];
+                          setSelectedId(next.id);
+                          document.getElementById(`tab-${next.id}`)?.focus();
+                        }
+                      }}
+                      className={`relative group px-5 py-3 cursor-pointer border-b border-[#f5f5f5]
+                        transition-colors outline-none focus-visible:outline-2
+                        focus-visible:outline-[#09665e] focus-visible:-outline-offset-2
+                        ${active ? "bg-[#0a2a3a]" : "hover:bg-[#f5f5f5]"}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className={`text-[14px] font-medium leading-[20px] truncate
+                            ${active ? "text-white font-semibold" : "text-[#0a2a3a]"}`}>
+                            {tmpl.name}
+                          </p>
+                          <p className={`text-[13px] leading-[18px] mt-0.5 capitalize
+                            ${active ? "text-white/70" : "text-[#6b7280]"}`}>
+                            {tmpl.dayOfWeek}
+                          </p>
                         </div>
-                      )}
+
+                        {/* Kebab — nested button inside role="tab" div (div allows nesting, button does not) */}
+                        <button
+                          type="button"
+                          aria-haspopup="menu"
+                          aria-label={`Actions for ${tmpl.name}`}
+                          onClick={e => openPopover(e, tmpl.id)}
+                          className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px]
+                            border-none cursor-pointer transition-all
+                            opacity-0 group-hover:opacity-100 focus:opacity-100
+                            ${active
+                              ? "text-white/70 hover:bg-white/16 hover:text-white"
+                              : "text-[#6b7280] hover:bg-[#e5e7eb]"}`}
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* Right panel — always mounted, never null, no key */}
-            <div className="flex-1 overflow-y-auto bg-[#f5f5f5]">
+            {/* ── Right: detail panel ── */}
+            <div
+              className="flex-1 overflow-y-auto bg-[#f5f5f5]"
+            >
               {!selectedTemplate ? (
                 <div className="flex flex-col items-center justify-center h-full py-20">
-                  <Truck size={40} color="#ccedeb" />
+                  <Truck size={40} color="#E6F5F3" />
                   <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">Select a route</p>
                   <p className="text-[#6b7280] text-[13px] mt-1">Choose a route from the left panel</p>
                 </div>
               ) : (
-                <div className="flex flex-col">
-                  {/* Section 1 — Fixed route info */}
-                  <div className="bg-white border-b border-[#e5e7eb] px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[#0a2a3a] text-[18px] font-semibold">{selectedTemplate.name}</p>
-                        <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-3 py-1 rounded-full capitalize">
+                // key={selectedId} forces remount on route switch, which re-triggers the CSS animation
+                <div
+                  key={selectedId}
+                  role="tabpanel"
+                  id={`panel-${selectedId}`}
+                  aria-labelledby={`tab-${selectedId}`}
+                  tabIndex={0}
+                  className="route-detail-animate flex flex-col outline-none"
+                >
+                  {/* Route info header */}
+                  <div className="bg-white border-b border-[#e5e7eb] px-7 py-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-[10px]">
+                        <h2 className="text-[22px] font-semibold leading-[28px] tracking-[-0.01em] text-[#0a2a3a]">
+                          {selectedTemplate.name}
+                        </h2>
+                        <span className="bg-[#E6F5F3] text-[#09665e] text-[12px] font-semibold
+                          px-3 py-1 rounded-full capitalize leading-[16px]">
                           {selectedTemplate.dayOfWeek}
                         </span>
                       </div>
@@ -721,41 +821,54 @@ export default function ManagerDeliveryRoutes() {
                           });
                           setShowEditPopup(true);
                         }}
-                        className="flex items-center gap-1.5 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:opacity-80">
-                        <Pencil size={13} />
+                        className="flex items-center gap-[6px] border-none bg-none cursor-pointer
+                          text-[14px] font-medium text-[#09665e] hover:opacity-70 transition-opacity">
+                        <Pencil size={14} />
                         Edit
                       </button>
                     </div>
 
-                    {/* Meta grid */}
-                    <div className="grid grid-cols-3 gap-x-6 gap-y-3 mt-4">
-                      {META.map(m => (
-                        <div key={m.label}>
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <m.icon size={13} style={{ color: m.color }} />
-                            <span className="text-[#6b7280] text-[11px]">{m.label}</span>
-                          </div>
-                          <p className="text-[#0a2a3a] text-[13px] font-medium">{m.value}</p>
+                    {/* Info grid — 3 semantic groups */}
+                    <div className="grid grid-cols-3 gap-8 pb-0">
+                      {infoGroups.map(group => (
+                        <div key={group.label}>
+                          <p className="text-[11px] font-semibold text-[#6b7280] uppercase
+                            tracking-[.06em] mb-[14px]">
+                            {group.label}
+                          </p>
+                          {group.facts.map(f => (
+                            <div key={f.label} className="flex items-start gap-2 mb-[14px] last:mb-0">
+                              <f.icon size={15} className="text-[#6b7280] shrink-0 mt-[2px]" />
+                              <div>
+                                <p className="text-[13px] text-[#6b7280] leading-[18px]">{f.label}</p>
+                                <p className="text-[14px] font-semibold leading-[20px] text-[#0a2a3a] mt-[1px]">
+                                  {f.value}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Section 2 — Schedule table */}
-                  <div className="px-6 py-4">
+                  {/* Schedule section */}
+                  <div className="px-7 py-6">
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[#0a2a3a] text-[14px] font-semibold">Schedule</p>
+                      <p className="text-[#0a2a3a] text-[17px] font-semibold leading-[22px]">Schedule</p>
                       <button onClick={handleAddOccurrence}
-                        className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
+                        className="text-[#09665e] text-[14px] font-medium bg-transparent border-none
+                          cursor-pointer hover:opacity-70 transition-opacity">
                         + Add Occurrence
                       </button>
                     </div>
 
                     {templateOccs.length === 0 ? (
-                      <div className="text-center py-10">
-                        <p className="text-[#6b7280] text-[13px]">No occurrences yet.</p>
+                      <div className="text-center py-[60px] flex flex-col items-center gap-1">
+                        <p className="text-[#0a2a3a] text-[14px]">No occurrences yet.</p>
                         <button onClick={handleAddOccurrence}
-                          className="mt-2 text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer underline">
+                          className="text-[#09665e] text-[14px] font-semibold bg-transparent border-none
+                            cursor-pointer underline hover:opacity-70">
                           Add the first one
                         </button>
                       </div>
@@ -779,14 +892,12 @@ export default function ManagerDeliveryRoutes() {
                         <tbody>
                           {monthGroups.map(group => (
                             <React.Fragment key={group.month}>
-                              {/* Month header row */}
                               <tr>
                                 <td colSpan={driversNeeded >= 3 ? 7 : driversNeeded >= 2 ? 6 : 5}
                                   className="bg-[#f9fafb] text-[11px] text-[#6b7280] uppercase tracking-widest px-3 py-2">
                                   {monthLabel(group.month + "-01")}
                                 </td>
                               </tr>
-
                               {group.occs.map(occ => {
                                 const isPast    = (occ.date || "") < today;
                                 const isSpecial = occ.isSpecial === true;
@@ -802,10 +913,8 @@ export default function ManagerDeliveryRoutes() {
                                         {occ.specialNote || "Special day"}
                                       </td>
                                       <td className="py-1 text-right pr-1">
-                                        <button
-                                          onClick={() => handleDeleteOccurrence(occ.id)}
-                                          className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
-                                          title="Delete occurrence">
+                                        <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                          className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                           <X size={13} />
                                         </button>
                                       </td>
@@ -813,95 +922,64 @@ export default function ManagerDeliveryRoutes() {
                                   );
                                 }
 
-                                // Normalize drivers — Firebase RTDB can return arrays as
-                                // plain objects ({0:"name"}) so handle both cases
-                                const rawDrivers  = occ.drivers;
-                                const occDrivers  = Array.isArray(rawDrivers)
+                                const rawDrivers = occ.drivers;
+                                const occDrivers = Array.isArray(rawDrivers)
                                   ? rawDrivers
                                   : rawDrivers && typeof rawDrivers === "object"
                                   ? Object.values(rawDrivers)
                                   : [];
-                                const driver0     = occDrivers[0] || "";
-                                const driver1     = occDrivers[1] || "";
-                                const driver2     = occDrivers[2] || "";
+                                const driver0 = occDrivers[0] || "";
+                                const driver1 = occDrivers[1] || "";
+                                const driver2 = occDrivers[2] || "";
                                 const slotsFilled = occDrivers.filter(d => d && typeof d === "string" && d.trim()).length;
 
                                 return (
                                   <tr key={occ.id} className="border-b border-[#f3f4f6] h-[44px]">
-                                    {/* Date */}
                                     <td className={`text-[12px] pr-4 ${isPast ? "text-[#6b7280]" : "text-[#0a2a3a] font-medium"}`}>
                                       {formatDateShort(occ.date)}
                                     </td>
-
-                                    {/* Driver 1 */}
                                     <td className="pr-3 py-1">
                                       {isPast ? (
                                         driver0
-                                          ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver0}</span>
+                                          ? <span className="bg-[#E6F5F3] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver0}</span>
                                           : <span className="text-[#6b7280]">—</span>
                                       ) : (
-                                        <DriverInput
-                                          key={`${occ.id}-0-${!!driver0}`}
-                                          value={driver0}
-                                          occKey={occ.id}
-                                          driverIndex={0}
-                                          currentDrivers={occDrivers}
-                                          drivers={drivers}
-                                          onSave={handleDriverAssign}
-                                        />
+                                        <DriverInput key={`${occ.id}-0-${!!driver0}`} value={driver0}
+                                          occKey={occ.id} driverIndex={0} currentDrivers={occDrivers}
+                                          drivers={drivers} onSave={handleDriverAssign} />
                                       )}
                                     </td>
-
-                                    {/* Driver 2 */}
                                     {driversNeeded >= 2 && (
                                       <td className="pr-3 py-1">
                                         {isPast ? (
                                           driver1
-                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver1}</span>
+                                            ? <span className="bg-[#E6F5F3] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver1}</span>
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
-                                          <DriverInput
-                                            key={`${occ.id}-1-${!!driver1}`}
-                                            value={driver1}
-                                            occKey={occ.id}
-                                            driverIndex={1}
-                                            currentDrivers={occDrivers}
-                                            drivers={drivers}
-                                            onSave={handleDriverAssign}
-                                          />
+                                          <DriverInput key={`${occ.id}-1-${!!driver1}`} value={driver1}
+                                            occKey={occ.id} driverIndex={1} currentDrivers={occDrivers}
+                                            drivers={drivers} onSave={handleDriverAssign} />
                                         )}
                                       </td>
                                     )}
-
-                                    {/* Driver 3 */}
                                     {driversNeeded >= 3 && (
                                       <td className="pr-3 py-1">
                                         {isPast ? (
                                           driver2
-                                            ? <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver2}</span>
+                                            ? <span className="bg-[#E6F5F3] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">{driver2}</span>
                                             : <span className="text-[#6b7280]">—</span>
                                         ) : (
-                                          <DriverInput
-                                            key={`${occ.id}-2-${!!driver2}`}
-                                            value={driver2}
-                                            occKey={occ.id}
-                                            driverIndex={2}
-                                            currentDrivers={occDrivers}
-                                            drivers={drivers}
-                                            onSave={handleDriverAssign}
-                                          />
+                                          <DriverInput key={`${occ.id}-2-${!!driver2}`} value={driver2}
+                                            occKey={occ.id} driverIndex={2} currentDrivers={occDrivers}
+                                            drivers={drivers} onSave={handleDriverAssign} />
                                         )}
                                       </td>
                                     )}
-
-                                    {/* Status — reads live from occ.status + occ.drivers */}
                                     <td className="pr-3">
                                       {isPast ? (
                                         <span className={`text-[11px] font-medium ${
                                           occ.status === "complete"   ? "text-[#34c759]" :
-                                          occ.status === "incomplete" ? "text-[#dc2626]" :
-                                          "text-[#6b7280]"
-                                        }`}>
+                                          occ.status === "incomplete" ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
                                           {occ.status === "complete" ? "Complete" :
                                            occ.status === "incomplete" ? "Incomplete" : "—"}
                                         </span>
@@ -917,18 +995,10 @@ export default function ManagerDeliveryRoutes() {
                                         <span className="text-[11px] text-[#6b7280] italic">Pending</span>
                                       )}
                                     </td>
-
-                                    {/* Notes */}
-                                    <td className="text-[#6b7280] text-[12px]">
-                                      {occ.notes || ""}
-                                    </td>
-
-                                    {/* Delete */}
+                                    <td className="text-[#6b7280] text-[12px]">{occ.notes || ""}</td>
                                     <td className="py-1 text-right pr-1">
-                                      <button
-                                        onClick={() => handleDeleteOccurrence(occ.id)}
-                                        className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded"
-                                        title="Delete occurrence">
+                                      <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                        className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                         <X size={13} />
                                       </button>
                                     </td>
@@ -944,84 +1014,120 @@ export default function ManagerDeliveryRoutes() {
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </div>
 
-      {/* ── Edit Route Popup ─────────────────────────────────────────────── */}
-      {showEditPopup && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-          onClick={() => setShowEditPopup(false)}>
+      {/* ── Floating kebab popover — fixed outside list, survives re-renders ─── */}
+      {popover.open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={closePopover} />
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] mx-4 p-6"
+            role="menu"
+            aria-label="Route actions"
+            style={{ top: popover.top, left: popover.left }}
+            className="fixed z-50 min-w-[160px] bg-white border border-[#e5e7eb]
+              rounded-[20px] shadow-[0_12px_32px_rgba(10,42,58,.28)] p-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const routeId = popover.routeId;
+                closePopover();
+                setDeleteConfirmId(routeId);
+              }}
+              className="border-none bg-none p-0 cursor-pointer text-[15px] font-semibold
+                text-[#dc2626] hover:opacity-70 transition-opacity"
+            >
+              Delete Route
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Edit Route Modal ──────────────────────────────────────────────── */}
+      {showEditPopup && (
+        <div className="fixed inset-0 bg-black/[.45] z-50 flex items-center justify-center"
+          onClick={() => setShowEditPopup(false)}>
+          <div className="bg-white rounded-[20px] shadow-[0_24px_60px_rgba(10,42,58,.28)]
+            w-full max-w-[480px] mx-4 p-7"
             onClick={e => e.stopPropagation()}>
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-[#0a2a3a] text-[16px] font-semibold">Edit Route</p>
-              <button
-                onClick={() => setShowEditPopup(false)}
-                className="text-[#6b7280] bg-transparent border-none cursor-pointer hover:text-[#0a2a3a] p-1">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-[.06em]">Edit Route</p>
+                <h3 className="text-[20px] font-semibold leading-[26px] mt-[2px] text-[#0a2a3a]">
+                  {editFields.name || "Route"}
+                </h3>
+              </div>
+              <button onClick={() => setShowEditPopup(false)}
+                className="w-7 h-7 grid place-items-center rounded-[8px] border-none
+                  bg-none cursor-pointer text-[#6b7280] hover:bg-[#f5f5f5] transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Fields */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-[18px]">
               {[
-                { label: "Route Name",       field: "name",          type: "text"   },
-                { label: "Pickup Location",  field: "source",        type: "text"   },
-                { label: "Drop-off Location",field: "destination",   type: "text"   },
-                { label: "Departure Time",   field: "departureTime", type: "text",  placeholder: "e.g. 10:00 AM" },
-                { label: "Arrival Time",     field: "arrivalTime",   type: "text",  placeholder: "e.g. 11:30 AM" },
-                { label: "Vehicle",          field: "vehicle",       type: "text"   },
-              ].map(({ label, field, type, placeholder }) => (
-                <div key={field}>
-                  <label className="text-[#6b7280] text-[12px] block mb-1">{label}</label>
+                { label: "Route Name",        field: "name"          },
+                { label: "Pickup Location",   field: "source",       placeholder: "Where are they picking up from?" },
+                { label: "Drop-off Location", field: "destination",  placeholder: "Where is it going?" },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field} className="flex flex-col gap-[6px]">
+                  <label className={labelCls}>{label}</label>
                   <input
-                    type={type}
+                    type="text"
                     value={editFields[field] || ""}
                     placeholder={placeholder || ""}
                     onChange={e => setEditFields(f => ({ ...f, [field]: e.target.value }))}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-[13px]
-                               text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]"
+                    className={inputCls(false)}
                   />
                 </div>
               ))}
 
-              {/* Drivers Needed */}
-              <div>
-                <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
-                <select
-                  value={editFields.driversNeeded || 1}
-                  onChange={e => setEditFields(f => ({ ...f, driversNeeded: Number(e.target.value) }))}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-[13px]
-                             text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white">
-                  <option value={1}>1 driver</option>
-                  <option value={2}>2 drivers</option>
-                  <option value={3}>3 drivers</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Departure Time", field: "departureTime", placeholder: "--:-- --" },
+                  { label: "Arrival Time",   field: "arrivalTime",   placeholder: "--:-- --" },
+                ].map(({ label, field, placeholder }) => (
+                  <div key={field} className="flex flex-col gap-[6px]">
+                    <label className={labelCls}>{label}</label>
+                    <input type="text" value={editFields[field] || ""} placeholder={placeholder}
+                      onChange={e => setEditFields(f => ({ ...f, [field]: e.target.value }))}
+                      className={inputCls(false)} />
+                  </div>
+                ))}
               </div>
 
+              <div className="flex flex-col gap-[6px]">
+                <label className={labelCls}>Vehicle</label>
+                <VehicleDropdown
+                  value={editFields.vehicle || ""}
+                  onChange={v => setEditFields(f => ({ ...f, vehicle: v }))}
+                  hasError={false}
+                />
+              </div>
+
+              <div className="flex flex-col gap-[6px]">
+                <label className={labelCls}>Drivers Needed</label>
+                <SegmentedDrivers
+                  value={editFields.driversNeeded || 1}
+                  onChange={n => setEditFields(f => ({ ...f, driversNeeded: n }))}
+                />
+              </div>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowEditPopup(false)}
-                className="flex-1 py-2.5 rounded-xl border border-[#e5e7eb] text-[#6b7280]
-                           text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
+              <button onClick={() => setShowEditPopup(false)}
+                className="flex-1 h-[44px] rounded-full border border-[#e5e7eb] bg-white
+                  text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={() => {
                   if (!selectedTemplate) return;
-
-                  // editFields is initialised with all current values so use
-                  // them directly — avoids || swallowing empty strings when
-                  // the user intentionally clears an optional field
                   const capturedId = selectedId;
                   const templateUpdate = {
                     name:          editFields.name,
@@ -1032,56 +1138,48 @@ export default function ManagerDeliveryRoutes() {
                     vehicle:       editFields.vehicle,
                     driversNeeded: editFields.driversNeeded || 1,
                   };
-
-                  // Write to Firebase — on success patch local state and close popup
                   update(ref(db, `pantries/${pantryId}/routeTemplates/${capturedId}`), templateUpdate)
                     .then(() => {
-                      setTemplates({
-                        ..._cachedTemplates,
-                        [capturedId]: { ..._cachedTemplates[capturedId], ...templateUpdate },
-                      });
+                      setTemplates({ ..._cachedTemplates, [capturedId]: { ..._cachedTemplates[capturedId], ...templateUpdate } });
                       setShowEditPopup(false);
                     })
                     .catch(err => console.error("Failed to save route template:", err));
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#09665e] text-white text-[13px]
-                           font-semibold border-none cursor-pointer hover:opacity-90">
-                Save
+                className="flex-1 h-[44px] rounded-full bg-[#09665e] text-white text-[14px]
+                  font-semibold border-none cursor-pointer hover:bg-[#0f7a70] transition-colors">
+                Save Changes
               </button>
             </div>
-
           </div>
         </div>
       )}
 
       {/* ── Delete Confirmation Modal ────────────────────────────────────── */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+        <div className="fixed inset-0 bg-black/[.45] z-50 flex items-center justify-center"
           onClick={() => setDeleteConfirmId(null)}>
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] w-full max-w-[360px] mx-4 p-6"
+          <div className="bg-white rounded-[20px] border border-[#e5e7eb] w-full max-w-[360px] mx-4 p-7"
             onClick={e => e.stopPropagation()}>
             <div className="flex flex-col items-center text-center">
               <Trash2 size={32} color="#dc2626" className="mb-3" />
-              <p className="text-[#0a2a3a] text-[16px] font-semibold">Delete Route?</p>
-              <p className="text-[#6b7280] text-[13px] mt-2">
+              <p className="text-[#0a2a3a] text-[20px] font-semibold leading-[26px]">Delete Route?</p>
+              <p className="text-[#6b7280] text-[14px] mt-3 leading-[20px]">
                 This will permanently delete{" "}
-                <span className="font-medium text-[#0a2a3a]">
+                <span className="font-semibold text-[#0a2a3a]">
                   {templates[deleteConfirmId]?.name || "this route"}
                 </span>{" "}
                 and all its scheduled occurrences. This cannot be undone.
               </p>
             </div>
-            <div className="mt-5 flex gap-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 bg-white border border-[#e5e7eb] text-[#6b7280]
-                  rounded-xl py-2.5 text-[13px] cursor-pointer hover:border-[#0d9488]">
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 h-[44px] rounded-full bg-white border border-[#e5e7eb]
+                  text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={() => handleDeleteRoute(deleteConfirmId)}
-                className="flex-1 bg-[#dc2626] text-white rounded-xl py-2.5
-                  text-[13px] font-medium border-none cursor-pointer hover:bg-[#b91c1c]">
+              <button onClick={() => handleDeleteRoute(deleteConfirmId)}
+                className="flex-1 h-[44px] rounded-full bg-[#dc2626] text-white text-[14px]
+                  font-semibold border-none cursor-pointer hover:bg-[#b91c1c] transition-colors">
                 Delete
               </button>
             </div>
@@ -1089,225 +1187,248 @@ export default function ManagerDeliveryRoutes() {
         </div>
       )}
 
-      {/* ── Add Route Modal ──────────────────────────────────────────────── */}
-      {showAddModal && (() => {
-        const DAY_PILLS = [
-          { label: "Mon", value: "monday" },
-          { label: "Tue", value: "tuesday" },
-          { label: "Wed", value: "wednesday" },
-          { label: "Thu", value: "thursday" },
-          { label: "Fri", value: "friday" },
-        ];
-        const STEP_TITLES = { 1: "Route Basics", 2: "Route Details", 3: "First Schedule" };
-        const inputCls = (err) =>
-          `w-full border ${err ? "border-[#dc2626]" : "border-[#e5e7eb]"} rounded-lg px-3 py-2 text-[14px] text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white`;
+      {/* ── Add Route Wizard ─────────────────────────────────────────────── */}
+      {/*
+        [FLAGGED] Step 1 ("Route Info") was INFERRED from the final route data shape —
+        the original reference screenshots only showed Step 2 and Step 3. The fields
+        (route name + day of week) are required by the template schema, so Step 1
+        collects them as a logical precursor. Confirm this is correct before treating
+        it as spec-compliant.
 
-        const previewCount = newRoute.firstDate && newRoute.repeatsWeekly && newRoute.repeatUntil
-          ? countOccurrences(newRoute.firstDate, newRoute.repeatUntil, newRoute.dayOfWeek)
-          : 1;
+        [FLAGGED] "+ Add Occurrence" is a lightweight append (next date + 7 days),
+        separate from the wizard's Step 3 first-schedule form. Confirm these are
+        intentionally distinct flows and not the same UX entry point.
 
-        return (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-            onClick={closeAddModal}>
-            <div className="bg-white rounded-2xl border border-[#e5e7eb] w-full max-w-[480px] mx-4"
-              onClick={e => e.stopPropagation()}>
+        [FLAGGED] Drivers Needed uses the segmented control in both this wizard and
+        the Edit modal. The original Edit modal reference showed a native <select>.
+        Segmented was chosen as the unified pattern. Flag if that contradicts spec.
 
-              {/* Header */}
-              <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
-                <div>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-wide">
-                    Step {addStep} of 3
-                  </p>
-                  <p className="text-[#0a2a3a] text-[16px] font-semibold mt-0.5">
-                    {STEP_TITLES[addStep]}
-                  </p>
-                </div>
-                <button onClick={closeAddModal}
-                  className="text-[#6b7280] bg-transparent border-none cursor-pointer hover:text-[#0a2a3a] p-1">
-                  <X size={18} />
-                </button>
+        [CONFIRMED] Validation on Step 2 fires on attempted "Next" only, not on
+        keystroke or blur. This matches the reference comment: "shown only after an
+        attempted submit, not while the field is merely empty and untouched."
+      */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/[.45] z-50 flex items-center justify-center"
+          onClick={closeAddModal}>
+          <div className="bg-white rounded-[20px] shadow-[0_24px_60px_rgba(10,42,58,.28)]
+            w-full max-w-[480px] mx-4"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Wizard header */}
+            <div className="flex items-start justify-between px-7 pt-7 mb-4">
+              <div>
+                <p className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-[.06em]">
+                  Step {addStep} of 3
+                </p>
+                <h3 className="text-[20px] font-semibold leading-[26px] mt-[2px] text-[#0a2a3a]">
+                  {WIZARD_STEP_TITLES[addStep]}
+                </h3>
               </div>
-
-              {/* Progress bar */}
-              <div className="h-1 bg-[#f0f0f0]">
-                <div className="h-1 bg-[#0d9488] transition-all duration-300"
-                  style={{ width: `${(addStep / 3) * 100}%` }} />
-              </div>
-
-              {/* Step content */}
-              <div className="px-6 py-5 space-y-4">
-
-                {/* ── Step 1 ── */}
-                {addStep === 1 && (
-                  <>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Route Name</label>
-                      <input
-                        type="text"
-                        value={newRoute.name}
-                        placeholder="e.g. Midwest, Wawa, 2nd Helpings"
-                        onChange={e => setNewRoute(r => ({ ...r, name: e.target.value }))}
-                        className={inputCls(addErrors.name)}
-                      />
-                      {addErrors.name && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.name}</p>}
-                    </div>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Day of Week</label>
-                      <div className="flex gap-2">
-                        {DAY_PILLS.map(d => (
-                          <button key={d.value}
-                            onClick={() => setNewRoute(r => ({ ...r, dayOfWeek: d.value }))}
-                            className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
-                              ${newRoute.dayOfWeek === d.value
-                                ? "bg-[#0d9488] text-white"
-                                : "bg-[#f0f0f0] text-[#6b7280]"}`}>
-                            {d.label}
-                          </button>
-                        ))}
-                      </div>
-                      {addErrors.dayOfWeek && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.dayOfWeek}</p>}
-                    </div>
-                  </>
-                )}
-
-                {/* ── Step 2 ── */}
-                {addStep === 2 && (
-                  <>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Pickup Location</label>
-                      <input type="text" value={newRoute.source}
-                        placeholder="Where are they picking up from?"
-                        onChange={e => setNewRoute(r => ({ ...r, source: e.target.value }))}
-                        className={inputCls(addErrors.source)} />
-                      {addErrors.source && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.source}</p>}
-                    </div>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Drop-off Location</label>
-                      <input type="text" value={newRoute.destination}
-                        placeholder="Where is it going?"
-                        onChange={e => setNewRoute(r => ({ ...r, destination: e.target.value }))}
-                        className={inputCls(addErrors.destination)} />
-                      {addErrors.destination && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.destination}</p>}
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="text-[#6b7280] text-[12px] block mb-1">Departure Time</label>
-                        <input type="time" value={newRoute.departureTime}
-                          onChange={e => setNewRoute(r => ({ ...r, departureTime: e.target.value }))}
-                          className={inputCls(false)} />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[#6b7280] text-[12px] block mb-1">Arrival Time</label>
-                        <input type="time" value={newRoute.arrivalTime}
-                          onChange={e => setNewRoute(r => ({ ...r, arrivalTime: e.target.value }))}
-                          className={inputCls(false)} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Vehicle</label>
-                      <select value={newRoute.vehicle}
-                        onChange={e => setNewRoute(r => ({ ...r, vehicle: e.target.value }))}
-                        className={inputCls(addErrors.vehicle)}>
-                        <option value="">Select vehicle…</option>
-                        <option>F650 26ft Box Truck</option>
-                        <option>16ft Small Box Truck</option>
-                        <option>IC Van</option>
-                        <option>Personal Vehicle</option>
-                        <option>Small/Large Box Truck</option>
-                      </select>
-                      {addErrors.vehicle && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.vehicle}</p>}
-                    </div>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">Drivers Needed</label>
-                      <div className="flex gap-3">
-                        {[{ label: "1 Driver", value: 1 }, { label: "2 Drivers", value: 2 }, { label: "3 Drivers", value: 3 }].map(p => (
-                          <button key={p.value}
-                            onClick={() => setNewRoute(r => ({ ...r, driversNeeded: p.value }))}
-                            className={`flex-1 py-2 rounded-lg text-[13px] border-none cursor-pointer font-medium
-                              ${newRoute.driversNeeded === p.value
-                                ? "bg-[#0d9488] text-white"
-                                : "bg-[#f0f0f0] text-[#6b7280]"}`}>
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* ── Step 3 ── */}
-                {addStep === 3 && (
-                  <>
-                    <div>
-                      <label className="text-[#6b7280] text-[12px] block mb-1">First Occurrence Date</label>
-                      <input type="date" value={newRoute.firstDate}
-                        onChange={e => setNewRoute(r => ({ ...r, firstDate: e.target.value }))}
-                        className={inputCls(addErrors.firstDate)} />
-                      <p className="text-[#6b7280] text-[11px] mt-1">This will be the first entry in the schedule table</p>
-                      {addErrors.firstDate && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.firstDate}</p>}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[#0a2a3a] text-[13px] font-medium">Repeat Weekly</span>
-                      <button
-                        onClick={() => setNewRoute(r => ({ ...r, repeatsWeekly: !r.repeatsWeekly }))}
-                        className={`relative w-11 h-6 rounded-full border-none cursor-pointer transition-colors
-                          ${newRoute.repeatsWeekly ? "bg-[#0d9488]" : "bg-[#e5e7eb]"}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform
-                          ${newRoute.repeatsWeekly ? "translate-x-5" : "translate-x-0"}`} />
-                      </button>
-                    </div>
-                    {newRoute.repeatsWeekly && (
-                      <div>
-                        <label className="text-[#6b7280] text-[12px] block mb-1">Repeat Until</label>
-                        <input type="date" value={newRoute.repeatUntil}
-                          onChange={e => setNewRoute(r => ({ ...r, repeatUntil: e.target.value }))}
-                          className={inputCls(addErrors.repeatUntil)} />
-                        {addErrors.repeatUntil && <p className="text-[#dc2626] text-[11px] mt-1">{addErrors.repeatUntil}</p>}
-                      </div>
-                    )}
-                    {newRoute.firstDate && (
-                      <div className="bg-[#f0fafa] border border-[#ccedeb] rounded-lg px-4 py-3 mt-2">
-                        <p className="text-[#09665e] text-[12px]">
-                          {newRoute.repeatsWeekly && newRoute.repeatUntil
-                            ? `${previewCount} occurrence${previewCount !== 1 ? "s" : ""} will be created from ${formatDateShort(newRoute.firstDate)} to ${formatDateShort(newRoute.repeatUntil)}`
-                            : `1 occurrence will be created on ${formatDateShort(newRoute.firstDate)}`}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-[#e5e7eb] flex justify-between">
-                {addStep === 1 ? (
-                  <button onClick={closeAddModal}
-                    className="px-5 py-2 rounded-lg border border-[#e5e7eb] text-[#6b7280] text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
-                    Cancel
-                  </button>
-                ) : (
-                  <button onClick={() => { setAddErrors({}); setAddStep(s => s - 1); }}
-                    className="px-5 py-2 rounded-lg border border-[#e5e7eb] text-[#6b7280] text-[13px] bg-white cursor-pointer hover:border-[#0d9488]">
-                    ← Back
-                  </button>
-                )}
-                {addStep < 3 ? (
-                  <button onClick={() => { if (validateStep(addStep)) setAddStep(s => s + 1); }}
-                    className="px-5 py-2 rounded-lg bg-[#09665e] text-white text-[13px] border-none cursor-pointer hover:opacity-90">
-                    Next →
-                  </button>
-                ) : (
-                  <button onClick={handleSaveNewRoute}
-                    className="px-5 py-2 rounded-lg bg-[#09665e] text-white text-[13px] font-medium border-none cursor-pointer hover:opacity-90">
-                    Create Route
-                  </button>
-                )}
-              </div>
-
+              <button onClick={closeAddModal}
+                className="w-7 h-7 grid place-items-center rounded-[8px] border-none
+                  bg-none cursor-pointer text-[#6b7280] hover:bg-[#f5f5f5] transition-colors">
+                <X size={18} />
+              </button>
             </div>
+
+            {/* 3-segment progress track */}
+            <div className="flex gap-1 px-7 mb-6">
+              {[1, 2, 3].map(n => (
+                <div key={n} className={`flex-1 h-1 rounded-full transition-colors
+                  ${n <= addStep ? "bg-[#0d9488]" : "bg-[#e5e7eb]"}`} />
+              ))}
+            </div>
+
+            {/* Step content */}
+            <div className="px-7 pb-2 flex flex-col gap-[18px]">
+
+              {/* ── Step 1: Route Info ── */}
+              {addStep === 1 && (
+                <>
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls} htmlFor="wiz-name">Route Name</label>
+                    <input
+                      id="wiz-name"
+                      type="text"
+                      value={newRoute.name}
+                      placeholder="e.g. Wawa"
+                      onChange={e => setNewRoute(r => ({ ...r, name: e.target.value }))}
+                      className={inputCls(addErrors.name)}
+                    />
+                    {addErrors.name && <p className={fieldErrCls}>{addErrors.name}</p>}
+                  </div>
+
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls}>Day of Week</label>
+                    <div className="flex gap-[6px] flex-wrap">
+                      {DAY_PILLS.map(d => (
+                        <button
+                          key={d.value}
+                          type="button"
+                          aria-pressed={newRoute.dayOfWeek === d.value}
+                          onClick={() => setNewRoute(r => ({ ...r, dayOfWeek: d.value }))}
+                          className={`h-9 px-[14px] rounded-full border cursor-pointer
+                            text-[13px] font-medium transition-colors
+                            ${newRoute.dayOfWeek === d.value
+                              ? "bg-[#0a2a3a] border-[#0a2a3a] text-white font-semibold"
+                              : "bg-white border-[#e5e7eb] text-[#6b7280] hover:border-[#d1d5db]"}`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                    {addErrors.dayOfWeek && <p className={fieldErrCls}>{addErrors.dayOfWeek}</p>}
+                  </div>
+                </>
+              )}
+
+              {/* ── Step 2: Route Details ── */}
+              {addStep === 2 && (
+                <>
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls} htmlFor="wiz-pickup">Pickup Location</label>
+                    <input id="wiz-pickup" type="text" value={newRoute.source}
+                      placeholder="Where are they picking up from?"
+                      onChange={e => setNewRoute(r => ({ ...r, source: e.target.value }))}
+                      className={inputCls(addErrors.source)} />
+                    {addErrors.source && <p className={fieldErrCls}>{addErrors.source}</p>}
+                  </div>
+
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls} htmlFor="wiz-dropoff">Drop-off Location</label>
+                    <input id="wiz-dropoff" type="text" value={newRoute.destination}
+                      placeholder="Where is it going?"
+                      onChange={e => setNewRoute(r => ({ ...r, destination: e.target.value }))}
+                      className={inputCls(addErrors.destination)} />
+                    {addErrors.destination && <p className={fieldErrCls}>{addErrors.destination}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-[6px]">
+                      <label className={labelCls}>Departure Time</label>
+                      <input type="text" value={newRoute.departureTime}
+                        placeholder="--:-- --"
+                        onChange={e => setNewRoute(r => ({ ...r, departureTime: e.target.value }))}
+                        className={inputCls(false)} />
+                    </div>
+                    <div className="flex flex-col gap-[6px]">
+                      <label className={labelCls}>Arrival Time</label>
+                      <input type="text" value={newRoute.arrivalTime}
+                        placeholder="--:-- --"
+                        onChange={e => setNewRoute(r => ({ ...r, arrivalTime: e.target.value }))}
+                        className={inputCls(false)} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls}>Vehicle</label>
+                    <VehicleDropdown
+                      value={newRoute.vehicle}
+                      onChange={v => setNewRoute(r => ({ ...r, vehicle: v }))}
+                      hasError={!!addErrors.vehicle}
+                    />
+                    {addErrors.vehicle && <p className={fieldErrCls}>{addErrors.vehicle}</p>}
+                  </div>
+
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls}>Drivers Needed</label>
+                    <SegmentedDrivers
+                      value={newRoute.driversNeeded}
+                      onChange={n => setNewRoute(r => ({ ...r, driversNeeded: n }))}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* ── Step 3: First Schedule ── */}
+              {addStep === 3 && (
+                <>
+                  <div className="flex flex-col gap-[6px]">
+                    <label className={labelCls} htmlFor="wiz-date">First Occurrence Date</label>
+                    <input id="wiz-date" type="date" value={newRoute.firstDate}
+                      onChange={e => setNewRoute(r => ({ ...r, firstDate: e.target.value }))}
+                      className={inputCls(addErrors.firstDate)} />
+                    <p className="text-[13px] text-[#6b7280] -mt-1 leading-[18px]">
+                      This will be the first entry in the schedule table
+                    </p>
+                    {addErrors.firstDate && <p className={fieldErrCls}>{addErrors.firstDate}</p>}
+                  </div>
+
+                  {/* Repeat Weekly toggle — standard track + knob, first toggle in this app */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] font-medium text-[#0a2a3a] leading-[20px]">Repeat Weekly</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={newRoute.repeatsWeekly}
+                      onClick={() => setNewRoute(r => ({ ...r, repeatsWeekly: !r.repeatsWeekly }))}
+                      className={`relative w-11 h-[26px] rounded-full border-none cursor-pointer p-0
+                        transition-colors focus-visible:outline-2 focus-visible:outline-[#09665e]
+                        focus-visible:outline-offset-2
+                        ${newRoute.repeatsWeekly ? "bg-[#0d9488]" : "bg-[#d1d5db]"}`}
+                    >
+                      <span className={`absolute top-[3px] left-[3px] w-5 h-5 bg-white rounded-full
+                        shadow-[0_1px_3px_rgba(10,42,58,.3)] transition-transform
+                        ${newRoute.repeatsWeekly ? "translate-x-[18px]" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {newRoute.repeatsWeekly && (
+                    <div className="flex flex-col gap-[6px]">
+                      <label className={labelCls} htmlFor="wiz-until">Repeat Until</label>
+                      <input id="wiz-until" type="date" value={newRoute.repeatUntil}
+                        onChange={e => setNewRoute(r => ({ ...r, repeatUntil: e.target.value }))}
+                        className={inputCls(addErrors.repeatUntil)} />
+                      {addErrors.repeatUntil && <p className={fieldErrCls}>{addErrors.repeatUntil}</p>}
+                    </div>
+                  )}
+
+                  {newRoute.firstDate && (
+                    <div className="bg-[#E6F5F3] border border-[#b3ddd8] rounded-[10px] px-4 py-3">
+                      <p className="text-[#09665e] text-[13px] leading-[18px]">
+                        {newRoute.repeatsWeekly && newRoute.repeatUntil
+                          ? `${previewCount} occurrence${previewCount !== 1 ? "s" : ""} will be created from ${formatDateShort(newRoute.firstDate)} to ${formatDateShort(newRoute.repeatUntil)}`
+                          : `1 occurrence will be created on ${formatDateShort(newRoute.firstDate)}`}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Wizard footer */}
+            <div className="flex justify-between gap-3 px-7 py-5 mt-2">
+              {addStep === 1 ? (
+                <button onClick={closeAddModal}
+                  className="h-[44px] px-5 rounded-full border border-[#e5e7eb] bg-white
+                    text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
+                  Cancel
+                </button>
+              ) : (
+                <button onClick={() => { setAddErrors({}); setAddStep(s => s - 1); }}
+                  className="h-[44px] px-5 rounded-full border border-[#e5e7eb] bg-white
+                    text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
+                  ← Back
+                </button>
+              )}
+              {addStep < 3 ? (
+                <button onClick={() => { if (validateStep(addStep)) setAddStep(s => s + 1); }}
+                  className="h-[44px] px-5 rounded-full bg-[#09665e] text-white text-[14px]
+                    font-semibold border-none cursor-pointer hover:bg-[#0f7a70] transition-colors">
+                  Next →
+                </button>
+              ) : (
+                <button onClick={handleSaveNewRoute}
+                  className="h-[44px] px-5 rounded-full bg-[#09665e] text-white text-[14px]
+                    font-semibold border-none cursor-pointer hover:bg-[#0f7a70] transition-colors">
+                  Create Route
+                </button>
+              )}
+            </div>
+
           </div>
-        );
-      })()}
+        </div>
+      )}
 
     </div>
   );

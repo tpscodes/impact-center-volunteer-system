@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+:root {
+  --sidebar-w: 264px;
+}
+
 html, body {
   background-color: #f5f5f5;
   margin: 0;

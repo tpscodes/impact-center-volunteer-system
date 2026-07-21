@@ -5,6 +5,7 @@ import { X, Menu, AlertTriangle, Check } from "lucide-react";
 import { db } from "../firebase";
 import { ref, get, set, remove, update } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 
 const DAY_OPTIONS = [
@@ -218,12 +219,12 @@ export default function ManagerSettings() {
   ];
 
   // ── Shared card class ──────────────────────────────────────────────────────
-  const card = "bg-white rounded-xl border border-[#e5e7eb] p-5 mb-4";
-  const inputCls = `w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px]
-    text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]`;
-  const labelCls = "text-[#6b7280] text-[12px] mb-1 block";
-  const saveBtnCls = `w-full bg-[#09665e] hover:bg-[#0d9488] text-white px-4 py-2
-    rounded-lg text-[13px] font-medium mt-4 border-none cursor-pointer transition-colors`;
+  const card = "bg-white rounded-[20px] border border-[#e5e7eb] p-6";
+  const inputCls = `w-full border border-[#e5e7eb] rounded-[10px] px-4 py-2.5 text-[14px]
+    text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#09665e]`;
+  const labelCls = "text-[#6b7280] text-[13px] font-medium mb-1.5 block";
+  const saveBtnCls = `w-full bg-[#09665e] hover:bg-[#0f7a70] text-white px-4 h-[48px]
+    rounded-full text-[14px] font-semibold mt-4 border-none cursor-pointer transition-colors`;
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]"
@@ -341,17 +342,13 @@ export default function ManagerSettings() {
       <div className="hidden lg:flex min-h-screen">
         <Sidebar mode={sidebarMode} activePath="/manager-settings" />
 
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-            <div>
-              <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Settings</h1>
-            </div>
-            <span className="text-[#6b7280] text-[13px]">{todayDisplay}</span>
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader initials={authInitials} label="Settings" />
           </div>
 
-          <div className="p-6 max-w-[640px]">
+          <div className="px-6 pb-6">
             <SettingsContent
               card={card} inputCls={inputCls} labelCls={labelCls} saveBtnCls={saveBtnCls}
               pantryId={pantryId}
@@ -377,7 +374,8 @@ export default function ManagerSettings() {
           <div className="fixed inset-0 bg-black/40 z-40"
             onClick={() => { setShowResetModal(false); setResetScope(null); setResetStep(1); }} />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-            bg-white rounded-xl p-6 w-[360px] max-w-[calc(100vw-2rem)] border border-[#e5e7eb]">
+            bg-white rounded-[20px] p-6 w-[380px] max-w-[calc(100vw-2rem)] border border-[#e5e7eb]"
+            style={{ boxShadow: "0 24px 60px rgba(10,42,58,0.28)" }}>
 
             {resetStep === 1 ? (
               <>
@@ -406,15 +404,15 @@ export default function ManagerSettings() {
 
                 <div className="flex gap-3 mt-2">
                   <button onClick={() => { setShowResetModal(false); setResetScope(null); }}
-                    className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
+                    className="flex-1 border border-[#e5e7eb] text-[#6b7280] h-[44px] rounded-full
                       text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
                     Cancel
                   </button>
                   <button
                     disabled={!resetScope}
                     onClick={() => setResetStep(2)}
-                    className={`flex-1 bg-[#dc2626] text-white py-2.5 rounded-lg text-[14px]
-                      font-medium border-none cursor-pointer transition-opacity
+                    className={`flex-1 bg-[#dc2626] text-white h-[44px] rounded-full text-[14px]
+                      font-semibold border-none cursor-pointer transition-opacity
                       ${!resetScope ? "opacity-40 cursor-not-allowed" : "hover:bg-[#b91c1c]"}`}>
                     Continue →
                   </button>
@@ -442,13 +440,13 @@ export default function ManagerSettings() {
 
                 <div className="flex gap-3">
                   <button onClick={() => setResetStep(1)}
-                    className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg
+                    className="flex-1 border border-[#e5e7eb] text-[#6b7280] h-[44px] rounded-full
                       text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
                     Go Back
                   </button>
                   <button onClick={() => handleReset(resetScope)}
-                    className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white py-2.5 rounded-lg
-                      text-[14px] font-medium border-none cursor-pointer transition-colors">
+                    className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white h-[44px] rounded-full
+                      text-[14px] font-semibold border-none cursor-pointer transition-colors">
                     Yes, Reset
                   </button>
                 </div>
@@ -483,14 +481,15 @@ function SettingsContent({
 }) {
   return (
     <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start mb-4">
       {/* ── Section 1: Profile ────────────────────────────────────────────── */}
       <div className={card}>
-        <p className="text-[#0a2a3a] text-[15px] font-semibold mb-4">Profile</p>
+        <p className="text-[#0a2a3a] text-[17px] font-semibold mb-5">Profile</p>
 
         {/* Avatar preview */}
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-[#0d9488] flex items-center justify-center">
-            <span className="text-white text-[20px] font-semibold">{initials}</span>
+        <div className="flex justify-center mb-6">
+          <div className="w-[72px] h-[72px] rounded-full bg-[#0d9488] flex items-center justify-center">
+            <span className="text-white text-[22px] font-semibold">{initials}</span>
           </div>
         </div>
 
@@ -533,7 +532,7 @@ function SettingsContent({
 
       {/* ── Section 2: App Settings ───────────────────────────────────────── */}
       <div className={card}>
-        <p className="text-[#0a2a3a] text-[15px] font-semibold mb-4">App Settings</p>
+        <p className="text-[#0a2a3a] text-[17px] font-semibold mb-5">App Settings</p>
 
         <div className="mb-4">
           <label className={labelCls}>Organization Name</label>
@@ -558,11 +557,11 @@ function SettingsContent({
                 const active = deliveryDays.includes(key);
                 return (
                   <button key={key} type="button" onClick={() => onToggleDay(key)}
-                    className={`px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors
+                    className={`inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[13px] font-medium border-none cursor-pointer transition-colors
                       ${active
-                        ? "bg-[#0d9488] text-white"
-                        : "bg-[#f0f0f0] text-[#6b7280] hover:bg-[#e5e5e5]"}`}>
-                    {active && <Check size={10} className="inline mr-1" strokeWidth={3} />}
+                        ? "bg-[#09665e] text-white font-semibold"
+                        : "bg-[#e5e7eb] text-[#6b7280] hover:bg-[#d1d5db]"}`}>
+                    {active && <Check size={10} strokeWidth={3} />}
                     {label}
                   </button>
                 );
@@ -575,21 +574,22 @@ function SettingsContent({
           Save Settings
         </button>
       </div>
+      </div>{/* /grid: Profile + App Settings */}
 
       {/* ── Section 3: Reset System — hidden for Amber ───────────────────── */}
       {pantryId !== 'amber' && (
         <div className={card}>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[#0a2a3a] text-[15px] font-semibold">Reset System</p>
+            <p className="text-[#0a2a3a] text-[17px] font-semibold">Reset System</p>
             <AlertTriangle size={16} color="#dc2626" />
           </div>
           <p className="text-[#6b7280] text-[13px] mt-1 mb-4">
             Permanently delete data from the system. This cannot be undone.
           </p>
           <button onClick={onOpenReset}
-            className="bg-[#fff0f0] text-[#dc2626] border border-[#dc2626] rounded-xl
-              px-4 py-2.5 text-[13px] font-medium w-full cursor-pointer
-              hover:bg-[#dc2626] hover:text-white transition-colors">
+            className="bg-[#fff0f0] text-[#dc2626] border border-[#dc2626] rounded-full
+              h-[48px] text-[14px] font-semibold w-full cursor-pointer
+              hover:bg-[#ffe0e0] transition-colors">
             Reset System Data
           </button>
         </div>

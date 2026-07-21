@@ -1,0 +1,60 @@
+/* History-table specific overrides — shared vt-* classes come from VolunteerTable.css */
+
+/* Fix 1: search + date-filter on one row */
+.ht-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 24px;
+}
+
+.ht-search-inline {
+  flex: 1;
+  margin: 0; /* override vt-search's margin: 0 24px */
+}
+
+.ht-count-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 24px 0;
+}
+
+/* Fix 2: icon + text stack as a centered column */
+.ht-empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ht-task-name {
+  font-weight: 600;
+  color: #0A2A3A;
+}
+
+.ht-muted { color: #6B7280; }
+
+.ht-sm { font-size: 12px !important; }
+
+.ht-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ht-location-icon {
+  flex-shrink: 0;
+  color: #B3B3B3;
+}
+
+/* Empty state extras (vt-empty provides the box/padding/center) */
+.ht-empty-icon {
+  color: #CCEDEB;
+  margin-bottom: 12px;
+}
+
+.ht-empty-title {
+  margin: 0 0 6px;
+  font: 600 15px/22px "Inter", system-ui, sans-serif;
+  color: #0A2A3A;
+}
