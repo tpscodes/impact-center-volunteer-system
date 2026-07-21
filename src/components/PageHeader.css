@@ -1,0 +1,168 @@
+/* PageHeader.css — secondary-page pill header (Tasks / Volunteers / History / CreateTask) */
+
+.ph-bar {
+  --teal-500: #0D9488;
+  --teal-600: #0F7A70;
+  --navy-900: #0A2A3A;
+  --dur-fast: 120ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-liquid: cubic-bezier(0.34, 1.32, 0.44, 1);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 64px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: var(--navy-900);
+  box-shadow: 0 8px 20px rgba(10, 42, 58, 0.18);
+  clip-path: inset(0 calc(100% - 56px) 0 0 round 9999px);
+  animation: ph-bar-reveal 700ms var(--ease-liquid) both;
+}
+
+@keyframes ph-bar-reveal {
+  from { clip-path: inset(0 calc(100% - 56px) 0 0 round 9999px); }
+  to   { clip-path: inset(0 0 0 0 round 9999px); }
+}
+
+@keyframes ph-fade-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Left: avatar or back-circle + label ─────────────────── */
+.ph-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 0 4px;
+}
+
+.ph-avatar {
+  flex: 0 0 44px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  font: 600 15px/1 "Inter", sans-serif;
+  color: #fff;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 60ms both;
+}
+
+.ph-back-icon {
+  flex: 0 0 44px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--teal-500);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 60ms both;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    transform  var(--dur-fast) var(--ease-std);
+}
+
+.ph-back-icon:hover  { background: var(--teal-600); }
+.ph-back-icon:active { transform: scale(0.92); }
+.ph-back-icon:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.ph-label {
+  font: 500 16px/22px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 300ms both;
+}
+
+/* ── Right ───────────────────────────────────────────────── */
+.ph-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ph-date {
+  font: 400 14px/20px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  margin-right: 8px;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 480ms both;
+}
+
+.ph-action-btn {
+  height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--teal-500);
+  color: #fff;
+  cursor: pointer;
+  font: 600 14px/20px "Inter", sans-serif;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 620ms both;
+  transition: background var(--dur-fast) var(--ease-std);
+}
+
+.ph-action-btn:hover { background: var(--teal-600); }
+.ph-action-btn svg   { flex: 0 0 16px; }
+.ph-action-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* History: timestamp replaces date+button in the right slot */
+.ph-timestamp {
+  padding: 0 20px;
+  font: 400 14px/20px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 620ms both;
+}
+
+/* ── Time-range segment (Delivery Dashboard) ─────────────────
+   Active option = solid teal-500 pill; inactive = bare text.
+   Intentionally more minimal than Filter Chip or Chip/Selectable. */
+.ph-time-range {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  opacity: 0;
+  animation: ph-fade-in 260ms var(--ease-out) 620ms both;
+}
+.ph-time-range__option {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  font: 500 14px/20px "Inter", sans-serif;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+.ph-time-range__option:hover { color: rgba(255, 255, 255, 0.85); }
+.ph-time-range__option[aria-pressed="true"] {
+  background: var(--teal-500);
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 9999px;
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ph-bar { animation: none; clip-path: inset(0 0 0 0 round 9999px); }
+  .ph-avatar, .ph-back-icon, .ph-label,
+  .ph-date, .ph-action-btn, .ph-timestamp,
+  .ph-time-range { animation: none; opacity: 1; }
+}

@@ -2,7 +2,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Search, ChevronDown, Clock, MapPin, X, Menu } from "lucide-react";
+import PageHeader from "../components/PageHeader";
+import { Search, Clock, MapPin, X, Menu } from "lucide-react";
+import HistoryTable from "../components/HistoryTable";
+import "../components/StatCards.css";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -34,9 +37,6 @@ function msToDateStr(ms) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-const TODAY_DISPLAY = new Date().toLocaleDateString("en-US", {
-  weekday: "short", month: "short", day: "numeric", year: "numeric",
-});
 
 // Resolve who completed a task — falls back through legacy field names
 // so old Firebase entries (written before completedBy was standardised) still display correctly.
@@ -59,13 +59,12 @@ const DATE_FILTER_OPTIONS = ["Today", "This Week", "This Month", "All Time"];
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ManagerHistory() {
   const navigate = useNavigate();
-  const { activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
-  const { completedTasks, session } = useSharedTasks(activePantryId);
+  const { activePantryId, role, displayName, initials, logout } = useAuth();
+  const { completedTasks } = useSharedTasks(activePantryId);
 
-  const [searchQuery,        setSearchQuery]        = useState("");
-  const [dateFilter,         setDateFilter]         = useState("Today");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [mobileMenuOpen,     setMobileMenuOpen]     = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [dateFilter,     setDateFilter]     = useState("Today");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Sorting + filtering ────────────────────────────────────────────────────
   const sorted = [...completedTasks].sort((a, b) => (b.completedAtMs || 0) - (a.completedAtMs || 0));
@@ -108,26 +107,18 @@ export default function ManagerHistory() {
     sorted.map(t => resolveCompletedBy(t)).filter(v => v && v !== "Manager")
   ).size;
 
-  const sessionBadge = session?.isActive
-    ? { label: "Session Active",    dot: "#34C759" }
-    : { label: "No Active Session", dot: "#6B7280" };
 
   const STATS = [
-    { label: "Tasks Completed Today",   value: todayCount,       color: "#34c759" },
-    { label: "Total Sessions",          value: uniqueSessions,   color: "#0d9488" },
-    { label: "Volunteers Participated", value: uniqueVolunteers, color: "#0d9488" },
+    { label: "Tasks Completed Today",   value: todayCount,       chip: "Today",      chipBg: "#F0FFF4", chipFg: "#15703C", valueFg: "#15703C" },
+    { label: "Total Sessions",          value: uniqueSessions,   chip: "Sessions",   chipBg: "#E6F5F3", chipFg: "#09665E", valueFg: "#09665E" },
+    { label: "Volunteers Participated", value: uniqueVolunteers, chip: "Volunteers", chipBg: "#FFF3E0", chipFg: "#9A5000", valueFg: "#9A5000" },
   ];
 
-  const MOBILE_NAV = role === 'superadmin' ? [
-    { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
-    { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
-    { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
-    { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
-  ] : [
-    { label: "Dashboard",  active: false, action: () => navigate("/manager/dashboard") },
-    { label: "Tasks",      active: false, action: () => navigate("/manager-tasks") },
-    { label: "Volunteers", active: false, action: () => navigate("/manager-volunteers") },
-    { label: "History",    active: true,  action: () => {} },
+  const MOBILE_NAV = [
+    { label: "Dashboard",  path: "/manager/dashboard",  active: false },
+    { label: "Tasks",      path: "/manager-tasks",       active: false },
+    { label: "Volunteers", path: "/manager-volunteers",  active: false },
+    { label: "History",    path: "/manager-history",     active: true  },
   ];
 
   return (
@@ -157,37 +148,15 @@ export default function ManagerHistory() {
       </div>
 
       {/* Main content — margin only on desktop */}
-      <div className="lg:ml-[220px]">
+      <div className="lg:ml-[var(--sidebar-w)]">
 
-        {/* Desktop top bar */}
-        <div className="hidden lg:flex bg-white border-b border-[#e5e7eb] h-16 items-center justify-between px-6 sticky top-0 z-10">
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">
-              Task History
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[#6b7280] text-[13px]">{TODAY_DISPLAY}</span>
-            <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-full px-3 py-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sessionBadge.dot }} />
-              <span className="text-[12px] font-medium text-[#6b7280]">{sessionBadge.label}</span>
-            </div>
-          </div>
+        {/* Pill header */}
+        <div className="hidden lg:block px-6 pt-5 pb-3">
+          <PageHeader
+            initials={initials}
+            label="History"
+          />
         </div>
-
-        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
-        {role === 'superadmin' && activePantryId === 'jason' && (
-          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
-            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-              Pantry
-            </button>
-            <button onClick={() => navigate('/manager-delivery')}
-              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-              Delivery
-            </button>
-          </div>
-        )}
 
         {/* Mobile page title */}
         <div className="lg:hidden px-4 pt-5 pb-3">
@@ -198,20 +167,21 @@ export default function ManagerHistory() {
         {/* Page content */}
         <div className="p-4 lg:p-6 flex flex-col gap-4 lg:gap-5">
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 lg:h-[80px] flex flex-col justify-center">
-              <p className="text-[#6b7280] text-[11px] lg:text-[12px] mb-1">{STATS[0].label}</p>
-              <p className="text-[28px] font-semibold leading-none" style={{ color: STATS[0].color }}>{STATS[0].value}</p>
-            </div>
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 lg:h-[80px] flex flex-col justify-center">
-              <p className="text-[#6b7280] text-[11px] lg:text-[12px] mb-1">{STATS[1].label}</p>
-              <p className="text-[28px] font-semibold leading-none" style={{ color: STATS[1].color }}>{STATS[1].value}</p>
-            </div>
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 lg:h-[80px] flex flex-col justify-center col-span-2 lg:col-span-1">
-              <p className="text-[#6b7280] text-[11px] lg:text-[12px] mb-1">{STATS[2].label}</p>
-              <p className="text-[28px] font-semibold leading-none" style={{ color: STATS[2].color }}>{STATS[2].value}</p>
-            </div>
+          {/* Stats row */}
+          <div className="sc-row">
+            {STATS.map(s => (
+              <div
+                key={s.label}
+                className="sc-card"
+                style={{ "--chip-bg": s.chipBg, "--chip-fg": s.chipFg, "--value-fg": s.valueFg }}
+              >
+                <div className="sc-top">
+                  <span className="sc-chip">{s.chip}</span>
+                </div>
+                <p className="sc-value">{s.value}</p>
+                <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{s.label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Mobile: search */}
@@ -265,109 +235,9 @@ export default function ManagerHistory() {
             )}
           </div>
 
-          {/* Desktop: history card */}
-          <div className="hidden lg:block bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-
-            {/* Card header */}
-            <div className="px-5 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
-              <p className="text-[#0a2a3a] text-[16px] font-semibold">Completed Tasks</p>
-
-              {/* Date filter */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowFilterDropdown(o => !o)}
-                  className="flex items-center gap-2 bg-white border border-[#e5e7eb] rounded-lg px-3 py-1.5
-                             text-[13px] text-[#0a2a3a] cursor-pointer hover:border-[#0d9488] transition-colors"
-                  style={{ minWidth: 130 }}>
-                  <span className="flex-1 text-left">{dateFilter}</span>
-                  <ChevronDown size={14} className="text-[#0d9488] shrink-0" />
-                </button>
-                {showFilterDropdown && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowFilterDropdown(false)} />
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-[#e5e7eb] rounded-lg
-                                    shadow-sm z-20 overflow-hidden" style={{ minWidth: 130 }}>
-                      {DATE_FILTER_OPTIONS.map(opt => (
-                        <button key={opt}
-                          onClick={() => { setDateFilter(opt); setShowFilterDropdown(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-[13px] border-none cursor-pointer transition-colors ${
-                            dateFilter === opt
-                              ? "bg-[#f0fafa] text-[#0d9488] font-medium"
-                              : "bg-white text-[#0a2a3a] hover:bg-[#f9fafb] font-normal"
-                          }`}>
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Search bar */}
-            <div className="px-5 py-3 border-b border-[#e5e7eb]">
-              <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 bg-[#f9fafb]"
-                style={{ height: 40 }}>
-                <Search size={14} className="text-[#b3b3b3] shrink-0" />
-                <input type="text" placeholder="Search completed tasks..."
-                  value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
-              </div>
-            </div>
-
-            {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Clock size={40} className="text-[#ccedeb] mb-3" />
-                <p className="text-[#0a2a3a] text-[15px] font-semibold">No completed tasks</p>
-                <p className="text-[#6b7280] text-[13px] mt-1">
-                  Completed tasks will appear here after sessions
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Column headers */}
-                <div className="px-4 py-3 bg-[#f9fafb] border-b border-[#e5e7eb]">
-                  <div className="grid items-center"
-                    style={{ gridTemplateColumns: "2fr 1.4fr 1.6fr 100px 110px 90px" }}>
-                    {["Task Name", "Completed By", "Location", "Completed At", "Session", "Status"].map(h => (
-                      <p key={h} className="text-[#6b7280] text-[11px] uppercase tracking-wide">{h}</p>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rows */}
-                {filtered.map((entry, i) => {
-                  const location = entry.source && entry.destination
-                    ? `${entry.source} → ${entry.destination}`
-                    : entry.source || entry.destination || "—";
-                  return (
-                    <div key={`${entry.id}-${entry.completedAtMs || i}`}
-                      className="px-4 py-3 border-b border-[#f3f4f6] last:border-b-0 flex items-center">
-                      <div className="grid items-center w-full"
-                        style={{ gridTemplateColumns: "2fr 1.4fr 1.6fr 100px 110px 90px" }}>
-                        <p className="text-[#0a2a3a] text-[13px] font-medium truncate pr-3">
-                          {entry.name}
-                        </p>
-                        <p className="text-[#6b7280] text-[13px] truncate pr-3">
-                          {resolveCompletedBy(entry) || "—"}
-                        </p>
-                        <div className="flex items-center gap-1 text-[#6b7280] text-[12px] pr-3 min-w-0">
-                          <MapPin size={12} className="shrink-0 text-[#b3b3b3]" />
-                          <span className="truncate">{location}</span>
-                        </div>
-                        <p className="text-[#6b7280] text-[12px]">{formatDate(entry.completedAtMs || entry.completedAt)}</p>
-                        <p className="text-[#6b7280] text-[12px]">{entry.sessionDate || "—"}</p>
-                        <div>
-                          <span className="bg-[#f0fff4] text-[#34c759] text-[11px] px-2 py-0.5 rounded-full">
-                            Complete
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </>
-            )}
+          {/* Desktop: history table */}
+          <div className="hidden lg:block">
+            <HistoryTable tasks={completedTasks} />
           </div>
         </div>
       </div>
@@ -402,7 +272,7 @@ export default function ManagerHistory() {
             <nav className="flex flex-col py-2">
               {MOBILE_NAV.map(item => (
                 <button key={item.label}
-                  onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                  onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
                   className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                     item.active
                       ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"

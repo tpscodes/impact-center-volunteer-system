@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { ChevronLeft, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── REAL DATA seeded from Jason's task sheets (2021–2026) ──────────────────
@@ -240,89 +241,63 @@ function TagsCell({ tags, onChange }) {
   );
 }
 
-// ─── Mobile: field wrapper ────────────────────────────────────────────────────
-function FieldGroup({ label, children }) {
+const PRIORITY_DOT_COLORS = { Normal: null, High: "#FF9500", Urgent: "#DC2626" };
+
+function PriorityPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const dot = PRIORITY_DOT_COLORS[value];
   return (
-    <div className="mb-3">
-      <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">{label}</p>
-      <div className="border border-[#e5e7eb] rounded-lg bg-white min-h-[44px] flex items-center">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Mobile: vertical task card ──────────────────────────────────────────────
-function TaskCard({ row, index, onUpdate, onRemove, onItemSelect }) {
-  return (
-    <div className="bg-white rounded-xl border border-[#e5e7eb] p-4 mb-3">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[#0a2a3a] text-[13px] font-semibold">Task {index + 1}</span>
-        <button onClick={onRemove}
-          className="text-[#dc2626] bg-transparent border-none cursor-pointer p-1 hover:bg-[#fff0f0] rounded">
-          <X size={16} />
-        </button>
-      </div>
-
-      <FieldGroup label="Item Name">
-        <AutoInput value={row.item} onChange={v => onUpdate("item", v)}
-          onSelect={onItemSelect} suggestions={ITEM_NAMES} placeholder="Item name…" />
-      </FieldGroup>
-
-      <FieldGroup label="Source">
-        <AutoInput value={row.source} onChange={v => onUpdate("source", v)}
-          suggestions={SOURCE_SUGGESTIONS} placeholder="Source…" />
-      </FieldGroup>
-
-      <FieldGroup label="Destination">
-        <AutoInput value={row.destination} onChange={v => onUpdate("destination", v)}
-          suggestions={DEST_SUGGESTIONS} placeholder="Destination…" />
-      </FieldGroup>
-
-      <FieldGroup label="Action">
-        <AutoInput value={row.action} onChange={v => onUpdate("action", v)}
-          suggestions={ACTION_SUGGESTIONS} placeholder="Action…" />
-      </FieldGroup>
-
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Assign To</p>
-          <select value={row.assignTo} onChange={e => onUpdate("assignTo", e.target.value)}
-            className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
-              text-[#0a2a3a] bg-white focus:outline-none focus:ring-1 focus:ring-[#0d9488]">
-            {ASSIGN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Priority</p>
-          <select value={row.priority} onChange={e => onUpdate("priority", e.target.value)}
-            className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-[14px]
-              text-[#0a2a3a] bg-white focus:outline-none focus:ring-1 focus:ring-[#0d9488]">
-            {PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-1">Tags</p>
-        <TagsCell tags={row.tags} onChange={newTags => onUpdate("tags", newTags)} />
-      </div>
-
-      <button onClick={() => onUpdate("showInstructions", !row.showInstructions)}
-        className="text-[#0d9488] text-[12px] hover:text-[#09665e] cursor-pointer
-          bg-transparent border-none flex items-center gap-1 mb-2">
-        {row.showInstructions
-          ? <><ChevronUp size={12} />Hide special instructions</>
-          : <><ChevronDown size={12} />Add special instructions</>
-        }
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 4, padding: "6px 8px", border: "1px solid #e5e7eb", borderRadius: 8,
+          fontSize: 13, color: "#0a2a3a", background: "white", cursor: "pointer",
+          width: "100%", fontFamily: "inherit",
+        }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+            background: dot ?? "#d1d5db",
+          }} />
+          {value}
+        </span>
+        <ChevronDown size={11} style={{ color: "#9ca3af", flexShrink: 0 }} />
       </button>
-      {row.showInstructions && (
-        <div className="border border-[#e5e7eb] rounded-lg">
-          <input value={row.specialInstructions} onChange={e => onUpdate("specialInstructions", e.target.value)}
-            placeholder="Special instructions for this task…"
-            className="w-full border-0 bg-transparent text-[14px] text-[#0a2a3a]
-              focus:outline-none focus:bg-[#f0fafa] rounded-lg px-3 py-2.5
-              placeholder:text-[#d1d5db]" />
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, zIndex: 300, background: "white",
+          border: "1px solid #e5e7eb", borderRadius: 8,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)", marginTop: 2, minWidth: "100%", overflow: "hidden",
+        }}>
+          {PRIORITY.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => { onChange(p); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                background: value === p ? "#f0fafa" : "white",
+                border: "none", cursor: "pointer", width: "100%",
+                fontSize: 13, color: "#0a2a3a", fontFamily: "inherit",
+              }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                background: PRIORITY_DOT_COLORS[p] ?? "#d1d5db",
+              }} />
+              {p}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -385,12 +360,7 @@ function TaskRow({ row, index, onUpdate, onRemove, onItemSelect }) {
         </select>
 
         {/* Priority */}
-        <select value={row.priority} onChange={e => onUpdate("priority", e.target.value)}
-          className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-[13px]
-            text-[#0a2a3a] bg-white focus:outline-none focus:ring-1
-            focus:ring-[#0d9488]">
-          {PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+        <PriorityPicker value={row.priority} onChange={v => onUpdate("priority", v)} />
 
         {/* Tags */}
         <div className="px-1">
@@ -470,19 +440,22 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
   // ── Publish ──────────────────────────────────────────────────────────────────
   function handlePublish() {
     const filled = rows.filter(r => r.item.trim());
-    if (!filled.length) return;
-    const payload = filled.map(r => ({
-      item:        r.item,
-      action:      r.action,
-      source:      r.source,
-      destination: r.destination,
-      comments:    r.specialInstructions,
-      assignTo:    r.assignTo,
-      priority:    r.priority,
-      tags:        r.tags,
-    }));
-    if (onPublishAll) onPublishAll(payload);
-    else if (onPublish) onPublish(payload[0]);
+    if (filled.length) {
+      const payload = filled.map(r => ({
+        item:        r.item,
+        action:      r.action,
+        source:      r.source,
+        destination: r.destination,
+        comments:    r.specialInstructions,
+        assignTo:    r.assignTo,
+        priority:    r.priority,
+        tags:        r.tags,
+      }));
+      if (onPublishAll) { onPublishAll(payload); return; }
+      if (onPublish)    { onPublish(payload[0]); return; }
+    }
+    if (onBack) onBack();
+    else navigate("/manager-tasks");
   }
 
   const hasItems = rows.some(r => r.item.trim());
@@ -577,50 +550,10 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
           </div>
         </div>
 
-        {/* Mobile card content */}
-        <div className="px-4 py-4 pb-28">
-
-          {/* Hint */}
-          <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 mb-4">
-            <p className="text-[#6b7280] text-[14px]">
-              Fill in as many tasks as needed. Start typing an item to see suggestions.
-            </p>
-          </div>
-
-          {/* Task cards */}
-          {rows.map((row, index) => (
-            <TaskCard
-              key={row._id}
-              row={row}
-              index={index}
-              onUpdate={(field, value) => updateField(row._id, field, value)}
-              onRemove={() => removeRow(row._id)}
-              onItemSelect={name => handleItemSelect(row._id, name)}
-            />
-          ))}
-
-          {/* Add Task */}
-          <button onClick={addRow}
-            className="w-full border-2 border-dashed border-[#e5e7eb] rounded-xl py-3
-              text-[#6b7280] text-[14px] hover:border-[#0d9488] hover:text-[#0d9488]
-              transition-colors flex items-center justify-center gap-2
-              bg-transparent cursor-pointer mb-4">
-            <Plus size={15} />
-            Add Task
-          </button>
-
-          {/* General Notes */}
-          <div className="bg-white rounded-xl border border-[#e5e7eb] p-4">
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-wide mb-2">
-              General Notes (Optional)
-            </p>
-            <textarea
-              value={generalNotes}
-              onChange={e => setGeneralNotes(e.target.value)}
-              placeholder="Any notes for the whole session…"
-              className="w-full border-0 bg-transparent text-[14px] text-[#0a2a3a]
-                resize-none focus:outline-none placeholder:text-[#d1d5db] min-h-[80px]"
-            />
+        {/* Scrollable table on mobile */}
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: 700 }}>
+            {renderFormContent(true)}
           </div>
         </div>
       </div>
@@ -634,53 +567,25 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
       >
         <Sidebar mode="pantry" activePath="/create-task" />
 
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center
-            justify-between px-6 sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onBack ? onBack() : navigate("/manager/dashboard")}
-                className="text-[#6b7280] hover:text-[#0a2a3a] transition-colors
-                  bg-transparent border-none cursor-pointer p-0">
-                <ChevronLeft size={20} />
-              </button>
-              <div>
-                <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">
-                  Operations Manager
-                </p>
-                <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">
-                  Create Tasks
-                </h1>
-              </div>
-            </div>
-            <span className="text-[#6b7280] text-[13px]">{TODAY}</span>
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              label="Create Task"
+              showBack={true}
+              onBack={() => onBack ? onBack() : navigate("/manager-tasks")}
+              action={{
+                label: "Done",
+                onClick: handlePublish,
+              }}
+            />
           </div>
 
           {renderFormContent(false)}
         </div>
       </div>
 
-      {/* ── Fixed bottom bar (shared) ─────────────────────────────────────────── */}
-      <div className="fixed bottom-0 right-0 left-0 lg:left-[220px] bg-white
-        border-t border-[#e5e7eb] px-4 lg:px-6 py-3 z-20
-        flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
-        <p className="text-[#6b7280] text-[13px]">
-          {!hasItems ? "Fill in at least one item" : ""}
-        </p>
-        <button
-          onClick={handlePublish}
-          disabled={!hasItems}
-          className={`w-full lg:w-auto bg-[#09665e] text-white px-6 py-2.5 rounded-xl text-[14px]
-            font-semibold border-none transition-colors
-            ${hasItems
-              ? "hover:bg-[#0d9488] cursor-pointer"
-              : "opacity-40 cursor-not-allowed"
-            }`}>
-          Done — Publish
-        </button>
-      </div>
     </>
   );
 }

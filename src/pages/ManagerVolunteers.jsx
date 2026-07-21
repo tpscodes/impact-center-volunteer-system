@@ -2,11 +2,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
 import { Search, UserPlus, X, Menu, Check, Pencil } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
 import { useAuth } from "../contexts/AuthContext";
+import VolunteerTable from "../components/VolunteerTable";
+import "../components/StatCards.css";
+
+const VOL_STAT_ACCENTS = [
+  { chipBg: "#E6F5F3", chipFg: "#09665E", valueFg: "#09665E" }, // Total
+  { chipBg: "#FFF3E0", chipFg: "#9A5000", valueFg: "#FF9500" }, // Active
+  { chipBg: "#F0FFF4", chipFg: "#15703C", valueFg: "#34C759" }, // New Today
+];
 
 // Default seed derived from VOLUNTEER_PROFILES
 const SEED_VOLUNTEERS = VOLUNTEER_PROFILES.map(v => ({
@@ -34,6 +43,17 @@ function volunteersFromFirebase(snap) {
 }
 
 // ── Add Volunteer Modal — module-level to prevent remount on every keystroke ──
+const CHECK_ICON = (
+  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round"
+       style={{ width: 14, height: 14, flexShrink: 0 }}>
+    <path d="M2.5 7l3 3 6-6"/>
+  </svg>
+);
+
+const CHIP_ON  = { background: "#E6F5F3", borderColor: "#E6F5F3", color: "#09665E", fontWeight: 600 };
+const CHIP_OFF = { background: "#FFFFFF", borderColor: "#E5E7EB", color: "#6B7280", fontWeight: 500 };
+
 function AddVolunteerModal({ volunteers, onClose, onAdd }) {
   const firstNameRef = useRef(null);
   const lastNameRef  = useRef(null);
@@ -58,72 +78,108 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
     onClose();
   }
 
+  const inputStyle = {
+    width: "100%", height: 44, padding: "0 14px",
+    border: "1px solid #E5E7EB", borderRadius: 10,
+    font: "400 14px/20px 'Inter', sans-serif", color: "#0A2A3A",
+    outline: "none", boxSizing: "border-box", transition: "border-color 120ms",
+  };
+
+  const chipStyle = (on) => ({
+    display: "inline-flex", alignItems: "center", gap: 6,
+    height: 36, padding: "0 16px",
+    border: `1px solid ${on ? "#E6F5F3" : "#E5E7EB"}`,
+    borderRadius: 9999,
+    font: `${on ? 600 : 500} 13px/18px 'Inter', sans-serif`,
+    cursor: "pointer",
+    transition: "background 120ms, color 120ms, border-color 120ms",
+    ...(on ? CHIP_ON : CHIP_OFF),
+  });
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-[340px] lg:w-[480px] border border-[#e5e7eb]">
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-[#0a2a3a] text-[18px] font-semibold">Add Experienced Volunteer</p>
+      <div
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white w-[calc(100%-32px)]"
+        style={{ maxWidth: 440, borderRadius: 20, padding: 28, boxShadow: "0 24px 60px rgba(10,42,58,0.28)" }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <span style={{ font: "600 20px/26px 'Inter', sans-serif", color: "#0A2A3A" }}>
+            Add Experienced Volunteer
+          </span>
           <button onClick={onClose}
-            className="text-[#6b7280] hover:text-[#0a2a3a] bg-transparent border-none cursor-pointer">
-            <X size={20} />
+            style={{ border: 0, background: "none", cursor: "pointer", color: "#6B7280",
+                     display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8 }}>
+            <X size={18} />
           </button>
         </div>
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">First Name</p>
-              <input ref={firstNameRef} type="text" placeholder="First Name" autoFocus defaultValue=""
-                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
+
+        {/* Name row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          {[
+            { label: "First Name", ref: firstNameRef, placeholder: "First Name", autoFocus: true },
+            { label: "Last Name",  ref: lastNameRef,  placeholder: "Last Name"  },
+          ].map(f => (
+            <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+              <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                              color: "#6B7280", textTransform: "uppercase" }}>
+                {f.label}
+              </label>
+              <input ref={f.ref} type="text" placeholder={f.placeholder}
+                autoFocus={f.autoFocus} defaultValue="" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#09665E")}
+                onBlur={e  => (e.target.style.borderColor = "#E5E7EB")} />
             </div>
-            <div>
-              <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Last Name</p>
-              <input ref={lastNameRef} type="text" placeholder="Last Name" defaultValue=""
-                className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">
-              Volunteer ID (last 4 digits of phone number)
-            </p>
-            <input ref={idRef} type="text" placeholder="4 digits" maxLength={4} defaultValue=""
-              className="w-full border border-[#e5e7eb] rounded-lg px-4 py-2.5 text-[14px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#0d9488]" />
-          </div>
-          {/* Role toggles */}
-          <div>
-            <p className="text-[#6b7280] text-[12px] mb-2">Role</p>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ccedeb] text-[#09665e] text-[12px] font-medium cursor-not-allowed opacity-70 select-none">
-                <Check size={12} strokeWidth={2.5} />
-                Pantry
-              </div>
-              <button type="button"
-                onClick={() => setIsDriver(d => !d)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
-                  isDriver ? "bg-[#ccedeb] text-[#09665e]" : "bg-[#f0f0f0] text-[#6b7280]"
-                }`}>
-                {isDriver && <Check size={12} strokeWidth={2.5} />}
-                Driver
-              </button>
-              <button type="button"
-                onClick={() => setIsClothing(c => !c)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-colors ${
-                  isClothing ? "bg-[#f3e8ff] text-[#7c3aed]" : "bg-[#f0f0f0] text-[#6b7280]"
-                }`}>
-                {isClothing && <Check size={12} strokeWidth={2.5} />}
-                Clothing
-              </button>
-            </div>
-          </div>
-          {error && <p className="text-[#dc2626] text-[13px]">{error}</p>}
+          ))}
         </div>
-        <div className="flex gap-3">
-          <button onClick={onClose}
-            className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-[14px] hover:bg-[#f5f5f5] bg-transparent cursor-pointer">
+
+        {/* Volunteer ID */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+          <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                          color: "#6B7280", textTransform: "uppercase" }}>
+            Volunteer ID (last 4 digits of phone number)
+          </label>
+          <input ref={idRef} type="text" placeholder="4 digits" maxLength={4} defaultValue=""
+            style={inputStyle}
+            onFocus={e => (e.target.style.borderColor = "#09665E")}
+            onBlur={e  => (e.target.style.borderColor = "#E5E7EB")} />
+        </div>
+
+        {/* Role */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+          <label style={{ font: "600 11px/16px 'Inter', sans-serif", letterSpacing: "0.04em",
+                          color: "#6B7280", textTransform: "uppercase" }}>
+            Role
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+            {/* Pantry — always selected; all volunteers are pantry volunteers */}
+            <div style={{ ...chipStyle(true), cursor: "default", opacity: 0.75 }}>
+              {CHECK_ICON}Pantry
+            </div>
+            <button type="button" onClick={() => setIsDriver(d => !d)} style={chipStyle(isDriver)}>
+              {isDriver && CHECK_ICON}Driver
+            </button>
+            <button type="button" onClick={() => setIsClothing(c => !c)} style={chipStyle(isClothing)}>
+              {isClothing && CHECK_ICON}Clothing
+            </button>
+          </div>
+        </div>
+
+        {error && <p style={{ color: "#DC2626", fontSize: 13, marginBottom: 12 }}>{error}</p>}
+
+        {/* Footer */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 28 }}>
+          <button type="button" onClick={onClose}
+            style={{ height: 44, padding: "0 20px", borderRadius: 9999,
+                     border: "1px solid #E5E7EB", background: "#FFFFFF", color: "#0A2A3A",
+                     font: "600 14px/20px 'Inter', sans-serif", cursor: "pointer" }}>
             Cancel
           </button>
-          <button onClick={handleSubmit}
-            className="flex-1 bg-[#09665e] text-white py-2.5 rounded-lg text-[14px] font-medium hover:opacity-90 border-none cursor-pointer">
+          <button type="button" onClick={handleSubmit}
+            style={{ height: 44, padding: "0 20px", borderRadius: 9999,
+                     border: "none", background: "#09665E", color: "#FFFFFF",
+                     font: "600 14px/20px 'Inter', sans-serif", cursor: "pointer" }}>
             Add Volunteer
           </button>
         </div>
@@ -499,170 +555,60 @@ export default function ManagerVolunteers() {
         <Sidebar mode="pantry" activePath="/manager-volunteers" />
 
         {/* ── Main content ── */}
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-            <div>
-              <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">
-                Volunteers
-              </h1>
-            </div>
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Volunteers"
+              action={{
+                label: "Add Volunteer",
+                icon: <UserPlus size={16}/>,
+                onClick: () => setShowAddModal(true),
+              }}
+            />
           </div>
 
           {/* Page content */}
           <div className="p-6 flex flex-col gap-5">
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { label: "Total Volunteers",      value: volunteers.length,                         color: "#0d9488" },
-                { label: "Active This Session",    value: volunteers.filter(v => v.active).length,   color: "#ff9500" },
-                { label: "New Volunteers Today",   value: 0,                                         color: "#34c759" },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
-                  <p className="text-[#6b7280] text-[12px] mb-1">{stat.label}</p>
-                  <p className="text-[28px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Volunteer list card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-
-              {/* Card header */}
-              <div className="px-5 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
-                <p className="text-[#0a2a3a] text-[16px] font-semibold">Experienced Volunteers</p>
-                <button onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 bg-[#09665e] text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:opacity-90 border-none cursor-pointer">
-                  <UserPlus size={14} />
-                  Add Volunteer
-                </button>
-              </div>
-
-              {/* Search bar */}
-              <div className="px-5 py-3 border-b border-[#e5e7eb]">
-                <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 py-2 bg-[#f9fafb]">
-                  <Search size={14} className="text-[#b3b3b3] shrink-0" />
-                  <input type="text" placeholder="Search by name or ID..."
-                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
-                </div>
-              </div>
-
-              {/* Controls row */}
-              <div className="px-5 py-3 border-b border-[#e5e7eb] flex items-center gap-3 flex-wrap">
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                  className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
-                  <option value="name-asc">Name A → Z</option>
-                  <option value="name-desc">Name Z → A</option>
-                  <option value="id-asc">ID Ascending</option>
-                  <option value="recent">Most Recently Active</option>
-                </select>
-
-                <div className="flex gap-2">
-                  {["all", "active", "inactive"].map(s => (
-                    <button key={s} onClick={() => setStatusFilter(s)}
-                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
-                        statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
-                      }`}>
-                      {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  {[
-                    { value: "all",    label: "All Roles"   },
-                    { value: "pantry", label: "Pantry Only" },
-                    { value: "driver", label: "Driver"      },
-                    { value: "both",   label: "Both"        },
-                  ].map(r => (
-                    <button key={r.value} onClick={() => setRoleFilter(r.value)}
-                      className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
-                        roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
-                      }`}>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center ml-auto gap-3">
-                  <p className="text-[#6b7280] text-[12px]">
-                    Showing {filteredAndSorted.length} of {volunteers.length} volunteers
-                  </p>
-                  {hasActiveFilters && (
-                    <button onClick={clearFilters}
-                      className="text-[#0d9488] text-[12px] underline bg-transparent border-none cursor-pointer">
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Column headers */}
-              <div className="px-5 py-2 bg-[#f9fafb] border-b border-[#e5e7eb]">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-1">ID</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-4">Name</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-3">Last Active</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-2">Status</p>
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest col-span-2 text-right">Action</p>
-                </div>
-              </div>
-
-              {/* Volunteer rows */}
-              {filteredAndSorted.length === 0 ? (
-                <div className="px-5 py-12 text-center">
-                  <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
-                </div>
-              ) : (
-                filteredAndSorted.map(vol => (
-                  <div key={vol.id} className="px-5 py-4 border-b border-[#e5e7eb] last:border-b-0">
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      {/* ID pill */}
-                      <div className="col-span-1">
-                        <span className="bg-[#ccedeb] text-[#09665e] text-[12px] font-medium px-2.5 py-1 rounded-lg">
-                          {vol.id}
-                        </span>
+            {(() => {
+              const stats = [
+                { label: "Total Volunteers",    value: volunteers.length,                       chip: "Total"   },
+                { label: "Active This Session", value: volunteers.filter(v => v.active).length, chip: "Session" },
+                { label: "New Volunteers Today",value: 0,                                       chip: "Today"   },
+              ];
+              return (
+                <div className="sc-row">
+                  {stats.map((s, i) => (
+                    <div
+                      key={s.label}
+                      className="sc-card"
+                      style={{
+                        "--chip-bg":  VOL_STAT_ACCENTS[i].chipBg,
+                        "--chip-fg":  VOL_STAT_ACCENTS[i].chipFg,
+                        "--value-fg": VOL_STAT_ACCENTS[i].valueFg,
+                      }}
+                    >
+                      <div className="sc-top">
+                        <span className="sc-chip">{s.chip}</span>
                       </div>
-                      {/* Name + role pills */}
-                      <div className="col-span-4">
-                        <p className="text-[#0a2a3a] text-[14px] font-semibold">{vol.name}</p>
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
-                          {vol.isDriver && (
-                            <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Last active */}
-                      <p className="text-[#6b7280] text-[12px] col-span-3">{vol.lastActive || "Never"}</p>
-                      {/* Status badge */}
-                      <div className="col-span-2">
-                        <span className={`text-[12px] font-medium px-3 py-1 rounded-lg ${
-                          vol.active ? "bg-[#f0fff4] text-[#34c759]" : "bg-[#e6e6e6] text-[#6b7280]"
-                        }`}>
-                          {vol.active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                      {/* Edit + Remove */}
-                      <div className="col-span-2 flex items-center justify-end gap-2">
-                        <button onClick={() => handleEditOpen(vol)}
-                          className="text-[#0d9488] hover:text-[#09665e] bg-transparent border-none cursor-pointer">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => handleRemoveVolunteer(vol.id)}
-                          className="text-[#dc2626] text-[12px] hover:underline bg-transparent border-none cursor-pointer">
-                          Remove
-                        </button>
-                      </div>
+                      <p className="sc-value">{s.value}</p>
+                      <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{s.label}</p>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* Volunteer list */}
+            <VolunteerTable
+              volunteers={volunteers}
+              onEdit={handleEditOpen}
+              onRemove={handleRemoveVolunteer}
+            />
           </div>
         </div>
       </div>

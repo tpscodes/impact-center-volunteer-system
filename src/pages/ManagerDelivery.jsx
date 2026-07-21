@@ -6,6 +6,8 @@ import { Menu, X, Clock, Truck } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import Sidebar from "../components/Sidebar";
+import PageHeader from "../components/PageHeader";
+import StatCards from "../components/StatCards";
 import seedRouteTemplates from "../utils/seedRouteTemplates";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -73,9 +75,28 @@ function getInitials(name) {
     : name.slice(0, 2).toUpperCase();
 }
 
+// ── Shared card-header: title left + quiet teal link right ────────────────────
+function CardHead({ title, linkLabel, onClick }) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <p className="text-[#0a2a3a] text-[17px] font-semibold leading-[22px]">{title}</p>
+      {linkLabel && (
+        <button
+          type="button"
+          onClick={onClick}
+          className="text-[#09665e] text-[14px] font-medium bg-transparent border-none
+            cursor-pointer p-0 hover:opacity-70 transition-opacity"
+        >
+          {linkLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ManagerDelivery() {
   const navigate = useNavigate();
-  const { pantryId, activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
+  const { pantryId, displayName, initials, logout } = useAuth();
   const hasSeeded = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
@@ -88,9 +109,6 @@ export default function ManagerDelivery() {
   });
 
   // ── Seed route templates once per session ────────────────────────────────
-  // hasSeeded ref prevents StrictMode's double-invoke from running the seed
-  // twice, which would let both get() calls see an empty DB before either
-  // set() completes, causing the second run to overwrite the first.
   useEffect(() => {
     if (hasSeeded.current) return;
     hasSeeded.current = true;
@@ -149,6 +167,13 @@ export default function ManagerDelivery() {
     (!r.drivers || r.drivers.length === 0) && !r.isSpecial
   ).length;
 
+  const deliveryCards = [
+    { label: "Total Routes", value: totalRoutes, accent: "brand",    chart: null, delta: null },
+    { label: "Completed",    value: completed,   accent: "complete", chart: null, delta: null },
+    { label: "In Progress",  value: inProgress,  accent: "progress", chart: null, delta: null },
+    { label: "Unassigned",   value: unassigned,  accent: "danger",   chart: null, delta: null },
+  ];
+
   // ── Driver route counts ───────────────────────────────────────────────────
   function driverRouteCount(driverName, driverId) {
     return periodMerged.filter(r => {
@@ -157,7 +182,7 @@ export default function ManagerDelivery() {
     }).length;
   }
 
-  // ── Period toggle ─────────────────────────────────────────────────────────
+  // ── Period toggle (mobile only) ───────────────────────────────────────────
   const PeriodToggle = () => (
     <div className="flex gap-1">
       {[["today", "Today"], ["week", "This Week"], ["month", "This Month"]].map(([val, label]) => (
@@ -173,41 +198,23 @@ export default function ManagerDelivery() {
     </div>
   );
 
-  // ── Shared content sections ───────────────────────────────────────────────
-  const StatsRow = () => (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-      {[
-        { label: "Total Routes",  value: totalRoutes, color: "#0d9488"  },
-        { label: "Completed",     value: completed,   color: "#34c759"  },
-        { label: "In Progress",   value: inProgress,  color: "#ff9500"  },
-        { label: "Unassigned",    value: unassigned,  color: "#dc2626"  },
-      ].map(s => (
-        <div key={s.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[80px] flex flex-col justify-center">
-          <p className="text-[#6b7280] text-[12px] mb-1">{s.label}</p>
-          <p className="text-[28px] font-semibold leading-none" style={{ color: s.color }}>{s.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-
+  // ── Route Overview card ───────────────────────────────────────────────────
   const RouteOverview = () => (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[#0a2a3a] text-[15px] font-semibold">Route Overview</p>
-        <button onClick={() => navigate("/manager-delivery-routes")}
-          className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
-          View All
-        </button>
-      </div>
+    <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-[22px] min-h-[320px] flex flex-col">
+      <CardHead
+        title="Route Overview"
+        linkLabel="View All"
+        onClick={() => navigate("/manager-delivery-routes")}
+      />
 
       {sortedRoutes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10">
-          <Truck size={36} color="#ccedeb" />
-          <p className="text-[#0a2a3a] text-[14px] font-medium mt-3">No routes for this period</p>
-          <p className="text-[#6b7280] text-[12px] mt-1">Switch to Routes to add delivery routes</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-1">
+          <Truck size={40} color="#E6F5F3" style={{ marginBottom: 12 }} />
+          <p className="text-[#0a2a3a] text-[15px] font-semibold">No routes for this period</p>
+          <p className="text-[#6b7280] text-[14px]">Switch to Routes to add delivery routes</p>
         </div>
       ) : (
-        <div>
+        <div className="flex-1">
           {sortedRoutes.slice(0, 5).map((route, i) => {
             const filled = Array.isArray(route.drivers) ? route.drivers.length : 0;
             const needed = route.driversNeeded || 1;
@@ -246,37 +253,42 @@ export default function ManagerDelivery() {
     </div>
   );
 
+  // ── Active Drivers card ───────────────────────────────────────────────────
   const DriversSection = () => (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[#0a2a3a] text-[15px] font-semibold">Active Drivers</p>
-        <button onClick={() => navigate("/manager-delivery-volunteers")}
-          className="text-[#0d9488] text-[13px] bg-transparent border-none cursor-pointer hover:underline">
-          Manage Drivers
-        </button>
-      </div>
+    <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-[22px] min-h-[320px] flex flex-col">
+      <CardHead
+        title="Active Drivers"
+        linkLabel="Manage Drivers"
+        onClick={() => navigate("/manager-delivery-volunteers")}
+      />
 
       {drivers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-[#6b7280] text-[13px]">No drivers added yet</p>
-          <p className="text-[#6b7280] text-[12px] mt-1">Go to Drivers to add your first driver</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-1">
+          <p className="text-[#0a2a3a] text-[15px] font-semibold">No drivers added yet</p>
+          <p className="text-[#6b7280] text-[14px]">Go to Drivers to add your first driver</p>
         </div>
       ) : (
         <div>
           {drivers.map((driver, i) => {
             const count = driverRouteCount(driver.name, driver.id);
-            const initials = getInitials(driver.name);
+            const driverInitials = getInitials(driver.name);
             return (
               <div key={driver.id}
-                className={`py-3 flex items-center gap-3 ${i < drivers.length - 1 ? "border-b border-[#f3f4f6]" : ""}`}>
-                <div className="w-7 h-7 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                  <span className="text-white text-[10px] font-semibold">{initials}</span>
+                className={`flex items-center gap-3 py-[10px] rounded-[14px] transition-colors hover:bg-[#f5f5f5] ${
+                  i < drivers.length - 1 ? "border-b border-[#f3f4f6]" : ""
+                }`}>
+                {/* 40px solid teal avatar — light-surface variant */}
+                <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                  <span className="text-white text-[13px] font-semibold leading-none">{driverInitials}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[#0a2a3a] text-[13px] font-medium">{driver.name}</p>
-                  <p className="text-[#6b7280] text-[12px]">{count > 0 ? `${count} route${count !== 1 ? "s" : ""}` : "No routes"}</p>
+                  <p className="text-[#0a2a3a] text-[14px] font-medium leading-[18px]">{driver.name}</p>
+                  <p className="text-[#6b7280] text-[13px] leading-[16px] mt-0.5">
+                    {count > 0 ? `${count} route${count !== 1 ? "s" : ""}` : "No routes"}
+                  </p>
                 </div>
-                <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full shrink-0">
+                {/* Driver tag — teal-100 bg / teal-700 fg */}
+                <span className="bg-[#E6F5F3] text-[#09665E] text-[12px] font-semibold px-3 py-[3px] rounded-full shrink-0">
                   Driver
                 </span>
               </div>
@@ -329,20 +341,24 @@ export default function ManagerDelivery() {
                   <X size={20} />
                 </button>
               </div>
+              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
+                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
+                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+                  Pantry
+                </button>
+                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
+                  Delivery
+                </button>
+              </div>
               <nav className="flex flex-col py-2">
-                {(role === 'superadmin' ? [
-                  { label: "Overview",    active: false, action: () => navigate("/steve-overview") },
-                  { label: "Food Pantry", active: true,  action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
-                  { label: "Clothing",    active: false, action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
-                  { label: "Volunteers",  active: false, action: () => navigate("/manager-volunteers") },
-                ] : [
-                  { label: "Dashboard", active: true,  action: () => {} },
-                  { label: "Routes",    active: false, action: () => navigate("/manager-delivery-routes") },
-                  { label: "Drivers",   active: false, action: () => navigate("/manager-delivery-volunteers") },
-                  { label: "History",   active: false, action: () => navigate("/manager-delivery-history") },
-                ]).map(item => (
+                {[
+                  { label: "Dashboard", path: "/manager-delivery",            active: true  },
+                  { label: "Routes",    path: "/manager-delivery-routes",     active: false },
+                  { label: "Drivers",   path: "/manager-delivery-volunteers", active: false },
+                  { label: "History",   path: "/manager-delivery-history",    active: false },
+                ].map(item => (
                   <button key={item.label}
-                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
+                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
                     className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
                       item.active
                         ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
@@ -371,19 +387,6 @@ export default function ManagerDelivery() {
           </>
         )}
 
-        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
-        {role === 'superadmin' && activePantryId === 'jason' && (
-          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
-            <button onClick={() => navigate('/manager-tasks')}
-              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-              Pantry
-            </button>
-            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-              Delivery
-            </button>
-          </div>
-        )}
-
         {/* Mobile page title */}
         <div className="lg:hidden px-4 pt-5 pb-3">
           <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
@@ -396,7 +399,7 @@ export default function ManagerDelivery() {
             <p className="text-[#0a2a3a] text-[14px] font-semibold">{todayStr}</p>
             <PeriodToggle />
           </div>
-          <StatsRow />
+          <StatCards cards={deliveryCards} cols={4} />
           <RouteOverview />
           <DriversSection />
         </div>
@@ -410,23 +413,31 @@ export default function ManagerDelivery() {
         <Sidebar mode="delivery" activePath="/manager-delivery" />
 
         {/* Main content */}
-        <div className="lg:ml-[220px] flex-1 flex flex-col min-h-screen">
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
-          {/* Top bar */}
-          <div className="bg-white border-b border-[#e5e7eb] h-16 flex items-center justify-between px-6 sticky top-0 z-10">
-            <div>
-              <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-              <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight leading-tight">Delivery Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[#6b7280] text-[13px]">{todayStr}</span>
-              <PeriodToggle />
-            </div>
+          {/* Pill header */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Delivery Dashboard"
+              right={
+                <div className="ph-time-range">
+                  {[["today","Today"],["week","This Week"],["month","This Month"]].map(([val, lbl]) => (
+                    <button key={val} type="button"
+                      className="ph-time-range__option"
+                      aria-pressed={period === val}
+                      onClick={() => setPeriod(val)}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
           </div>
 
           {/* Page content */}
           <div className="p-6 flex flex-col gap-5">
-            <StatsRow />
+            <StatCards cards={deliveryCards} cols={4} />
             <div className="grid grid-cols-2 gap-5">
               <RouteOverview />
               <DriversSection />
