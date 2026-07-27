@@ -182,7 +182,8 @@ export default function DeliveryRouteDetail() {
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Top bar */}
-      <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 24px 24px' }}
+        className="px-4 py-4 flex items-center justify-between z-10">
         <button onClick={goBack}
           className="text-white bg-transparent border-none cursor-pointer p-1 -ml-1">
           <ChevronLeft size={22} />

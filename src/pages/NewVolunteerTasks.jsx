@@ -271,10 +271,10 @@ export default function NewVolunteerTasks() {
             </div>
           )}
 
-          {activeTaskForDetail.comments && (
+          {(activeTaskForDetail.comments || activeTaskForDetail.specialInstructions) && (
             <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderLeft: '4px solid #0F7A70', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Instructions</label>
-              <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{activeTaskForDetail.comments}</div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Special Instructions</label>
+              <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>{activeTaskForDetail.specialInstructions || activeTaskForDetail.comments}</div>
             </div>
           )}
 
