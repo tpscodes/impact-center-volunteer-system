@@ -66,7 +66,7 @@ const GRAY = { dark: "#1F2937", soft: "#6B7280", light: "#9CA3AF", border: "#E5E
 
 export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteTask, onMarkIncomplete, onResetTasks, onCompleteTask, synced, error, session, onStartSession, onEndSession }) {
   const navigate = useNavigate();
-  const { activePantryId, role, displayName, initials, logout } = useAuth();
+  const { activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 

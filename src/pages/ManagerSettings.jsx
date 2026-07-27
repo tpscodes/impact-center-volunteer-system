@@ -37,7 +37,7 @@ export default function ManagerSettings() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const sidebarMode = location.state?.mode ?? "pantry";
-  const { pantryId, updateProfile, logout, displayName: authDisplayName, initials: authInitials } = useAuth();
+  const { accountId, pantryId, activePantryId, role, updateProfile, logout, displayName: authDisplayName, initials: authInitials, switchPantry } = useAuth();
 
   // ── Profile state ──────────────────────────────────────────────────────────
   const [displayName,   setDisplayName]   = useState(DEFAULTS.displayName);
@@ -71,9 +71,9 @@ export default function ManagerSettings() {
 
   // ── Load from Firebase on mount ────────────────────────────────────────────
   useEffect(() => {
-    if (!pantryId) return;
+    if (!accountId) return;
     async function load() {
-      const snap = await get(ref(db, `pantries/${pantryId}/appSettings`));
+      const snap = await get(ref(db, `pantries/${accountId}/appSettings`));
       if (!snap.exists()) return;
       const data = snap.val();
       // Profile node takes precedence; fall back to auth node (covers accounts
@@ -100,7 +100,7 @@ export default function ManagerSettings() {
       }
     }
     load();
-  }, [pantryId]);
+  }, [accountId]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function handleDisplayNameChange(val) {
@@ -131,7 +131,7 @@ export default function ManagerSettings() {
         setProfileError("New passwords do not match.");
         return;
       }
-      await set(ref(db, `pantries/${pantryId}/appSettings/auth/password`), newPw);
+      await set(ref(db, `pantries/${accountId}/appSettings/auth/password`), newPw);
       setStoredPassword(newPw);
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
     }
@@ -140,8 +140,8 @@ export default function ManagerSettings() {
     // Write to profile node (Settings source of truth) AND auth node (read on login).
     // Both must stay in sync so re-login always reflects the latest display name.
     await Promise.all([
-      set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived }),
-      update(ref(db, `pantries/${pantryId}/appSettings/auth`), { displayName, initials: derived }),
+      set(ref(db, `pantries/${accountId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${accountId}/appSettings/auth`), { displayName, initials: derived }),
     ]);
 
     // Sync sidebar and in-memory auth context immediately (no logout required)
@@ -151,7 +151,7 @@ export default function ManagerSettings() {
   }
 
   async function handleSaveApp() {
-    await set(ref(db, `pantries/${pantryId}/appSettings/app`), { orgName, location: appLocation, deliveryDays });
+    await set(ref(db, `pantries/${accountId}/appSettings/app`), { orgName, location: appLocation, deliveryDays });
     showToast("Settings saved");
   }
 
@@ -162,15 +162,15 @@ export default function ManagerSettings() {
       if (currentPw !== storedPassword) { setProfileError("Current password is incorrect."); return; }
       if (newPw.length < 4) { setProfileError("New password must be at least 4 characters."); return; }
       if (newPw !== confirmPw) { setProfileError("New passwords do not match."); return; }
-      await set(ref(db, `pantries/${pantryId}/appSettings/auth/password`), newPw);
+      await set(ref(db, `pantries/${accountId}/appSettings/auth/password`), newPw);
       setStoredPassword(newPw);
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
     }
     const derived = deriveInitials(displayName);
     await Promise.all([
-      set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived }),
-      update(ref(db, `pantries/${pantryId}/appSettings/auth`), { displayName, initials: derived }),
-      set(ref(db, `pantries/${pantryId}/appSettings/app`), { orgName, location: appLocation, deliveryDays }),
+      set(ref(db, `pantries/${accountId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${accountId}/appSettings/auth`), { displayName, initials: derived }),
+      set(ref(db, `pantries/${accountId}/appSettings/app`), { orgName, location: appLocation, deliveryDays }),
     ]);
     updateProfile({ displayName, initials: derived });
     showToast("Settings saved");
@@ -230,12 +230,17 @@ export default function ManagerSettings() {
     all:      "Everything",
   };
 
-  const MOBILE_NAV = [
-    { label: "Dashboard", path: "/manager/dashboard",            active: false },
-    { label: "Tasks",     path: "/manager-tasks",                active: false },
-    { label: "Volunteers",path: "/manager-volunteers",           active: false },
-    { label: "History",   path: "/manager-history",              active: false },
-    { label: "Settings",  path: "/manager-settings",             active: true  },
+  const MOBILE_NAV = role === 'superadmin' ? [
+    { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
+    { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
+    { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
+    { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
+  ] : [
+    { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
+    { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
+    { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
+    { label: "History",   active: false, action: () => navigate("/manager-history") },
+    { label: "Settings",  active: true,  action: () => {} },
   ];
 
   // ── Shared card class ──────────────────────────────────────────────────────

@@ -192,7 +192,7 @@ function AddVolunteerModal({ volunteers, onClose, onAdd }) {
 
 export default function ManagerVolunteers() {
   const navigate = useNavigate();
-  const { pantryId, displayName, initials, logout } = useAuth();
+  const { pantryId, activePantryId, role, displayName, initials, logout, switchPantry } = useAuth();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
