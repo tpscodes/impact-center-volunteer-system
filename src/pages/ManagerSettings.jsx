@@ -155,6 +155,27 @@ export default function ManagerSettings() {
     showToast("Settings saved");
   }
 
+  // Mobile: combined save for Profile + App Settings in one card
+  async function handleSaveAll() {
+    setProfileError("");
+    if (currentPw || newPw || confirmPw) {
+      if (currentPw !== storedPassword) { setProfileError("Current password is incorrect."); return; }
+      if (newPw.length < 4) { setProfileError("New password must be at least 4 characters."); return; }
+      if (newPw !== confirmPw) { setProfileError("New passwords do not match."); return; }
+      await set(ref(db, `pantries/${pantryId}/appSettings/auth/password`), newPw);
+      setStoredPassword(newPw);
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    }
+    const derived = deriveInitials(displayName);
+    await Promise.all([
+      set(ref(db, `pantries/${pantryId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${pantryId}/appSettings/auth`), { displayName, initials: derived }),
+      set(ref(db, `pantries/${pantryId}/appSettings/app`), { orgName, location: appLocation, deliveryDays }),
+    ]);
+    updateProfile({ displayName, initials: derived });
+    showToast("Settings saved");
+  }
+
   async function handleReset(scope) {
     try {
       if (scope === "pantry" || scope === "all") {
@@ -235,26 +256,92 @@ export default function ManagerSettings() {
       <div className="lg:hidden min-h-screen flex flex-col pb-10">
 
         {/* Mobile nav */}
-        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px', marginBottom: 20 }}>
+        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px' }}>
           <MobileNav />
         </div>
 
-        <div className="px-4 pt-2">
-          <SettingsContent
-            card={card} inputCls={inputCls} labelCls={labelCls} saveBtnCls={saveBtnCls}
-            pantryId={pantryId}
-            displayName={displayName} initials={initials}
-            onDisplayNameChange={handleDisplayNameChange}
-            currentPw={currentPw} setCurrentPw={setCurrentPw}
-            newPw={newPw} setNewPw={setNewPw}
-            confirmPw={confirmPw} setConfirmPw={setConfirmPw}
-            profileError={profileError} onSaveProfile={handleSaveProfile}
-            orgName={orgName} setOrgName={setOrgName}
-            appLocation={appLocation} setAppLocation={setAppLocation}
-            deliveryDays={deliveryDays} onToggleDay={toggleDay}
-            onSaveApp={handleSaveApp}
-            onOpenReset={() => setShowResetModal(true)}
-          />
+        {/* Mobile settings cards — matches delivery-settings-mobile.html reference */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '24px 12px 32px' }}>
+
+          {/* Combined Profile + App Settings card */}
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>Profile</p>
+
+            {/* Horizontal avatar row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(10,42,58,0.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>
+                {initials}
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>{displayName}</p>
+                <p style={{ fontSize: 12, color: '#565E6C', margin: 0 }}>Operations Manager</p>
+              </div>
+            </div>
+
+            {/* Display Name */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Display Name</label>
+              <input type="text" value={displayName}
+                onChange={e => handleDisplayNameChange(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            {/* Password fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Current Password</label>
+              <input type="password" placeholder="Enter current password"
+                value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>New Password</label>
+              <input type="password" placeholder="Enter new password"
+                value={newPw} onChange={e => setNewPw(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Confirm New Password</label>
+              <input type="password" placeholder="Confirm new password"
+                value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            {profileError && (
+              <p style={{ color: '#DC2626', fontSize: 11, margin: 0 }}>{profileError}</p>
+            )}
+
+            {/* App Settings sub-section */}
+            <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: '8px 0 0' }}>App Settings</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Organization Name</label>
+              <input type="text" value={orgName}
+                onChange={e => setOrgName(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Location</label>
+              <input type="text" value={appLocation}
+                onChange={e => setAppLocation(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            <button onClick={handleSaveAll} className={saveBtnCls}>
+              Save Settings
+            </button>
+          </div>
+
+          {/* Reset System card */}
+          {pantryId !== 'amber' && (
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>Reset System</p>
+              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Permanently delete data from the system. This cannot be undone.</p>
+              <button onClick={() => setShowResetModal(true)}
+                style={{ width: '100%', height: 48, borderRadius: 9999, border: '1px solid #DC2626', background: '#FFF0F0', color: '#DC2626', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>
+                Reset System Data
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

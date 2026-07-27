@@ -220,11 +220,6 @@ export default function MobileNav({ mode: modeProp }) {
           <div className="mn-mode-indicator" aria-hidden="true">
             {mode === "pantry" ? <IconPantryMode /> : <IconDeliveryMode />}
           </div>
-          <svg className="mn-chevron" width="14" height="8" viewBox="0 0 14 8"
-               fill="none" aria-hidden="true">
-            <path d="M1 1L7 7L13 1" stroke="currentColor" strokeWidth="1.8"
-                  strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
         </div>
       </button>
 
