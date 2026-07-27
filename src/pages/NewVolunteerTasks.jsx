@@ -384,7 +384,7 @@ export default function NewVolunteerTasks() {
           {[
             [myTask ? availableTasks.length : openTasks.length, 'Available'],
             [allInProgressCount, 'In Progress'],
-            [(completedTasks || []).length, 'Completed Today'],
+            [(completedTasks || []).filter(t => t.completedBy === displayName).length, 'Completed'],
           ].map(([num, label], i, arr) => (
             <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, paddingRight: i < arr.length - 1 ? 12 : 0, borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.18)' : 'none' }}>
               <p style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1 }}>{num}</p>
