@@ -316,6 +316,7 @@ export default function ManagerDeliveryVolunteers() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileConfirm,  setMobileConfirm]  = useState(null); // vol to confirm-remove on mobile
   const [popover,        setPopover]        = useState(null); // { rect, vol }
+  const [driverFilter,   setDriverFilter]   = useState('All Drivers');
 
   // Firebase listeners
   useEffect(() => {
@@ -411,172 +412,261 @@ export default function ManagerDeliveryVolunteers() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col pb-24"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-        {/* Mobile top bar */}
-        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{initials}</span>
+        {/* ── Gradient hero ─────────────────────────────────────────────────── */}
+        <div style={{
+          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
+          borderRadius: '0 0 28px 28px',
+          padding: '20px 20px 24px',
+          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+        }}>
+          {/* Topbar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => setMobileMenuOpen(o => !o)}
+              style={{
+                width: 40, height: 40, borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+              <Menu size={18} color="#fff" />
+            </button>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '20px', color: '#fff' }}>Drivers</p>
+              <p style={{ margin: 0, fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
             </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{displayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            <button onClick={() => setMobileMenuOpen(o => !o)}
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+              <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{initials}</span>
+            </button>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, width: 'fit-content', background: '#E6F5F3', color: '#09665E' }}>
+                Drivers
+              </span>
+              <p style={{ margin: 0, fontSize: 56, fontWeight: 700, lineHeight: '56px', color: '#fff' }}>{drivers.length}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{activeTodaySet.size} drivers active today</p>
+            </div>
+            {/* Signal bars */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, paddingBottom: 6 }}>
+              {[10, 16, 22, 32].map((h, i) => (
+                <div key={i} style={{ width: 6, height: h, borderRadius: 2, background: '#0D9488' }} />
+              ))}
             </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
+        </div>
+
+        {/* ── Add Driver button ─────────────────────────────────────────────── */}
+        <div style={{ padding: '16px 20px 0' }}>
+          <button onClick={() => setShowAddModal(true)}
+            style={{
+              width: '100%', height: 48, borderRadius: 14, border: 'none', cursor: 'pointer',
+              background: '#0F7A70', color: '#fff', fontSize: 15, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+            Add Driver
           </button>
         </div>
 
+        {/* ── Experienced Drivers card ──────────────────────────────────────── */}
+        <div style={{
+          margin: '15px 20px 32px', background: '#fff', borderRadius: 20,
+          border: '1px solid #E5E7EB', padding: '20px 20px 8px',
+          boxShadow: '0 8px 20px rgba(10,42,58,.05)',
+        }}>
+          {/* Card header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#0A2A3A' }}>Experienced Drivers</h2>
+            {/* Sort stub */}
+            <button style={{
+              display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px',
+              border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'pointer',
+              fontSize: 13, color: '#0A2A3A',
+            }}>
+              Sort
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Search */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 10, height: 42, padding: '0 14px',
+            border: '1px solid #E5E7EB', borderRadius: 12, background: '#fff', marginBottom: 12,
+          }}>
+            <Search size={14} color="#9CA3AF" />
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ flex: 1, border: 0, outline: 0, background: 'transparent', fontSize: 14, color: '#0A2A3A' }}
+            />
+          </label>
+
+          {/* Filter chips — "Experienced" and "New" show full list until experience-level field exists in Firebase */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {['All Drivers', 'Experienced', 'New'].map(chip => (
+              <button key={chip} onClick={() => setDriverFilter(chip)}
+                style={{
+                  height: 32, padding: '0 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 500,
+                  background: driverFilter === chip ? '#0F7A70' : '#F3F4F6',
+                  color: driverFilter === chip ? '#fff' : '#374151',
+                }}>
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Driver rows */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <UserCheck size={36} color="#E6F5F3" style={{ margin: '0 auto 8px' }} />
+                <p style={{ margin: 0, fontSize: 14, color: '#6B7280' }}>
+                  {searchQuery ? 'No drivers match your search.' : 'No drivers added yet'}
+                </p>
+              </div>
+            ) : (
+              filtered.map((vol, i) => (
+                <div key={vol.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '12px 14px', borderRadius: 14,
+                    background: i % 2 === 0 ? '#D3EDE9' : 'transparent',
+                  }}>
+                  {/* ID pill */}
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+                    background: '#E6F5F3', color: '#09665E', flexShrink: 0, whiteSpace: 'nowrap',
+                  }}>
+                    #{String(vol.id).slice(-4)}
+                  </span>
+                  {/* Name */}
+                  <p style={{ flex: 1, margin: 0, fontSize: 13, fontWeight: 500, color: '#0A2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {vol.name}
+                  </p>
+                  {/* Driver tag */}
+                  <span style={{
+                    fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999,
+                    background: '#FFF3E0', color: '#9A5000', flexShrink: 0,
+                  }}>
+                    Driver
+                  </span>
+                  {/* Action buttons */}
+                  <button
+                    onClick={() => {}}
+                    style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Pencil size={13} color="#6B7280" />
+                  </button>
+                  <button
+                    onClick={() => setMobileConfirm(vol)}
+                    style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #FEE2E2', background: '#FFF5F5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Trash2 size={13} color="#DC2626" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ── Left-side slide-in drawer ─────────────────────────────────────── */}
         {mobileMenuOpen && (
           <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
+            <div
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,.45)' }}
+            />
+            <div style={{
+              position: 'fixed', top: 0, left: 0, bottom: 0, width: 300, maxWidth: '82vw',
+              background: '#09665E', borderRadius: '0 27px 27px 0', zIndex: 50,
+              display: 'flex', flexDirection: 'column', padding: '20px 0 24px',
+            }}>
+              {/* X close */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 16px' }}>
                 <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
+                  style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={16} color="#fff" />
                 </button>
               </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280]
-                             hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+              {/* Profile block */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,.12)' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{initials}</span>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#fff' }}>{displayName}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,.6)' }}>Operations Manager</p>
+                </div>
+              </div>
+              {/* Mode toggle */}
+              <div style={{ display: 'flex', gap: 4, margin: '16px 20px', padding: 4, background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager/dashboard'); }}
+                  style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'transparent', color: 'rgba(255,255,255,.66)' }}>
                   Pantry
                 </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
+                <button style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'default', fontSize: 13, fontWeight: 600, background: '#0A2A3A', color: '#fff' }}>
                   Delivery
                 </button>
               </div>
-              <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
+              {/* Nav list */}
+              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 8px', flex: 1 }}>
+                {[
+                  { label: 'Overview', path: '/manager-delivery',            active: false },
+                  { label: 'Routes',   path: '/manager-delivery-routes',     active: false },
+                  { label: 'Drivers',  path: '/manager-delivery-volunteers', active: true  },
+                  { label: 'History',  path: '/manager-delivery-history',    active: false },
+                  { label: 'Settings', path: '/manager-settings',            active: false },
+                ].map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold
-                                bg-transparent border-none cursor-pointer
-                                ${item.active
-                                  ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                                  : "text-[#9ca3af] border-l-[3px] border-transparent"}`}>
+                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', width: '100%', height: 49,
+                      padding: '0 16px', borderRadius: 26, border: 'none', cursor: 'pointer',
+                      fontSize: 15, textAlign: 'left',
+                      background: item.active ? '#fff' : 'transparent',
+                      color: item.active ? '#0A2A3A' : 'rgba(255,255,255,.82)',
+                      fontWeight: item.active ? 600 : 500,
+                    }}>
                     {item.label}
                   </button>
                 ))}
               </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
             </div>
           </>
         )}
 
-        <div className="px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Drivers</h1>
-        </div>
-
-        {/* Mobile stat cards — 2-col grid */}
-        <div className="px-4 pt-2 grid grid-cols-2 gap-3">
-          {[
-            { label: "Total Drivers",    value: drivers.length,      color: "#09665e" },
-            { label: "Active Today",     value: activeTodaySet.size, color: "#9a5000" },
-            { label: "Routes Completed", value: routesCompleted,      color: "#15703c" },
-          ].map((s, i) => (
-            <div key={s.label}
-              className={`bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 ${i === 2 ? "col-span-2" : ""}`}>
-              <p className="text-[#6b7280] text-[11px] mb-1">{s.label}</p>
-              <p className="text-[28px] font-semibold leading-none" style={{ color: s.color }}>{s.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile search */}
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 py-2.5 bg-white">
-            <Search size={14} className="text-[#b3b3b3] shrink-0" />
-            <input type="text" placeholder="Search by name or ID..."
-              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
-          </div>
-        </div>
-
-        {/* Mobile driver cards */}
-        <div className="px-4 pt-4 flex flex-col gap-3">
-          {filtered.length === 0 ? (
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-12 text-center
-                            flex flex-col items-center">
-              <UserCheck size={40} className="text-[#E6F5F3]" />
-              <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">
-                {searchQuery ? "No drivers match your search." : "No drivers added yet"}
-              </p>
-              {!searchQuery && (
-                <p className="text-[#6b7280] text-[13px] mt-1">Add your first driver to get started</p>
-              )}
-            </div>
-          ) : (
-            filtered.map(vol => (
-              <DriverCard
-                key={vol.id} vol={vol} weekCount={weekCountFor(vol)}
-                onRemoveTag={handleRemoveDriverTag}
-                onRemove={vol => setMobileConfirm(vol)}
-              />
-            ))
-          )}
-        </div>
-
-        {/* Mobile confirm overlay for "Remove Volunteer" */}
+        {/* ── Mobile confirm overlay ────────────────────────────────────────── */}
         {mobileConfirm && (
           <>
             <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileConfirm(null)} />
-            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[20px] p-6
-                            border-t border-[#e5e7eb]">
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[20px] p-6 border-t border-[#e5e7eb]">
               <p className="text-[#0a2a3a] text-[15px] leading-[22px] mb-5">
-                Remove <strong>{mobileConfirm.name}</strong> as a volunteer entirely?{" "}
-                This can't be undone.
+                Remove <strong>{mobileConfirm.name}</strong> as a volunteer entirely? This can't be undone.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setMobileConfirm(null)}
-                  className="flex-1 border border-[#e5e7eb] text-[#0a2a3a] py-3 rounded-full
-                             text-[14px] font-semibold bg-transparent cursor-pointer">
+                  className="flex-1 border border-[#e5e7eb] text-[#0a2a3a] py-3 rounded-full text-[14px] font-semibold bg-transparent cursor-pointer">
                   Cancel
                 </button>
                 <button onClick={() => { handleRemoveVolunteer(mobileConfirm); setMobileConfirm(null); }}
-                  className="flex-1 bg-[#dc2626] text-white py-3 rounded-full text-[14px]
-                             font-semibold border-none cursor-pointer">
+                  className="flex-1 bg-[#dc2626] text-white py-3 rounded-full text-[14px] font-semibold border-none cursor-pointer">
                   Remove
                 </button>
               </div>
             </div>
           </>
         )}
-
-        {/* Fixed bottom add button */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white border-t border-[#e5e7eb] z-20">
-          <button onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 bg-[#09665e] text-white
-                       py-3 rounded-xl text-[15px] font-semibold border-none cursor-pointer active:opacity-80">
-            <UserPlus size={16} />
-            Add Driver
-          </button>
-        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

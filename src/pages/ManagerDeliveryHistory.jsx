@@ -329,123 +329,181 @@ export default function ManagerDeliveryHistory() {
       <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{initials}</span>
+        {/* ── Gradient hero ─────────────────────────────────────────────────── */}
+        <div style={{
+          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
+          borderRadius: '0 0 28px 28px',
+          padding: '20px 20px 24px',
+          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+        }}>
+          {/* Topbar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => setMobileMenuOpen(o => !o)}
+              style={{
+                width: 40, height: 40, borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+              <Menu size={18} color="#fff" />
+            </button>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '20px', color: '#fff' }}>History</p>
+              <p style={{ margin: 0, fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
             </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{displayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            <button onClick={() => setMobileMenuOpen(o => !o)}
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+              <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{initials}</span>
+            </button>
+          </div>
+
+          {/* Dual stats */}
+          <div style={{ display: 'flex', gap: 32 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, width: 'fit-content', background: '#E6F5F3', color: '#09665E' }}>
+                Routes
+              </span>
+              <p style={{ margin: 0, fontSize: 44, fontWeight: 600, lineHeight: '44px', color: '#fff' }}>{completed.length}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Total routes completed</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, width: 'fit-content', background: '#E6F5F3', color: '#09665E' }}>
+                Sessions
+              </span>
+              <p style={{ margin: 0, fontSize: 44, fontWeight: 600, lineHeight: '44px', color: '#fff' }}>{groups.length}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Total Sessions</p>
             </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
-          </button>
         </div>
 
+        {/* ── History card ──────────────────────────────────────────────────── */}
+        <div style={{
+          margin: '15px 20px 32px', background: '#fff', borderRadius: 20,
+          border: '1px solid #E5E7EB', padding: '20px 20px 12px',
+          boxShadow: '0 8px 20px rgba(10,42,58,.05)',
+        }}>
+          {/* Card header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: '#0A2A3A' }}>History</h2>
+            <button style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              height: 40, width: 109, padding: '0 14px',
+              border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'default',
+              fontSize: 14, color: '#0A2A3A',
+            }}>
+              <span>All Time</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Route rows */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {completed.length === 0 ? (
+              <p style={{ margin: 0, textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '24px 0' }}>
+                No completed routes
+              </p>
+            ) : (
+              completed.map((route, i) => (
+                <div key={route.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 15,
+                    background: i % 2 === 0 ? '#D3EDE9' : 'transparent',
+                  }}>
+                  {/* Custom truck icon */}
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: '#0F7A70', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="24" height="18" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 6H14V16H1.5V6Z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round"/>
+                      <path d="M14 9H18.5L22 12.5V16H14V9Z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round"/>
+                      <circle cx="6.5" cy="18" r="1.9" fill="#0F7A70" stroke="white" strokeWidth="1.2"/>
+                      <circle cx="17.5" cy="18" r="1.9" fill="#0F7A70" stroke="white" strokeWidth="1.2"/>
+                    </svg>
+                  </div>
+                  {/* Route name */}
+                  <p style={{ flex: 1, margin: 0, fontSize: 12, fontWeight: 500, color: '#0A2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {templates[route.templateId]?.name || route.name || '—'}
+                  </p>
+                  {/* Date */}
+                  <span style={{ fontSize: 13, color: '#0A2A3A', flexShrink: 0 }}>
+                    {route.date
+                      ? new Date(route.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                      : '—'}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ── Left-side slide-in drawer ─────────────────────────────────────── */}
         {mobileMenuOpen && (
           <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
+            <div
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,.45)' }}
+            />
+            <div style={{
+              position: 'fixed', top: 0, left: 0, bottom: 0, width: 300, maxWidth: '82vw',
+              background: '#09665E', borderRadius: '0 27px 27px 0', zIndex: 50,
+              display: 'flex', flexDirection: 'column', padding: '20px 0 24px',
+            }}>
+              {/* X close */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 16px' }}>
                 <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
+                  style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={16} color="#fff" />
                 </button>
               </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280]
-                             hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
+              {/* Profile block */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,.12)' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{initials}</span>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#fff' }}>{displayName}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,.6)' }}>Operations Manager</p>
+                </div>
+              </div>
+              {/* Mode toggle */}
+              <div style={{ display: 'flex', gap: 4, margin: '16px 20px', padding: 4, background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager/dashboard'); }}
+                  style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'transparent', color: 'rgba(255,255,255,.66)' }}>
                   Pantry
                 </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
+                <button style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'default', fontSize: 13, fontWeight: 600, background: '#0A2A3A', color: '#fff' }}>
                   Delivery
                 </button>
               </div>
-              <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
+              {/* Nav list */}
+              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 8px', flex: 1 }}>
+                {[
+                  { label: 'Overview', path: '/manager-delivery',            active: false },
+                  { label: 'Routes',   path: '/manager-delivery-routes',     active: false },
+                  { label: 'Drivers',  path: '/manager-delivery-volunteers', active: false },
+                  { label: 'History',  path: '/manager-delivery-history',    active: true  },
+                  { label: 'Settings', path: '/manager-settings',            active: false },
+                ].map(item => (
                   <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold
-                                bg-transparent border-none cursor-pointer
-                                ${item.active
-                                  ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                                  : "text-[#9ca3af] border-l-[3px] border-transparent"}`}>
+                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', width: '100%', height: 49,
+                      padding: '0 16px', borderRadius: 26, border: 'none', cursor: 'pointer',
+                      fontSize: 15, textAlign: 'left',
+                      background: item.active ? '#fff' : 'transparent',
+                      color: item.active ? '#0A2A3A' : 'rgba(255,255,255,.82)',
+                      fontWeight: item.active ? 600 : 500,
+                    }}>
                     {item.label}
                   </button>
                 ))}
               </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
             </div>
           </>
         )}
-
-        <div className="px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Delivery History</h1>
-        </div>
-
-        <div className="px-4 flex flex-col gap-4 pb-8">
-          {/* Mobile stat tiles */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Tasks Completed Today", value: completedToday,    color: "#15703c" },
-              { label: "Total Sessions",         value: completed.length,  color: "#09665e" },
-              { label: "Drivers Participated",   value: uniqueDriverCount, color: "#9a5000" },
-            ].map((s, i) => (
-              <div key={s.label}
-                className={`bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 ${i === 2 ? "col-span-2" : ""}`}>
-                <p className="text-[#6b7280] text-[11px] mb-1">{s.label}</p>
-                <p className="text-[28px] font-semibold leading-none" style={{ color: s.color }}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <ControlsRow className="flex-col" />
-
-          {/* Mobile history — individual cards */}
-          {filtered.length === 0 ? (
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-16
-                            flex flex-col items-center text-center">
-              <Clock size={36} className="text-[#E6F5F3] mb-3" />
-              <p className="text-[#0a2a3a] text-[15px] font-semibold">No completed routes yet</p>
-              <p className="text-[#6b7280] text-[13px] mt-1">Completed delivery routes will appear here</p>
-            </div>
-          ) : (
-            groups.map(group => (
-              <div key={group.date}>
-                <p className="text-[#09665e] text-[11px] font-semibold uppercase tracking-[.04em] mb-2">
-                  {getDateGroupLabel(group.date)}
-                </p>
-                <div className="flex flex-col gap-3">
-                  {group.routes.map(route => <HistoryCard key={route.id} route={route} />)}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
