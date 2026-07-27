@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
+import { useIsTablet } from "../hooks/useBreakpoint";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 
@@ -245,11 +246,13 @@ export function MyTask() {
   const { tasks, completeTask, clearShiftLeader, markTaskIncomplete, shiftLeader } = useSharedTasks(pantryId);
   const [completing, setCompleting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [showUnclaimModal, setShowUnclaimModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '' });
 
   const volunteerId = sessionStorage.getItem("volunteerId") || "";
   const myTask = tasks.find(t => t.assignedTo === volunteerId && t.status === "in-progress");
 
-  // Only show shift leader panel if they have actively claimed the Shift Leader task
   const isShiftLeader = !!myTask && shiftLeader?.taskId === myTask.id;
 
   const newVolTasks = tasks.filter(t => {
@@ -259,7 +262,6 @@ export function MyTask() {
     return false;
   });
 
-  // Timer
   useEffect(() => {
     if (!myTask) return;
     const start = myTask.claimedAt || Date.now();
@@ -268,171 +270,363 @@ export function MyTask() {
     return () => clearInterval(interval);
   }, [myTask?.id]);
 
-  const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
-  const secs = (elapsed % 60).toString().padStart(2, "0");
+  function showToastMsg(message) {
+    setToast({ show: true, message });
+    setTimeout(() => setToast({ show: false, message: '' }), 2200);
+  }
 
-  async function handleUnclaim() {
+  async function handleConfirmUnclaim() {
     if (!myTask) return;
+    setShowUnclaimModal(false);
     await markTaskIncomplete(myTask.id);
     navigate(`/task-pool?pantry=${pantryId}`);
   }
 
-  async function handleComplete() {
+  async function handleConfirmComplete() {
     if (!myTask) return;
+    setShowCompleteModal(false);
     setCompleting(true);
     const isShiftLeaderTask = (myTask.tags || []).includes("Shift Leader");
     const completedBy = myTask.assignedName || sessionStorage.getItem("volunteerName") || volunteerId;
     await completeTask(myTask.id, completedBy);
     if (isShiftLeaderTask) await clearShiftLeader();
+    showToastMsg('Task marked complete ✓');
     setTimeout(() => navigate(`/task-pool?pantry=${pantryId}`), 1200);
   }
 
-  return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+  const isTablet = useIsTablet();
 
-      {/* Header — Dark Teal */}
-      <div className="bg-[#09665e] px-6 py-5 flex items-center justify-between">
+  if (isTablet) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#D3EDE9', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, padding: '0 8px 0 24px', borderRadius: 9999, background: '#0A2A3A', boxShadow: '0 8px 20px rgba(10,42,58,0.18)', flexShrink: 0 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Experienced Volunteer</p>
+              <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0 }}>My Task</p>
+            </div>
+            <button
+              onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }}
+              style={{ height: 44, padding: '0 20px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+              Exit
+            </button>
+          </div>
+
+          {!myTask ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>{completing ? "✅" : "📭"}</div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>
+                {completing ? "Task Complete!" : "No active task"}
+              </p>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>
+                {completing ? "Heading back to task pool…" : "Head back to pick a new one!"}
+              </p>
+              {!completing && (
+                <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                  style={{ padding: '12px 24px', background: '#09665e', color: '#fff', borderRadius: 9999, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  ← Back to Tasks
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Status banner */}
+              <div style={{ background: '#0A2A3A', borderRadius: 20, padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#FFA726', display: 'inline-block', animation: 'pulseOrange 2s infinite', flexShrink: 0 }} />
+                  In Progress
+                </p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>{myTask.name || myTask.item}</p>
+              </div>
+
+              {/* Shift leader badge */}
+              {(myTask.tags || []).includes("Shift Leader") && (
+                <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: 12, borderLeft: '4px solid #ff9500' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#ff9500', margin: 0 }}>🟠 You are the Shift Leader — new volunteers can find you for help</p>
+                </div>
+              )}
+
+              {/* Cards row */}
+              <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+
+                {/* Detail card */}
+                <div style={{ flex: 1.4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 28, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 20px', alignContent: 'start' }}>
+                  {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination]].filter(([, v]) => v).map(([label, val]) => (
+                    <div key={label}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>{label}</label>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: '#0A2A3A' }}>{val}</div>
+                    </div>
+                  ))}
+                  {(myTask.specialInstructions || myTask.comments) && (
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #E5E7EB', paddingTop: 20 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Special Instructions</label>
+                      <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.5, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+                        {myTask.specialInstructions || myTask.comments}
+                      </p>
+                    </div>
+                  )}
+                  {myTask.tags && myTask.tags.length > 0 && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {myTask.tags.map(tag => (
+                        <span key={tag} style={{ background: '#E6F5F3', color: '#09665e', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8 }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Side panel */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0A2A3A' }}>Finished this task?</h4>
+                    <p style={{ margin: 0, fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>Mark it complete once done, or unclaim it to release it back to the pool.</p>
+                    <button
+                      onClick={() => setShowCompleteModal(true)}
+                      disabled={completing}
+                      style={{ height: 50, borderRadius: 9999, border: 'none', background: '#0D9488', color: '#fff', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: completing ? 0.5 : 1 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      {completing ? "Saving…" : "Mark Complete"}
+                    </button>
+                    <button
+                      onClick={() => setShowUnclaimModal(true)}
+                      disabled={completing}
+                      style={{ height: 50, borderRadius: 9999, border: '1px solid #DC2626', background: '#FFF0F0', color: '#DC2626', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: completing ? 0.5 : 1 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      Unclaim
+                    </button>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                      style={{ fontSize: 13, color: '#6B7280', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      ← Back to Task Pool
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shift Leader: new volunteer tasks panel (tablet — below cards row) */}
+              {isShiftLeader && (
+                <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#ff9500', margin: '0 0 16px' }}>
+                    🟠 New Volunteer Tasks ({newVolTasks.length})
+                  </p>
+                  {newVolTasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', margin: 0 }}>No new volunteers working right now</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {newVolTasks.map(t => {
+                        const isActive = t.status === "in-progress";
+                        const isIncomplete = t.status === "incomplete";
+                        return (
+                          <div key={t.id} style={{ borderRadius: 16, border: `1px solid ${isActive ? '#fed7aa' : isIncomplete ? '#fecaca' : '#E5E7EB'}`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>{t.name}</p>
+                                <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 9999, padding: '1px 8px', flexShrink: 0, background: isActive ? '#fff7ed' : isIncomplete ? '#fee2e2' : '#f0fdf4', color: isActive ? '#ff9500' : isIncomplete ? '#dc2626' : '#16a34a' }}>
+                                  {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>📍 {t.destination}</p>
+                            </div>
+                            {isActive && (
+                              <button onClick={() => markTaskIncomplete(t.id)}
+                                style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 12, fontFamily: 'inherit' }}>
+                                Mark Incomplete
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+
+        {/* Shared modals + toast — same as mobile */}
+        {showUnclaimModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+            onClick={e => { if (e.target === e.currentTarget) setShowUnclaimModal(false); }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Unclaim this task?</h4>
+              <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>It'll go back into the available pool for another volunteer to pick up.</p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button onClick={() => setShowUnclaimModal(false)}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>Cancel</button>
+                <button onClick={handleConfirmUnclaim}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#DC2626', color: '#fff' }}>Unclaim</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showCompleteModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+            onClick={e => { if (e.target === e.currentTarget) setShowCompleteModal(false); }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Mark task complete?</h4>
+              <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>{myTask?.name || 'This task'} will be removed from your active tasks.</p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button onClick={() => setShowCompleteModal(false)}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>Cancel</button>
+                <button onClick={handleConfirmComplete}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#0D9488', color: '#fff' }}>Mark Complete</button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: `translateX(-50%) translateY(${toast.show ? 0 : 20}px)`, background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, opacity: toast.show ? 1 : 0, pointerEvents: 'none', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 200 }}>
+          {toast.message}
+        </div>
+        <style>{`
+          @keyframes pulseOrange { 0% { box-shadow: 0 0 0 0 rgba(255,167,38,0.55); } 70% { box-shadow: 0 0 0 9px rgba(255,167,38,0); } 100% { box-shadow: 0 0 0 0 rgba(255,167,38,0); } }
+          @media (prefers-reduced-motion: reduce) { *, .pulse-dot { animation: none !important; transition: none !important; } }
+        `}</style>
+      </div>
+    );
+  }
+
+  const S = { fontFamily: "'Inter', sans-serif" };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', ...S }}>
+
+      {/* ── Gradient hero ───────────────────────────────────────────────────── */}
+      <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
-          <p className="text-[#ccedeb] text-[11px] uppercase tracking-widest font-normal">Experienced Volunteer</p>
-          <p className="text-white text-[22px] font-semibold leading-tight mt-1">My Task</p>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Experienced Volunteer</p>
+          <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>My Task</p>
         </div>
         <button
           onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }}
-          className="border border-white text-white px-4 py-2 rounded-lg text-base hover:opacity-80 bg-transparent cursor-pointer"
-        >
+          style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
           Exit
         </button>
-      </div>
+      </header>
 
-      {/* Status bar — Dark Navy */}
-      {myTask && (
-        <div className="bg-[#0a2a3a] px-6 py-4">
-          <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">In Progress</p>
-          <p className="text-white text-[18px] font-semibold">{myTask.name || myTask.item}</p>
-        </div>
-      )}
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 pb-20">
+      {/* ── Scrollable content ─────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
 
         {!myTask ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-5xl mb-4">{completing ? "✅" : "📭"}</div>
-            <p className="text-[16px] font-bold text-[#0a2a3a] mb-2">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>{completing ? "✅" : "📭"}</div>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>
               {completing ? "Task Complete!" : "No active task"}
             </p>
-            <p className="text-[13px] text-[#6b7280] mb-6">
+            <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>
               {completing ? "Heading back to task pool…" : "Head back to pick a new one!"}
             </p>
             {!completing && (
-              <button
-                onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
-                className="px-6 py-3 bg-[#09665e] text-white rounded-xl text-[14px] font-semibold border-none cursor-pointer hover:opacity-90"
-              >
+              <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                style={{ padding: '12px 24px', background: '#09665e', color: '#fff', borderRadius: 9999, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 ← Back to Tasks
               </button>
             )}
           </div>
         ) : (
           <>
+            {/* Status banner with pulse dot */}
+            <div style={{ background: '#0A2A3A', borderRadius: 16, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#FFA726', display: 'inline-block', animation: 'pulseOrange 2s infinite', flexShrink: 0 }} />
+                In Progress
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{myTask.name || myTask.item}</p>
+            </div>
+
             {/* Shift leader badge */}
             {(myTask.tags || []).includes("Shift Leader") && (
-              <div className="px-4 py-3 bg-[#fff7ed] rounded-lg border-l-4 border-[#ff9500]">
-                <p className="text-[#ff9500] text-[13px] font-bold">🟠 You are the Shift Leader — new volunteers can find you for help</p>
+              <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: 12, borderLeft: '4px solid #ff9500' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#ff9500', margin: 0 }}>🟠 You are the Shift Leader — new volunteers can find you for help</p>
               </div>
             )}
 
             {/* Task details card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl p-6">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-                {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination], ["Est. Time", null]].filter(([, v]) => v).map(([label, val]) => (
-                  <div key={label}>
-                    <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">{label}</p>
-                    <p className="text-[#0a2a3a] text-[16px]">{val}</p>
-                  </div>
-                ))}
-              </div>
-
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 16px' }}>
+              {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination]].filter(([, v]) => v).map(([label, val]) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 5 }}>{label}</label>
+                  <div style={{ fontSize: 14.5, fontWeight: 600, color: '#0A2A3A' }}>{val}</div>
+                </div>
+              ))}
               {(myTask.specialInstructions || myTask.comments) && (
-                <div className="border-l-2 border-[#e5e7eb] pl-4 mt-6">
-                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest mb-1">Special Instructions</p>
-                  <p className="text-[#6b7280] text-[14px] italic leading-relaxed whitespace-pre-wrap">
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #E5E7EB', paddingTop: 16 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 5 }}>Special Instructions</label>
+                  <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.5, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
                     {myTask.specialInstructions || myTask.comments}
                   </p>
                 </div>
               )}
-
               {myTask.tags && myTask.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {myTask.tags.map(tag => (
-                    <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[12px] font-semibold px-3 py-1 rounded-lg">
-                      {tag}
-                    </span>
+                    <span key={tag} style={{ background: '#E6F5F3', color: '#09665e', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8 }}>{tag}</span>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Action buttons */}
-            <div className="flex">
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
               <button
-                onClick={handleUnclaim}
+                onClick={() => setShowUnclaimModal(true)}
                 disabled={completing}
-                className="flex-1 bg-[#dc2626] text-white py-4 rounded-l-xl text-[16px] font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
-              >
+                style={{ flex: 1, height: 50, borderRadius: 9999, border: '1px solid #DC2626', background: '#FFF0F0', color: '#DC2626', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: completing ? 0.5 : 1 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 Unclaim
               </button>
               <button
-                onClick={handleComplete}
+                onClick={() => setShowCompleteModal(true)}
                 disabled={completing}
-                className="flex-1 bg-[#09665e] text-white py-4 rounded-r-xl text-[16px] font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 border-none"
-              >
-                ✓ {completing ? "Saving…" : "Mark Complete"}
+                style={{ flex: 1, height: 50, borderRadius: 9999, border: 'none', background: '#0D9488', color: '#fff', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: completing ? 0.5 : 1 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {completing ? "Saving…" : "Mark Complete"}
               </button>
             </div>
 
-            {/* Back link */}
-            <button
-              onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
-              className="text-center text-[#6b7280] text-[14px] py-2 hover:underline bg-transparent border-none cursor-pointer"
-            >
-              ← Back to Task Pool
-            </button>
+            {/* Back to Task Pool */}
+            <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                style={{ fontSize: 13, color: '#6B7280', textDecoration: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                ← Back to Task Pool
+              </button>
+            </div>
 
             {/* Shift Leader: new volunteer tasks panel */}
             {isShiftLeader && (
-              <div className="mt-2">
-                <p className="text-[#ff9500] text-[11px] font-bold uppercase tracking-widest mb-3">
+              <div style={{ marginTop: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#ff9500', margin: '0 0 12px' }}>
                   🟠 New Volunteer Tasks ({newVolTasks.length})
                 </p>
                 {newVolTasks.length === 0 ? (
-                  <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-4 text-[13px] text-[#9ca3af] text-center">
+                  <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, fontSize: 13, color: '#9CA3AF', textAlign: 'center' }}>
                     No new volunteers working right now
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {newVolTasks.map(t => {
                       const isActive = t.status === "in-progress";
                       const isIncomplete = t.status === "incomplete";
                       return (
-                        <div key={t.id} className={`bg-white rounded-xl border px-4 py-3 flex items-center justify-between ${isActive ? "border-[#fed7aa]" : isIncomplete ? "border-[#fecaca]" : "border-[#e5e7eb]"}`}>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-[14px] font-semibold text-[#0a2a3a]">{t.name}</p>
-                              <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 ${isActive ? "bg-[#fff7ed] text-[#ff9500]" : isIncomplete ? "bg-[#fee2e2] text-[#dc2626]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                        <div key={t.id} style={{ background: '#fff', borderRadius: 16, border: `1px solid ${isActive ? '#fed7aa' : isIncomplete ? '#fecaca' : '#E5E7EB'}`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>{t.name}</p>
+                              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 9999, padding: '1px 8px', flexShrink: 0, background: isActive ? '#fff7ed' : isIncomplete ? '#fee2e2' : '#f0fdf4', color: isActive ? '#ff9500' : isIncomplete ? '#dc2626' : '#16a34a' }}>
                                 {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
                               </span>
                             </div>
-                            <p className="text-[12px] text-[#6b7280]">📍 {t.destination}</p>
-                            <p className="text-[11px] text-[#9ca3af] mt-1">
+                            <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>📍 {t.destination}</p>
+                            <p style={{ fontSize: 11, color: '#9CA3AF', margin: '4px 0 0' }}>
                               {isActive ? (t.assignedName || "New Volunteer") : "Unassigned"} · {t.estimatedTime}
                             </p>
                           </div>
                           {isActive && (
-                            <button
-                              onClick={() => markTaskIncomplete(t.id)}
-                              className="text-[12px] font-bold text-white bg-[#ef4444] border-none rounded-lg px-3 py-1.5 cursor-pointer shrink-0 ml-3"
-                            >
+                            <button onClick={() => markTaskIncomplete(t.id)}
+                              style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 12, fontFamily: 'inherit' }}>
                               Mark Incomplete
                             </button>
                           )}
@@ -447,22 +641,85 @@ export function MyTask() {
         )}
       </div>
 
-      {/* Bottom tab bar */}
-      <div className="bg-white border-t border-[#e5e7eb] h-14 flex items-center shrink-0">
-        <button
-          onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
-          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#6b7280] bg-transparent border-none cursor-pointer"
-        >
-          <span className="text-[18px]">📋</span>
-          <span className="text-[12px]">Available</span>
+      {/* ── Bottom tab bar ─────────────────────────────────────────────────── */}
+      <nav style={{ background: '#D3EDE9', display: 'flex', padding: '6px 16px 10px', borderTop: '1px solid rgba(10,42,58,0.06)', flexShrink: 0 }}>
+        <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '8px 0', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#8B95A1', fontSize: 12.5, fontWeight: 500 }}>
+          Available
         </button>
         <button
-          className="flex-1 h-full flex flex-col items-center justify-center gap-1 text-[#09665e] border-b-2 border-[#09665e] bg-transparent border-l-0 border-r-0 border-t-0 cursor-default"
-        >
-          <span className="text-[18px]">✓</span>
-          <span className="text-[12px] font-medium">My task</span>
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '8px 0', background: 'transparent', border: 'none', cursor: 'default', fontFamily: 'inherit', color: '#0A2A3A', fontSize: 12.5, fontWeight: 700, position: 'relative' }}>
+          <span style={{ position: 'absolute', top: -6, left: '20%', right: '20%', height: 3, background: '#0D9488', borderRadius: 2 }} />
+          My Task
         </button>
+      </nav>
+
+      {/* ── Unclaim confirm modal ───────────────────────────────────────────── */}
+      {showUnclaimModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowUnclaimModal(false); }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Unclaim this task?</h4>
+            <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>It'll go back into the available pool for another volunteer to pick up.</p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button onClick={() => setShowUnclaimModal(false)}
+                style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>
+                Cancel
+              </button>
+              <button onClick={handleConfirmUnclaim}
+                style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#DC2626', color: '#fff' }}>
+                Unclaim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mark complete confirm modal ─────────────────────────────────────── */}
+      {showCompleteModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowCompleteModal(false); }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Mark task complete?</h4>
+            <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>
+              {myTask?.name || 'This task'} will be removed from your active tasks.
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button onClick={() => setShowCompleteModal(false)}
+                style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>
+                Cancel
+              </button>
+              <button onClick={handleConfirmComplete}
+                style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#0D9488', color: '#fff' }}>
+                Mark Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast ───────────────────────────────────────────────────────────── */}
+      <div style={{
+        position: 'fixed', bottom: 24, left: '50%',
+        transform: `translateX(-50%) translateY(${toast.show ? 0 : 20}px)`,
+        background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999,
+        fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8,
+        opacity: toast.show ? 1 : 0, pointerEvents: 'none',
+        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 200,
+      }}>
+        {toast.message}
       </div>
+
+      <style>{`
+        @keyframes pulseOrange {
+          0%   { box-shadow: 0 0 0 0 rgba(255,167,38,0.55); }
+          70%  { box-shadow: 0 0 0 8px rgba(255,167,38,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,167,38,0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation: none !important; transition: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
