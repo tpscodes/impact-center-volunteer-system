@@ -200,6 +200,7 @@ export default function MobileNav({ mode: modeProp }) {
   if (role === "superadmin") return null;
 
   return (
+    <div style={{ paddingTop: 12 }}>
     <div className="mn-shell">
       {/* ── Collapsed toggle bar ─────────────────────────────────────────── */}
       <button
@@ -273,6 +274,7 @@ export default function MobileNav({ mode: modeProp }) {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
