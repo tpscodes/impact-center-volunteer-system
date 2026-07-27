@@ -246,7 +246,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
         </div>
 
         {/* Active Tasks card */}
-        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
+        <div className="mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
           style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Tasks</h2>
