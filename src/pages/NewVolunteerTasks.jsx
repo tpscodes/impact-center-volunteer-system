@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSharedTasks } from "../hooks/useSharedTasks";
-import { MapPin, ChevronRight } from "lucide-react";
+import { MapPin, ChevronRight, ClipboardList } from "lucide-react";
 import { PANTRY_ID } from "../config";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
@@ -41,6 +41,7 @@ export default function NewVolunteerTasks() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [detailTask, setDetailTask] = useState(null);
   const [claimBlocked, setClaimBlocked] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '' });
 
   // Show available + incomplete tasks that are open (no specific named assignment)
   const openTasks = tasks.filter(t =>
@@ -49,6 +50,11 @@ export default function NewVolunteerTasks() {
   );
 
   const myTask = tasks.find(t => t.id === myTaskId && t.status === "in-progress");
+
+  function showToastMsg(message) {
+    setToast({ show: true, message });
+    setTimeout(() => setToast({ show: false, message: '' }), 2200);
+  }
 
   // ── Name submit ──────────────────────────────────────────────────────────────
   function handleNameSubmit() {
@@ -86,6 +92,7 @@ export default function NewVolunteerTasks() {
       claimedByType: "new",
       sessionToken: token,
     });
+    showToastMsg('Task claimed ✓');
   }
 
   async function handleComplete() {
@@ -105,18 +112,18 @@ export default function NewVolunteerTasks() {
   );
   if (session !== null && session !== undefined && !isSessionActive) {
     return (
-      <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-        <div style={{ background: GRAY.mid, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
+        <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>New Volunteer</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "white" }}>Welcome!</div>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Welcome</p>
+            <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>New Volunteer</p>
           </div>
-          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Exit</button>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 80px)", padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark, marginBottom: 8 }}>No active session right now</div>
-          <div style={{ fontSize: 15, color: GRAY.soft }}>Check back when the pantry opens</div>
+          <button onClick={() => navigate("/")} style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>Exit</button>
+        </header>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+          <p style={{ fontSize: 20, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>No active session right now</p>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Check back when the pantry opens</p>
         </div>
       </div>
     );
@@ -219,75 +226,92 @@ export default function NewVolunteerTasks() {
   if (activeTaskForDetail) {
     const isActive = activeTaskForDetail.id === myTaskId;
     return (
-      <div style={{ background: GRAY.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 100 }}>
-        <div style={{ background: GRAY.mid, padding: "16px 20px" }}>
-          <div style={{ marginBottom: 10 }}>
-            <button
-              onClick={() => setDetailTask(null)}
-              style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-            >
-              ← Back
-            </button>
-          </div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
-            {isActive ? "Your Task" : "Task Details"}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "white", lineHeight: 1.3 }}>{activeTaskForDetail.name}</div>
-        </div>
+      <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
 
-        <div style={{ padding: "20px 16px" }}>
+        {/* Gradient hero */}
+        <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '16px 20px 22px', borderRadius: '0 0 24px 24px', display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
+          <button
+            onClick={() => setDetailTask(null)}
+            style={{ alignSelf: 'flex-start', height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back
+          </button>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: 0 }}>
+              {isActive ? "Your Task" : "Task Details"}
+            </p>
+            <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: '4px 0 0', lineHeight: 1.3 }}>{activeTaskForDetail.name}</p>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, padding: 16, paddingBottom: 88 }}>
+
           {activeTaskForDetail.action && (
-            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "16px 18px", marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>What to do</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: GRAY.dark }}>{activeTaskForDetail.action}</div>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>What to do</label>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0A2A3A' }}>{activeTaskForDetail.action}</div>
             </div>
           )}
+
           {activeTaskForDetail.destination && (
-            <div style={{ background: GRAY.dark, borderRadius: 14, padding: "16px 18px", marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📍 Where to go</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "white" }}>{activeTaskForDetail.destination}</div>
+            <div style={{ background: '#0A2A3A', border: '1px solid #0A2A3A', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z" stroke="#FF8A8A" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="12" cy="9.5" r="2.2" stroke="#FF8A8A" strokeWidth="1.6"/></svg>
+                Where to go
+              </label>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>{activeTaskForDetail.destination}</div>
             </div>
           )}
+
           {activeTaskForDetail.item && (
-            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Item</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: GRAY.dark }}>{activeTaskForDetail.item}</div>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Item</label>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0A2A3A' }}>{activeTaskForDetail.item}</div>
             </div>
           )}
+
           {activeTaskForDetail.comments && (
-            <div style={{ background: "white", borderRadius: 14, border: `1.5px solid ${GRAY.border}`, padding: "14px 18px", marginBottom: 12, borderLeft: `4px solid ${GRAY.mid}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GRAY.light, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>📌 Instructions</div>
-              <div style={{ fontSize: 15, color: GRAY.dark, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{activeTaskForDetail.comments}</div>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderLeft: '4px solid #0F7A70', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Instructions</label>
+              <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{activeTaskForDetail.comments}</div>
             </div>
           )}
+
           {shiftLeader && (
-            <div style={{ background: "#F0FDF4", borderRadius: 14, padding: "14px 18px", marginBottom: 12, borderLeft: "4px solid #34C759" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Need help? Find your point of contact</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: GRAY.dark }}>{shiftLeader.name}</div>
-              <div style={{ fontSize: 12, color: GRAY.soft, marginTop: 4 }}>They're wearing an orange lanyard</div>
+            <div style={{ background: '#F0FDF4', border: '1px solid #E5E7EB', borderLeft: '4px solid #34C759', borderRadius: 16, padding: 18 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#16A34A', marginBottom: 6 }}>Need help? Find your point of contact</label>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0A2A3A' }}>{shiftLeader.name}</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>They're wearing an orange lanyard</div>
             </div>
           )}
         </div>
 
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "white", borderTop: `1px solid ${GRAY.border}`, padding: "14px 16px" }}>
+        {/* Fixed claim / done bar */}
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #E5E7EB', padding: '14px 16px', zIndex: 50 }}>
           {isActive ? (
             <button
               onClick={handleComplete}
               disabled={completing}
-              style={{ width: "100%", padding: "18px 0", background: completing ? "#D1D5DB" : "#34C759", color: "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: completing ? "not-allowed" : "pointer", letterSpacing: "0.02em" }}
-            >
-              {completing ? "Saving…" : "✓ MARK DONE"}
+              style={{ width: '100%', height: 54, borderRadius: 9999, border: 'none', background: completing ? '#D1D5DB' : '#0D9488', color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+              {completing ? 'Saving…' : '✓ Mark Done'}
             </button>
           ) : (
             <button
               onClick={() => handleClaim(activeTaskForDetail)}
               disabled={!!myTaskId}
-              style={{ width: "100%", padding: "18px 0", background: myTaskId ? "#F3F4F6" : "#34C759", color: myTaskId ? GRAY.light : "white", border: "none", borderRadius: 14, fontSize: 18, fontWeight: 800, cursor: myTaskId ? "not-allowed" : "pointer" }}
-            >
-              {myTaskId ? "Complete your current task first" : "TAP TO CLAIM"}
+              style={{ width: '100%', height: 54, borderRadius: 9999, border: 'none', background: myTaskId ? '#F3F4F6' : '#0D9488', color: myTaskId ? '#9CA3AF' : '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', cursor: myTaskId ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+              {myTaskId ? 'Complete your current task first' : 'Tap to Claim'}
             </button>
           )}
         </div>
+
+        {/* Toast */}
+        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: `translateX(-50%) translateY(${toast.show ? 0 : 20}px)`, background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, opacity: toast.show ? 1 : 0, pointerEvents: 'none', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 200 }}>
+          {toast.message}
+        </div>
+
+        <style>{`@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }`}</style>
       </div>
     );
   }
@@ -311,175 +335,207 @@ export default function NewVolunteerTasks() {
   const displayName = formatDisplayName(firstName, lastName);
   const incompleteTasks = openTasks.filter(t => t.status === "incomplete");
   const availableTasks = openTasks.filter(t => t.status === "available");
+  const allInProgressCount = tasks.filter(t => t.status === 'in-progress').length;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Header */}
-      <div className="bg-[#09665e] px-5 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-[#f3f3f3] text-base font-normal">Welcome</p>
-          <p className="text-[#f3f3f3] text-base font-semibold">{displayName}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div style={{ width: 7, height: 7, borderRadius: "50%", background: error ? "#EF4444" : synced ? "#86EFAC" : "#FCD34D" }} />
+      {/* ── Gradient hero ─────────────────────────────────────────────────── */}
+      <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
+
+        {/* Name + exit */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Welcome</p>
+            <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>{displayName}</p>
+          </div>
           <button
             onClick={() => navigate("/")}
-            className="border border-[#f3f3f3] text-[#f0fafa] px-4 py-2 rounded-lg text-base bg-transparent cursor-pointer"
-          >
+            style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
             Exit
           </button>
         </div>
-      </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-4">
-      <div className="px-5 py-4 flex flex-col gap-3">
-
-        {/* Concurrency block warning */}
-        {claimBlocked && (
-          <div className="bg-[#fff3cd] border border-[#fcd34d] rounded-lg px-4 py-3">
-            <p className="text-[13px] font-bold text-[#92400E]">You already have an active task — complete it first</p>
-          </div>
-        )}
-
-        {/* Active task banner */}
+        {/* Working-on glass card — claimed task: shown here, removed from list below */}
         {myTask && (
           <div
             onClick={() => setDetailTask(myTask)}
-            className="bg-[#0a2a3a] rounded-lg p-4 cursor-pointer"
-          >
-            <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mb-1">🔄 You're working on</p>
-            <p className="text-white text-base font-bold mb-1">{myTask.name}</p>
-            <div className="flex items-center gap-1 mb-2">
-              <MapPin size={12} className="text-white/60 shrink-0" />
-              <p className="text-white/60 text-[12px]">{myTask.source}</p>
-              {myTask.destination && <><ChevronRight size={12} className="text-white/60" /><p className="text-white/60 text-[12px]">{myTask.destination}</p></>}
+            style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 16, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block', animation: 'pulseGreen 2s infinite', flexShrink: 0 }} />
+              You're working on
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>{myTask.name}</p>
+            {myTask.destination && (
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.66)', margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <MapPin size={12} style={{ flexShrink: 0 }} />
+                {myTask.destination}
+              </p>
+            )}
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Tap for details
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </p>
+          </div>
+        )}
+
+        {/* Stat row */}
+        <div style={{ display: 'flex' }}>
+          {[
+            [myTask ? availableTasks.length : openTasks.length, 'Available'],
+            [allInProgressCount, 'In Progress'],
+            ['—', 'Completed Today'],
+          ].map(([num, label], i, arr) => (
+            <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, paddingRight: i < arr.length - 1 ? 12 : 0, borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.18)' : 'none' }}>
+              <p style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1 }}>{num}</p>
+              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.72)', margin: 0 }}>{label}</p>
             </div>
-            {myTask.comments && <p className="text-white/70 text-[12px] italic mb-2 whitespace-pre-wrap">📌 {myTask.comments}</p>}
-            <p className="text-white/50 text-[12px] font-semibold">Tap for details →</p>
+          ))}
+        </div>
+      </header>
+
+      {/* ── Scrollable content ─────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>
+
+        {/* Concurrency block warning */}
+        {claimBlocked && (
+          <div style={{ background: '#FFF3E0', border: '1px solid #FCD34D', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#92400E', margin: 0 }}>You already have an active task — complete it first</p>
           </div>
         )}
 
         {/* Empty state */}
         {openTasks.length === 0 && !myTask && (
-          <p className="text-center text-[#9ca3af] text-[14px] py-10">
-            {myTaskId ? "Complete your task to see more!" : "No open tasks right now — check back soon!"}
+          <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '40px 0' }}>
+            {myTaskId ? 'Complete your task to see more!' : 'No open tasks right now — check back soon!'}
           </p>
         )}
 
         {/* Incomplete section */}
         {incompleteTasks.length > 0 && (
-          <div>
-            <p className="text-[#900b09] text-base mb-2">Incomplete</p>
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#DC2626', margin: '0 0 12px' }}>Incomplete</p>
             {incompleteTasks.map(task => (
-              <div key={task.id} className="bg-[#fdefec] border border-[#757575] rounded-lg p-3 mb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[#900b09] text-base font-semibold flex-1">{task.name || task.item}</p>
-                  <span className="bg-[#fcb3ad] text-[#900b09] text-[14px] font-semibold px-3 py-1 rounded-lg shrink-0">
-                    Incomplete
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin size={14} className="text-[#6b7280] shrink-0" />
-                  <p className="text-[#6b7280] text-[12px]">{task.source}</p>
-                  {task.destination && <><ChevronRight size={14} className="text-[#6b7280]" /><p className="text-[#0a2a3a] text-[12px]">{task.destination}</p></>}
-                </div>
-                <div className="border-t border-[#e5e7eb] mt-2 pt-2">
-                  <button
-                    onClick={() => handleClaim(task)}
-                    disabled={!!myTaskId}
-                    className="flex items-center gap-1 text-[#0a2a3a] text-[12px] bg-transparent border-none cursor-pointer disabled:opacity-40"
-                  >
-                    Tap to claim and finish <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
+              <NvTaskCard
+                key={task.id}
+                task={task}
+                statusLabel="Incomplete"
+                statusBg="#FFF0F0"
+                statusFg="#DC2626"
+                disabled={!!myTask}
+                ctaText="Tap to claim and finish"
+                onClick={() => setDetailTask(task)}
+              />
             ))}
           </div>
         )}
 
-        {/* Available Tasks section */}
-        {availableTasks.length > 0 && (
+        {/* Available tasks */}
+        {(myTask ? availableTasks : availableTasks).length > 0 || (!myTask && availableTasks.length > 0) ? (
           <div>
-            <p className="text-[#1e1e1e] text-base mb-2">Available Tasks</p>
+            <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#6B7280', margin: '0 0 12px' }}>Available Tasks</p>
             {availableTasks.map(task => (
-              <div key={task.id} className={`bg-white border border-[#757575] rounded-lg p-3 mb-3 ${myTaskId ? "opacity-50" : ""}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[#303030] text-base font-semibold flex-1">{task.name || task.item}</p>
-                  {task.priority && (
-                    <span className={`text-[14px] font-semibold px-3 py-1 rounded-lg shrink-0 ${
-                      task.priority === "High"   ? "bg-[#ffe8a3] text-[#682d03]" :
-                      task.priority === "Urgent" ? "bg-[#fcb3ad] text-[#900b09]" :
-                      "bg-[#e6e6e6] text-[#757575]"
-                    }`}>{task.priority}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin size={14} className="text-[#6b7280] shrink-0" />
-                  <p className="text-[#6b7280] text-[12px]">{task.source}</p>
-                  {task.destination && <><ChevronRight size={14} className="text-[#6b7280]" /><p className="text-[#0a2a3a] text-[12px]">{task.destination}</p></>}
-                </div>
-                <div className="border-t border-[#e5e7eb] mt-2 pt-2">
-                  <button
-                    onClick={() => setDetailTask(task)}
-                    disabled={!!myTaskId}
-                    className="flex items-center gap-1 text-[#0a2a3a] text-[12px] bg-transparent border-none cursor-pointer disabled:opacity-40"
-                  >
-                    Tap for details <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
+              <NvTaskCard
+                key={task.id}
+                task={task}
+                statusLabel={task.priority || 'Normal'}
+                statusBg={task.priority === 'Urgent' ? '#FFF0F0' : task.priority === 'High' ? '#FFF3E0' : '#F3F4F6'}
+                statusFg={task.priority === 'Urgent' ? '#DC2626' : task.priority === 'High' ? '#9A5000' : '#6B7280'}
+                disabled={!!myTask}
+                ctaText="Tap for details"
+                onClick={() => setDetailTask(task)}
+              />
             ))}
           </div>
-        )}
-      </div>
-      </div>
+        ) : null}
 
-      {/* Bottom tab bar */}
-      <div className="bg-[#ccedeb] shrink-0 border-t border-[#09665e] h-14 flex">
-        <button className="flex-1 h-full flex items-center justify-center border-b-2 border-[#09665e] text-[#303030] text-base bg-transparent border-none cursor-pointer font-semibold">
-          Available
-        </button>
-        <button
-          onClick={() => myTask ? setDetailTask(myTask) : undefined}
-          className="flex-1 h-full flex items-center justify-center text-[#767676] text-base bg-transparent border-none cursor-pointer"
-        >
-          My task {myTask ? "(1)" : ""}
-        </button>
       </div>
 
       {/* Shift leader help FAB */}
       {shiftLeader && (
         <button
           onClick={() => setHelpOpen(true)}
-          style={{ position: "fixed", bottom: 80, right: 20, width: 54, height: 54, borderRadius: "50%", background: "#34C759", border: "none", color: "white", fontSize: 26, fontWeight: 900, cursor: "pointer", boxShadow: "0 4px 18px rgba(52,199,89,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}
-        >
+          style={{ position: 'fixed', bottom: 24, right: 20, width: 54, height: 54, borderRadius: '50%', background: '#34C759', border: 'none', color: 'white', fontSize: 26, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 18px rgba(52,199,89,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           ?
         </button>
       )}
 
       {/* Shift leader help modal */}
       {helpOpen && shiftLeader && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 16px 36px" }}>
-          <div style={{ background: "white", borderRadius: 20, padding: "24px", width: "100%", maxWidth: 400 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#34C759", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Need Help?</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: GRAY.dark, marginBottom: 16 }}>Find your Shift Leader:</div>
-            <div style={{ background: "#F0FDF4", borderRadius: 12, padding: "16px 18px", marginBottom: 16, borderLeft: "4px solid #34C759" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: GRAY.dark }}>{shiftLeader.name}</div>
-              <div style={{ fontSize: 13, color: GRAY.soft, marginTop: 5 }}>They're wearing an orange lanyard</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 16px 36px' }}>
+          <div style={{ background: 'white', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#34C759', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Need Help?</div>
+            <div style={{ fontSize: 19, fontWeight: 700, color: '#0A2A3A', marginBottom: 16 }}>Find your Shift Leader:</div>
+            <div style={{ background: '#F0FDF4', borderRadius: 12, padding: '16px 18px', marginBottom: 16, borderLeft: '4px solid #34C759' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#0A2A3A' }}>{shiftLeader.name}</div>
+              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 5 }}>They're wearing an orange lanyard</div>
             </div>
             <button
               onClick={() => setHelpOpen(false)}
-              style={{ width: "100%", padding: "13px 0", background: GRAY.dark, color: "white", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-            >
+              style={{ width: '100%', padding: '13px 0', background: '#0A2A3A', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Got it ✓
             </button>
           </div>
         </div>
       )}
 
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      {/* Toast */}
+      <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: `translateX(-50%) translateY(${toast.show ? 0 : 20}px)`, background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, opacity: toast.show ? 1 : 0, pointerEvents: 'none', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 200 }}>
+        {toast.message}
+      </div>
+
+      <style>{`
+        @keyframes pulseGreen {
+          0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.55); }
+          70%  { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+          100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        }
+        @media (prefers-reduced-motion: reduce) { *, .pulse-dot { animation: none !important; transition: none !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+// ── New Volunteer task card ───────────────────────────────────────────────────
+function NvTaskCard({ task, statusLabel, statusBg, statusFg, disabled, ctaText, onClick }) {
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      style={{
+        background: disabled ? '#FAFBFB' : '#fff',
+        border: '1px solid #E5E7EB',
+        borderRadius: 16,
+        padding: 16,
+        display: 'flex',
+        gap: 12,
+        marginBottom: 10,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        pointerEvents: disabled ? 'none' : 'auto',
+        transition: 'border-color 0.15s',
+      }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = '#0D9488'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+    >
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: disabled ? '#F0F1F2' : '#E6F5F3', color: disabled ? '#B0B7BF' : '#0F7A70', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <ClipboardList size={18} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <p style={{ fontSize: 14.5, fontWeight: 600, color: disabled ? '#B0B7BF' : '#0A2A3A', margin: 0, lineHeight: 1.35 }}>{task.name || task.item}</p>
+          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 9999, background: disabled ? '#F0F1F2' : statusBg, color: disabled ? '#B0B7BF' : statusFg, whiteSpace: 'nowrap' }}>{statusLabel}</span>
+        </div>
+        {(task.source || task.destination) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: disabled ? '#B0B7BF' : '#6B7280' }}>
+            <MapPin size={12} style={{ flexShrink: 0 }} />
+            <span>{[task.source, task.destination].filter(Boolean).join(' → ')}</span>
+          </div>
+        )}
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: disabled ? '#B0B7BF' : '#0F7A70', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+          {ctaText}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+      </div>
     </div>
   );
 }
