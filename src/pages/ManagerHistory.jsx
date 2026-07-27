@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
-import { Search, Clock, MapPin, X, Menu } from "lucide-react";
+import { Search, Clock, MapPin, X, Menu, ClipboardList } from "lucide-react";
 import HistoryTable from "../components/HistoryTable";
 import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useSharedTasks } from "../hooks/useSharedTasks";
@@ -122,187 +122,179 @@ export default function ManagerHistory() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#D3EDE9]"
-      style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <>
+      {/* ══════════════════════════════════════════
+          MOBILE LAYOUT — screens under lg (1024px)
+      ══════════════════════════════════════════ */}
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar mode="pantry" activePath="/manager-history" />
-      </div>
-
-      {/* Mobile top bar */}
-      <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-            <span className="text-white text-[11px] font-semibold">{initials}</span>
-          </div>
-          <div>
-            <p className="text-white text-[13px] font-medium">{displayName}</p>
-            <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
-          </div>
-        </div>
-        <button onClick={() => setMobileMenuOpen(true)}
-          className="text-white bg-transparent border-none cursor-pointer p-1">
-          <Menu size={22} />
-        </button>
-      </div>
-
-      {/* Main content — margin only on desktop */}
-      <div className="lg:ml-[var(--sidebar-w)]">
-
-        {/* Pill header */}
-        <div className="hidden lg:block px-6 pt-5 pb-3">
-          <PageHeader
-            initials={initials}
-            label="History"
-          />
-        </div>
-
-        {/* Mobile page title */}
-        <div className="lg:hidden px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Task History</h1>
-        </div>
-
-        {/* Page content */}
-        <div className="p-4 lg:p-6 flex flex-col gap-4 lg:gap-5">
-
-          {/* Hero stat summary — hidden at tablet (lg–xl), visible on mobile + desktop */}
-          <div className="lg:hidden xl:block">
-            {(() => {
-              const sparkline = computeSparkline(completedTasks);
-              const yday = sparkline[sparkline.length - 2];
-              const tod  = sparkline[sparkline.length - 1];
-              const diff = tod - yday;
-              const deltaText = diff === 0 ? "— same as yesterday"
-                : diff > 0 ? `▲ ${diff} more than yesterday`
-                : `▼ ${Math.abs(diff)} fewer than yesterday`;
-              return (
-                <DashboardHero sections={[
-                  { label: "Tasks Completed Today",  value: todayCount,       delta: deltaText,       chipTone: "complete", bars: sparkline },
-                  { label: "Total Sessions",         value: uniqueSessions,   delta: "all time",      chipTone: "brand"    },
-                  { label: "Volunteers Participated",value: uniqueVolunteers, delta: "unique helpers", chipTone: "progress" },
-                ]} />
-              );
-            })()}
+        {/* Gradient hero */}
+        <div style={{
+          background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
+          borderRadius: '0 0 28px 28px',
+          padding: '20px 20px 24px',
+          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+        }}>
+          {/* Topbar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setMobileMenuOpen(o => !o)}
+                className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer"
+                style={{ background: 'rgba(10,42,58,.55)' }}>
+                <Menu size={18} color="#fff" />
+              </button>
+              <div className="w-10 h-10 rounded-full bg-[#1B4256] flex items-center justify-center shrink-0">
+                <span className="text-white text-[14px] font-semibold">{initials}</span>
+              </div>
+              <div>
+                <p className="m-0 text-white text-[14px] font-semibold leading-[18px]">History</p>
+                <p className="m-0 text-[12px] leading-[16px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
+              </div>
+            </div>
+            <button className="w-9 h-9 rounded-[18px] flex items-center justify-center border-none cursor-pointer"
+              style={{ background: '#0A2A3A' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>
+              </svg>
+            </button>
           </div>
 
-          {/* Mobile: search */}
-          <div className="lg:hidden">
-            <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 py-2.5 bg-white">
-              <Search size={14} className="text-[#b3b3b3] shrink-0" />
-              <input type="text" placeholder="Search completed tasks..."
-                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
+          {/* Dual stats */}
+          <div className="flex gap-8">
+            <div className="flex flex-col gap-2.5">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                style={{ background: '#E6F5F3', color: '#09665E' }}>Task</span>
+              <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{completedTasks.length}</p>
+              <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total task completed</p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                style={{ background: '#E6F5F3', color: '#09665E' }}>Sessions</span>
+              <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{uniqueSessions}</p>
+              <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total Sessions</p>
             </div>
           </div>
+        </div>
 
-          {/* Mobile: task cards */}
-          <div className="lg:hidden flex flex-col gap-3 pb-8">
-            {filtered.length === 0 ? (
-              <div className="bg-white border border-[#e5e7eb] rounded-xl flex flex-col items-center justify-center py-14">
-                <Clock size={40} className="text-[#ccedeb] mb-3" />
-                <p className="text-[#0a2a3a] text-[15px] font-semibold">No completed tasks</p>
-                <p className="text-[#6b7280] text-[13px] mt-1 text-center px-6">
-                  Completed tasks will appear here after sessions
-                </p>
-              </div>
-            ) : (
-              filtered.map((entry, i) => {
-                const location = entry.source && entry.destination
-                  ? `${entry.source} → ${entry.destination}`
-                  : entry.source || entry.destination || null;
-                return (
-                  <div key={`${entry.id}-${entry.completedAtMs || i}`}
-                    className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5">
-                    <div className="flex items-start justify-between mb-1.5">
-                      <p className="text-[#0a2a3a] text-[14px] font-medium flex-1 pr-3">{entry.name}</p>
-                      <span className="bg-[#f0fff4] text-[#34c759] text-[11px] px-2 py-0.5 rounded-full shrink-0">
-                        Complete
-                      </span>
-                    </div>
-                    <p className="text-[#6b7280] text-[12px] mb-1">{resolveCompletedBy(entry) || "—"}</p>
-                    {location && (
-                      <div className="flex items-center gap-1 text-[#6b7280] text-[12px] mb-1">
-                        <MapPin size={12} className="shrink-0" />
-                        <span>{location}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3 text-[#b3b3b3] text-[11px]">
-                      <span>{formatDate(entry.completedAtMs || entry.completedAt)}</span>
-                      {entry.sessionDate && <span>· {entry.sessionDate}</span>}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+        {/* History card */}
+        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-4"
+          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+          <div className="flex items-center justify-between">
+            <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">History</h2>
+            <button className="flex items-center justify-between gap-2 border border-[#E5E7EB] rounded-[10px] px-3.5 bg-white cursor-pointer"
+              style={{ height: 40, width: 109 }}>
+              <span className="text-[14px] text-[#0A2A3A]">All Time</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
           </div>
 
-          {/* Desktop: history table */}
-          <div className="hidden lg:block">
+          {/* Task rows */}
+          <div className="flex flex-col">
+            {sorted.length === 0 && (
+              <p className="m-0 text-center text-[#9ca3af] text-[14px] py-6">No completed tasks</p>
+            )}
+            {sorted.map((entry, i) => (
+              <div key={`${entry.id}-${entry.completedAtMs || i}`}
+                className="flex items-center gap-3 py-3.5 pl-3.5 pr-5 rounded-[15px]"
+                style={i % 2 === 0 ? { background: '#D3EDE9' } : {}}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: '#0F7A70' }}>
+                  <ClipboardList size={18} color="#fff" />
+                </div>
+                <p className="flex-1 min-w-0 m-0 text-[12px] font-medium text-[#0A2A3A] truncate">
+                  {entry.name}
+                </p>
+                <span className="text-[14px] text-[#0A2A3A] shrink-0">
+                  {entry.completedAtMs
+                    ? new Date(entry.completedAtMs).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                    : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Teal rounded drawer */}
+        {mobileMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40"
+              style={{ background: 'rgba(10,42,58,.4)' }}
+              onClick={() => setMobileMenuOpen(false)} />
+            <div className="fixed left-5 right-5 overflow-hidden"
+              style={{ top: 63, background: 'rgba(13,148,136,.97)', borderRadius: 27, zIndex: 41 }}>
+              <nav className="flex flex-col p-2">
+                {[
+                  { label: 'Overview',   path: '/manager/dashboard', active: false },
+                  { label: 'Tasks',      path: '/manager-tasks',      active: false },
+                  { label: 'Volunteers', path: '/manager-volunteers', active: false },
+                  { label: 'History',    path: '/manager-history',    active: true  },
+                  { label: 'Settings',   path: '/manager-settings',   active: false },
+                ].map(item => (
+                  <button key={item.label}
+                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
+                    className="flex items-center w-full h-[49px] px-4 rounded-[26px] text-[15px] text-left border-none cursor-pointer"
+                    style={item.active
+                      ? { background: '#fff', color: '#0A2A3A', fontWeight: 600 }
+                      : { background: 'transparent', color: 'rgba(255,255,255,.82)', fontWeight: 500 }}>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+              {role !== 'superadmin' && activePantryId !== 'amber' && (
+                <div className="flex gap-1 mx-2 mb-2 p-1"
+                  style={{ background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
+                  <button className="flex-1 h-9 text-[13px] font-semibold border-none cursor-pointer"
+                    style={{ background: '#0A2A3A', color: '#fff', borderRadius: 18 }}>
+                    Pantry
+                  </button>
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
+                    className="flex-1 h-9 text-[13px] font-semibold border-none cursor-pointer"
+                    style={{ background: 'transparent', color: 'rgba(255,255,255,.66)', borderRadius: 18 }}>
+                    Delivery
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP + TABLET LAYOUT (lg and above)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:block min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+        <Sidebar mode="pantry" activePath="/manager-history" />
+        <div className="lg:ml-[var(--sidebar-w)]">
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader initials={initials} label="History" />
+          </div>
+          <div className="p-6 flex flex-col gap-5">
+            <div className="hidden xl:block">
+              {(() => {
+                const sparkline = computeSparkline(completedTasks);
+                const yday = sparkline[sparkline.length - 2];
+                const tod  = sparkline[sparkline.length - 1];
+                const diff = tod - yday;
+                const deltaText = diff === 0 ? "— same as yesterday"
+                  : diff > 0 ? `▲ ${diff} more than yesterday`
+                  : `▼ ${Math.abs(diff)} fewer than yesterday`;
+                return (
+                  <DashboardHero sections={[
+                    { label: "Tasks Completed Today",  value: todayCount,       delta: deltaText,       chipTone: "complete", bars: sparkline },
+                    { label: "Total Sessions",         value: uniqueSessions,   delta: "all time",      chipTone: "brand"    },
+                    { label: "Volunteers Participated",value: uniqueVolunteers, delta: "unique helpers", chipTone: "progress" },
+                  ]} />
+                );
+              })()}
+            </div>
             <HistoryTable tasks={completedTasks} />
           </div>
         </div>
       </div>
-
-      {/* Hamburger overlay */}
-      {mobileMenuOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-            style={{ animation: "slideDown 0.22s ease" }}>
-            <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-              <div>
-                <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-              </div>
-              <button onClick={() => setMobileMenuOpen(false)}
-                className="text-white bg-transparent border-none cursor-pointer p-1">
-                <X size={20} />
-              </button>
-            </div>
-            {role !== 'superadmin' && activePantryId !== 'amber' && (
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-                  Pantry
-                </button>
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager-delivery"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                  Delivery
-                </button>
-              </div>
-            )}
-            <nav className="flex flex-col py-2">
-              {MOBILE_NAV.map(item => (
-                <button key={item.label}
-                  onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                  className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                    item.active
-                      ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                      : "text-[#9ca3af] border-l-[3px] border-transparent"
-                  }`}>
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-            <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                  <span className="text-white text-[12px] font-semibold">{initials}</span>
-                </div>
-                <div>
-                  <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                  <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                </div>
-              </div>
-              <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                Logout
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    </>
   );
 }
