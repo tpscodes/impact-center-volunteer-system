@@ -1,22 +1,13 @@
 /* History-table specific overrides — shared vt-* classes come from VolunteerTable.css */
 
-/* Fix 1: search + date-filter on one row */
-.ht-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 24px;
+/* Search row — full-width below card header */
+.ht-search-row {
+  padding: 0 24px 16px;
 }
 
-.ht-search-inline {
-  flex: 1;
-  margin: 0; /* override vt-search's margin: 0 24px */
-}
-
-.ht-count-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 24px 0;
+.ht-search-full {
+  width: 100%;
+  margin: 0;
 }
 
 /* Fix 2: icon + text stack as a centered column */

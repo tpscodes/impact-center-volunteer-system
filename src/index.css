@@ -1,7 +1,86 @@
 @import "tailwindcss";
 
+/* ─── Design-system tokens ────────────────────────────────────────────────────
+   First-class Tailwind v4 utilities: bg-teal-500, text-navy-900, rounded-card,
+   shadow-card, etc. Sourced from Figma / shared.css design system.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Brand palette */
+  --color-teal-500: #0D9488;
+  --color-teal-600: #0F7A70;
+  --color-teal-700: #09665E;
+  --color-navy-900: #0A2A3A;
+  --color-navy-800: #1B4256;
+
+  /* Neutrals */
+  --color-neutral-0:   #FFFFFF;
+  --color-neutral-50:  #F5F5F5;
+  --color-neutral-200: #E5E7EB;
+  --color-neutral-500: #6B7280;
+
+  /* Brand surfaces */
+  --color-brand-subtle:       #E6F5F3;
+  --color-brand-subtle-hover: #D3EDE9;
+  --color-text-disabled:      #D1D5DB;
+
+  /* Status — Figma-canonical values (adopted Jul 2026) */
+  --color-status-progress-bg:   #FFF3E0;
+  --color-status-progress-fg:   #9A5000;
+  --color-status-incomplete-bg: #FFF0F0;
+  --color-status-incomplete-fg: #DC2626;
+  --color-status-complete-bg:   #F0FFF4;
+  --color-status-complete-fg:   #15703C;
+  --color-status-available-bg:  #E6E6E6;
+  --color-status-available-fg:  #4B5563;
+
+  /* Border radii */
+  --radius-card:    20px;
+  --radius-hero:    32px;
+  --radius-sidebar: 76px;
+  --radius-row:     15px;
+
+  /* Shadows */
+  --shadow-card:   0px 8px 20px 0px rgba(10, 42, 58, 0.05);
+  --shadow-header: 0px 8px 20px 0px rgba(10, 42, 58, 0.18);
+}
+
+/* ─── CSS-only vars (easing, timing, layout) — used in CSS files via var() ── */
 :root {
-  --sidebar-w: 264px;
+  --sidebar-w:     264px;
+  --ease-spring:   cubic-bezier(0.16, 1, 0.3, 1);   /* shared.css --ease-out */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-liquid:   cubic-bezier(0.34, 1.32, 0.44, 1);
+  --duration-fast: 120ms;
+}
+
+/* ─── Shared animation keyframes ─────────────────────────────────────────── */
+@keyframes sidebar-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes content-fade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
 html, body {

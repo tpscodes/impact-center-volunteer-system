@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
 import { Search, Clock, MapPin, X, Menu } from "lucide-react";
 import HistoryTable from "../components/HistoryTable";
-import "../components/StatCards.css";
+import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -122,7 +122,7 @@ export default function ManagerHistory() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]"
+    <div className="min-h-screen bg-[#D3EDE9]"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Desktop sidebar */}
@@ -167,21 +167,24 @@ export default function ManagerHistory() {
         {/* Page content */}
         <div className="p-4 lg:p-6 flex flex-col gap-4 lg:gap-5">
 
-          {/* Stats row */}
-          <div className="sc-row">
-            {STATS.map(s => (
-              <div
-                key={s.label}
-                className="sc-card"
-                style={{ "--chip-bg": s.chipBg, "--chip-fg": s.chipFg, "--value-fg": s.valueFg }}
-              >
-                <div className="sc-top">
-                  <span className="sc-chip">{s.chip}</span>
-                </div>
-                <p className="sc-value">{s.value}</p>
-                <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{s.label}</p>
-              </div>
-            ))}
+          {/* Hero stat summary — hidden at tablet (lg–xl), visible on mobile + desktop */}
+          <div className="lg:hidden xl:block">
+            {(() => {
+              const sparkline = computeSparkline(completedTasks);
+              const yday = sparkline[sparkline.length - 2];
+              const tod  = sparkline[sparkline.length - 1];
+              const diff = tod - yday;
+              const deltaText = diff === 0 ? "— same as yesterday"
+                : diff > 0 ? `▲ ${diff} more than yesterday`
+                : `▼ ${Math.abs(diff)} fewer than yesterday`;
+              return (
+                <DashboardHero sections={[
+                  { label: "Tasks Completed Today",  value: todayCount,       delta: deltaText,       chipTone: "complete", bars: sparkline },
+                  { label: "Total Sessions",         value: uniqueSessions,   delta: "all time",      chipTone: "brand"    },
+                  { label: "Volunteers Participated",value: uniqueVolunteers, delta: "unique helpers", chipTone: "progress" },
+                ]} />
+              );
+            })()}
           </div>
 
           {/* Mobile: search */}

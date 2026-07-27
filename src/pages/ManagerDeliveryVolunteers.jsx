@@ -13,10 +13,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import Sidebar from "../components/Sidebar";
+import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
-import StatCards from "../components/StatCards";
-import { Search, UserPlus, UserCheck, X, Menu, Check, User, Truck } from "lucide-react";
+import DeliveryHero from "../components/DeliveryHero";
+import { Search, UserPlus, UserCheck, X, Menu, Check, User, Truck, Pencil, Trash2 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -364,11 +364,14 @@ export default function ManagerDeliveryVolunteers() {
     return !q || v.name?.toLowerCase().includes(q) || String(v.id).includes(q);
   });
 
-  // Stat cards config — uses shared StatCards component (same as Dashboard / Delivery Dashboard)
-  const statCards = [
-    { label: "Total Drivers",    value: drivers.length,      accent: "brand"    },
-    { label: "Active Today",     value: activeTodaySet.size, accent: "progress" },
-    { label: "Routes Completed", value: routesCompleted,      accent: "complete" },
+  const todayMs = new Date().setHours(0, 0, 0, 0);
+  const newDriversToday = drivers.filter(v => v.createdAt && v.createdAt >= todayMs).length;
+
+  const BARS = [11, 18, 14, 25, 21, 32];
+  const heroSections = [
+    { label: "Total Drivers",      chipTone: "brand",    value: drivers.length,      bars: BARS },
+    { label: "Active This Session", chipTone: "progress", value: activeTodaySet.size, bars: BARS },
+    { label: "New Drivers Today",  chipTone: "complete",  value: newDriversToday,     bars: BARS },
   ];
 
   // Handlers
@@ -383,7 +386,7 @@ export default function ManagerDeliveryVolunteers() {
   async function handleAddDriver({ fullName, id, isPantry }) {
     await set(ref(db, `volunteers/${id}`), {
       id, name: fullName, active: false, lastActive: null,
-      isDriver: true,
+      isDriver: true, createdAt: Date.now(),
       ...(isPantry ? { isPantry: true } : {}),
     });
   }
@@ -408,7 +411,7 @@ export default function ManagerDeliveryVolunteers() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col pb-24"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col pb-24"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
         {/* Mobile top bar */}
@@ -577,34 +580,98 @@ export default function ManagerDeliveryVolunteers() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT
+          TABLET LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
+      <div className="hidden lg:flex xl:hidden min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-        <Sidebar mode="delivery" activePath="/manager-delivery-volunteers" />
+        <SidebarLiquid mode="delivery" />
 
         <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Drivers"
+              action={{ label: "+ Add Driver", icon: <UserPlus size={16} />, onClick: () => setShowAddModal(true) }}
+            />
+          </div>
+          <div className="px-6 pb-8">
+            <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-6 flex flex-col gap-4"
+              style={{ boxShadow: "0 8px 20px rgba(10,42,58,.05)" }}>
+              <h2 className="m-0 text-[21px] font-semibold text-[#0a2a3a] leading-7">Drivers</h2>
+              <div className="flex flex-col">
+                {filtered.length === 0 ? (
+                  <div className="py-12 text-center flex flex-col items-center gap-2">
+                    <UserCheck size={36} className="text-[#E6F5F3]" />
+                    <p className="text-[#0a2a3a] text-[15px] font-semibold">No drivers added yet</p>
+                    <p className="text-[#6b7280] text-[13px]">Add your first driver to get started</p>
+                  </div>
+                ) : (
+                  filtered.map((vol, i) => (
+                    <div key={vol.id}
+                      className={`flex items-center gap-3 px-3 py-[15px] rounded-[15px] ${i % 2 === 0 ? "bg-[#D3EDE9]" : ""}`}>
+                      <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                        <span className="text-white text-[13px] font-semibold leading-none">{getInitials(vol.name)}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-[14px] font-semibold text-[#0a2a3a] leading-5">{vol.name}</p>
+                        <p className="m-0 text-[13px] text-[#6b7280] leading-[18px] mt-0.5">
+                          {weekCountFor(vol)} route{weekCountFor(vol) !== 1 ? "s" : ""} this week
+                        </p>
+                      </div>
+                      <span className="bg-[#E6F5F3] text-[#09665E] text-[11px] font-semibold px-[10px] py-[2px] rounded-full shrink-0">
+                        Driver
+                      </span>
+                      <div className="flex gap-[9px] ml-3 shrink-0">
+                        <button aria-label={`Edit ${vol.name}`}
+                          onClick={e => handleKebab(e, vol)}
+                          className="w-7 h-7 border-0 rounded-[8px] bg-[#E6F5F3] grid place-items-center cursor-pointer hover:bg-[#D3EDE9] transition-colors">
+                          <Pencil size={14} color="#0a2a3a" />
+                        </button>
+                        <button aria-label={`Delete ${vol.name}`}
+                          onClick={() => setMobileConfirm(vol)}
+                          className="w-7 h-7 border-0 rounded-[8px] bg-[#E6F5F3] grid place-items-center cursor-pointer hover:bg-[#D3EDE9] transition-colors">
+                          <Trash2 size={14} color="#0a2a3a" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden xl:flex min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+
+        <SidebarLiquid mode="delivery" />
+
+        <div className="xl:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
           <div className="px-6 pt-5 pb-3">
             <PageHeader
               initials={initials}
               label="Drivers"
-              action={{ label: "Add Driver", icon: <UserPlus size={16} />, onClick: () => setShowAddModal(true) }}
             />
           </div>
 
           <div className="px-6 pb-6 flex flex-col gap-5">
 
-            {/* Stat cards — same component used on Pantry Dashboard and Delivery Dashboard */}
-            <StatCards cards={statCards} cols={3} />
+            {/* Gradient hero — same DeliveryHero component as Delivery Dashboard */}
+            <DeliveryHero sections={heroSections} />
 
             {/* List card — same shell as Volunteer List */}
             <div className="bg-white border border-[#e5e7eb] rounded-[20px] overflow-visible
                             shadow-[0_1px_2px_rgba(10,42,58,.04),0_8px_20px_rgba(10,42,58,.05)]">
 
-              {/* Search bar — same pattern as VolunteerTable */}
-              <label className="flex items-center gap-[10px] mx-6 my-5 h-[44px] px-[14px]
+              {/* Search + Add Driver row */}
+              <div className="flex items-center gap-3 mx-6 my-5">
+              <label className="flex items-center gap-[10px] flex-1 h-[44px] px-[14px]
                                 border border-[#e5e7eb] rounded-[12px] bg-white
                                 transition-colors focus-within:border-[#09665e]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -620,6 +687,16 @@ export default function ManagerDeliveryVolunteers() {
                              text-[#0a2a3a] placeholder:text-[#6b7280]"
                 />
               </label>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-[6px] h-[44px] px-5 rounded-[12px]
+                  bg-[#09665e] text-white text-[14px] font-semibold border-none
+                  cursor-pointer hover:bg-[#0f7a70] transition-colors shrink-0"
+              >
+                <UserPlus size={15} />
+                Add Driver
+              </button>
+              </div>
 
               {/* Table */}
               {filtered.length === 0 ? (

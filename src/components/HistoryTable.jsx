@@ -33,7 +33,7 @@ function pageNumbers(total, current) {
 
 export default function HistoryTable({ tasks }) {
   const [search,     setSearch]     = useState("");
-  const [dateFilter, setDateFilter] = useState("Today");
+  const [dateFilter, setDateFilter] = useState("All Time");
   const [sortOpen,   setSortOpen]   = useState(false);
   const [page,       setPage]       = useState(1);
   const sortRef = useRef(null);
@@ -87,27 +87,9 @@ export default function HistoryTable({ tasks }) {
 
   return (
     <div className="vt-card">
-      {/* Header */}
+      {/* Header with dropdown */}
       <div className="vt-head">
         <span className="vt-title">Completed Tasks</span>
-      </div>
-
-      {/* Search + date filter on one row */}
-      <div className="ht-toolbar">
-        <label className="vt-search ht-search-inline">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
-          </svg>
-          <input
-            type="text"
-            className="vt-search__input"
-            placeholder="Search completed tasks…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </label>
-
         <div className="vt-sort" ref={sortRef}>
           <button
             type="button"
@@ -139,11 +121,21 @@ export default function HistoryTable({ tasks }) {
         </div>
       </div>
 
-      {/* Result count */}
-      <div className="ht-count-row">
-        <span className="vt-count">
-          {filtered.length} task{filtered.length !== 1 ? "s" : ""}
-        </span>
+      {/* Search */}
+      <div className="ht-search-row">
+        <label className="vt-search ht-search-full">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input
+            type="text"
+            className="vt-search__input"
+            placeholder="Search completed tasks…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </label>
       </div>
 
       {/* Table or empty state */}

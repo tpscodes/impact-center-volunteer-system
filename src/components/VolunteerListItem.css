@@ -1,0 +1,75 @@
+/* VolunteerListItem.css — compact volunteer row for the Active Volunteers card */
+
+.vli-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 13px;
+  border-radius: 15px;
+  opacity: 0;
+  animation: row-in 360ms var(--ease-spring) both;
+}
+
+.vli-row.tint {
+  background: #d3ede9;
+}
+
+.vli-id {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font: 600 11px/16px 'Inter', sans-serif;
+  white-space: nowrap;
+  background: #e6f5f3;
+  color: #09665e;
+  flex-shrink: 0;
+}
+
+.vli-name {
+  font: 600 14px/20px 'Inter', sans-serif;
+  color: #0a2a3a;
+  margin: 0;
+}
+
+.vli-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.vli-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font: 600 11px/16px 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.vli-tag.pantry { background: #e6f5f3; color: #09665e; }
+.vli-tag.driver { background: #fff3e0; color: #9a5000; }
+
+.vli-actions {
+  display: flex;
+  gap: 9px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.vli-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #e6f5f3;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 120ms var(--ease-spring);
+}
+.vli-icon-btn:hover { background: #d3ede9; }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

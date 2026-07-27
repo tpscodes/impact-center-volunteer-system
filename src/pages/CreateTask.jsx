@@ -1,7 +1,7 @@
 // CreateTask.jsx — Spreadsheet-style multi-task creator
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import { ChevronLeft, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -465,15 +465,13 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
     return (
       <div className={`${isMobile ? "px-4 py-4 pb-28" : "px-6 py-6 pb-24"}`}>
 
+        {/* Banner — standalone card above the table */}
+        <div className="bg-white border border-[#e5e7eb] rounded-[20px] px-5 py-4 text-[14px] text-[#0a2a3a] mb-4">
+          Fill in as many tasks as needed. Start typing an item to see suggestions.
+        </div>
+
         {/* Form card */}
         <div className="bg-white rounded-xl border border-[#e5e7eb]">
-
-          {/* Card header hint */}
-          <div className="px-6 py-4 border-b border-[#e5e7eb] bg-[#f9fafb] rounded-t-xl">
-            <p className="text-[#6b7280] text-[13px]">
-              Fill in as many tasks as needed. Start typing an item to see suggestions.
-            </p>
-          </div>
 
           {/* Column headers */}
           <div
@@ -503,8 +501,8 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
         {/* Add Row */}
         <button
           onClick={addRow}
-          className="w-full mt-4 border-2 border-dashed border-[#e5e7eb] rounded-xl py-3
-            text-[#6b7280] text-[13px] hover:border-[#0d9488] hover:text-[#0d9488]
+          className="w-full mt-4 border-2 border-dashed border-[#09665e] rounded-xl py-3
+            text-[#6b7280] text-[13px] hover:bg-[#E6F5F3] hover:text-[#09665e]
             transition-colors flex items-center justify-center gap-2
             bg-transparent cursor-pointer">
           <Plus size={15} />
@@ -534,7 +532,7 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
           MOBILE LAYOUT
       ════════════════════════════════════════════════════════════════════════ */}
       <div
-        className="lg:hidden min-h-screen bg-[#f5f5f5]"
+        className="lg:hidden min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
       >
         {/* Mobile top bar */}
@@ -562,10 +560,10 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
           DESKTOP LAYOUT
       ════════════════════════════════════════════════════════════════════════ */}
       <div
-        className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
+        className="hidden lg:flex min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
       >
-        <Sidebar mode="pantry" activePath="/create-task" />
+        <SidebarLiquid mode="pantry" />
 
         <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 

@@ -1,0 +1,219 @@
+/* HeroSummary.css — big-number dashboard hero for the Overview page */
+
+.hs-card {
+  background: linear-gradient(165deg, #0f7a70 14%, #0a2a3a 86%);
+  border-radius: 32px;
+  padding: 44px 48px;
+  display: flex;
+  gap: 40px;
+  color: #fff;
+  flex-shrink: 0;
+  opacity: 0;
+  animation: hero-in 480ms var(--ease-spring) 200ms both;
+}
+
+/* ── Left column ── */
+.hs-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  padding-right: 40px;
+}
+
+.hs-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hs-pill {
+  background: rgba(255, 255, 255, 0.9);
+  color: #09665e;
+  font: 600 13px/16px 'Inter', sans-serif;
+  padding: 6px 14px;
+  border-radius: 9999px;
+}
+
+.hs-sub {
+  font: 400 14px/20px 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hs-number-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 18px;
+}
+
+.hs-number {
+  font: 800 64px/64px 'Inter', sans-serif;
+  margin: 0;
+}
+
+/* Signal bars (4 bars, ascending heights) */
+.hs-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 32px;
+  width: 40px;
+}
+
+.hs-signal span {
+  width: 6px;
+  border-radius: 2px;
+  background: #0d9488;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  animation: bar-grow 500ms var(--ease-spring) both;
+}
+
+.hs-sub-stats {
+  display: flex;
+  gap: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 20px;
+  opacity: 0;
+  animation: content-fade 420ms var(--ease-spring) 500ms both;
+}
+
+.hs-sub-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+.hs-sub-stat:last-child { border-right: 0; padding-right: 0; }
+
+.hs-sub-num {
+  font: 700 26px/26px 'Inter', sans-serif;
+  margin: 0;
+}
+.hs-sub-num.urgent { color: #ff8a8a; }
+
+.hs-sub-label {
+  font: 400 12.5px/16px 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+}
+
+/* ── Right column ── */
+.hs-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+.hs-vol-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.hs-vol-count {
+  font: 800 44px/44px 'Inter', sans-serif;
+  margin: 0;
+}
+
+.hs-vol-label {
+  font: 500 16px/1 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hs-vol-trend {
+  font: 600 13px/16px 'Inter', sans-serif;
+  color: #5ee6a8;
+  margin: 4px 0 0;
+}
+
+.hs-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  padding-top: 22px;
+}
+
+.hs-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hs-breakdown-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hs-breakdown-icon svg {
+  display: block;
+}
+
+.hs-breakdown-t1 {
+  font: 600 14px/1 'Inter', sans-serif;
+  color: #fff;
+  margin: 0;
+}
+
+.hs-breakdown-t2 {
+  font: 400 12.5px/1 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 4px 0 0;
+}
+
+.hs-footer {
+  display: flex;
+  gap: 14px;
+  margin-top: auto;
+}
+
+.hs-btn-primary {
+  flex: 1;
+  height: 48px;
+  border: 0;
+  border-radius: 9999px;
+  background: #0d9488;
+  color: #fff;
+  font: 600 14px/20px 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 120ms var(--ease-spring), transform 120ms var(--ease-spring);
+}
+.hs-btn-primary:hover { background: #0f7a70; }
+.hs-btn-primary:active { transform: scale(0.98); }
+
+.hs-btn-outline {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid #0d9488;
+  border-radius: 9999px;
+  background: transparent;
+  color: #0d9488;
+  font: 600 14px/20px 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 120ms var(--ease-spring);
+}
+.hs-btn-outline:hover { background: rgba(255, 255, 255, 0.08); }
+.hs-btn-outline.danger {
+  border-color: #f87171;
+  color: #f87171;
+}
+.hs-btn-outline.danger:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* Keyframes shared with DashboardHero */
+@keyframes content-fade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}

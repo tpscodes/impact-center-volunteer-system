@@ -7,9 +7,9 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
-import StatCards from "../components/StatCards";
+import DeliveryHero from "../components/DeliveryHero";
 import { Search, Clock, MapPin, Truck, Calendar, X, Menu } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
@@ -224,17 +224,18 @@ export default function ManagerDeliveryHistory() {
     (b.date || "").localeCompare(a.date || "") || (b.departureTime || "").localeCompare(a.departureTime || "")
   );
 
-  const { start: wkStart, end: wkEnd } = getWeekRange();
-  const { start: moStart, end: moEnd } = getMonthRange();
+  const todayStr = getTodayStr();
+  const completedToday   = completed.filter(r => r.date === todayStr).length;
+  const uniqueDriverCount = new Set(completed.flatMap(r => driverNames(r.drivers))).size;
 
-  const statCards = [
-    { label: "Total Completed", value: completed.length,                                                      accent: "complete" },
-    { label: "This Week",       value: completed.filter(r => r.date >= wkStart && r.date <= wkEnd).length,   accent: "brand"    },
-    { label: "This Month",      value: completed.filter(r => r.date >= moStart && r.date <= moEnd).length,   accent: "brand"    },
+  const BARS = [11, 18, 14, 25, 21, 32];
+  const heroSections = [
+    { label: "Tasks Completed Today", chipTone: "complete", value: completedToday,     bars: BARS },
+    { label: "Total Sessions",        chipTone: "brand",    value: completed.length                },
+    { label: "Drivers Participated",  chipTone: "progress", value: uniqueDriverCount               },
   ];
 
   const filtersActive = searchQuery.trim() !== "" || fromDate !== "" || toDate !== "";
-
   const filtered = completed.filter(r => {
     if (fromDate && r.date < fromDate) return false;
     if (toDate   && r.date > toDate)   return false;
@@ -325,7 +326,7 @@ export default function ManagerDeliveryHistory() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
         <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
@@ -410,9 +411,9 @@ export default function ManagerDeliveryHistory() {
           {/* Mobile stat tiles */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Total Completed", value: statCards[0].value, color: "#15703c" },
-              { label: "This Week",       value: statCards[1].value, color: "#09665e" },
-              { label: "This Month",      value: statCards[2].value, color: "#09665e" },
+              { label: "Tasks Completed Today", value: completedToday,    color: "#15703c" },
+              { label: "Total Sessions",         value: completed.length,  color: "#09665e" },
+              { label: "Drivers Participated",   value: uniqueDriverCount, color: "#9a5000" },
             ].map((s, i) => (
               <div key={s.label}
                 className={`bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 ${i === 2 ? "col-span-2" : ""}`}>
@@ -448,14 +449,67 @@ export default function ManagerDeliveryHistory() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT
+          TABLET LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
+      <div className="hidden lg:flex xl:hidden min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-        <Sidebar mode="delivery" activePath="/manager-delivery-history" />
+        <SidebarLiquid mode="delivery" />
 
         <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader initials={initials} label="History" />
+          </div>
+          <div className="px-6 pb-8">
+            <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-6 flex flex-col gap-4"
+              style={{ boxShadow: "0 8px 20px rgba(10,42,58,.05)" }}>
+              {/* Card header */}
+              <div className="flex items-center justify-between">
+                <h2 className="m-0 text-[21px] font-semibold text-[#0a2a3a] leading-7">Completed Routes</h2>
+                <div className="flex items-center justify-between gap-2 h-10 w-[140px] rounded-[10px] border border-[#e5e7eb] px-[14px] text-[14px] text-[#0a2a3a] bg-white cursor-default select-none">
+                  <span>All Time</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 1l4 4 4-4"/></svg>
+                </div>
+              </div>
+
+              {/* Date-grouped entries */}
+              {filtered.length === 0 ? (
+                <div className="py-12 text-center flex flex-col items-center gap-2">
+                  <Clock size={36} className="text-[#E6F5F3]" />
+                  <p className="text-[#0a2a3a] text-[15px] font-semibold">No completed routes yet</p>
+                  <p className="text-[#6b7280] text-[13px]">Completed delivery routes will appear here</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-5">
+                  {groups.map(group => (
+                    <div key={group.date} className="flex flex-col gap-2">
+                      <p className="m-0 text-[12px] font-semibold text-[#09665e] uppercase tracking-[.3px]">
+                        {getDateGroupLabel(group.date)}
+                      </p>
+                      <div className="bg-white border border-[#e5e7eb] rounded-[20px] overflow-hidden"
+                        style={{ boxShadow: "0 8px 20px rgba(10,42,58,.05)" }}>
+                        {group.routes.map((route, i) => (
+                          <HistoryEntry key={route.id} route={route} isLast={i === group.routes.length - 1} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden xl:flex min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+
+        <SidebarLiquid mode="delivery" />
+
+        <div className="xl:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
           <div className="px-6 pt-5 pb-3">
             <PageHeader initials={initials} label="Delivery History" />
@@ -463,8 +517,10 @@ export default function ManagerDeliveryHistory() {
 
           <div className="px-6 pb-6 flex flex-col gap-5">
 
-            {/* Stat cards — same component as Dashboard/Drivers/Routes */}
-            <StatCards cards={statCards} cols={3} />
+            {/* Gradient hero — DeliveryHero with chart-removal rule applied:
+                only "Tasks Completed Today" gets bars; the other two are all-time
+                cumulative counts — sparklines would imply a trend that doesn't exist. */}
+            <DeliveryHero sections={heroSections} />
 
             {/* Controls — search + date range */}
             <ControlsRow />

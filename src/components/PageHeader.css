@@ -136,27 +136,29 @@
 .ph-time-range {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 4px;
+  padding: 4px;
+  background: #F2F2F2;
+  border-radius: 9999px;
   opacity: 0;
   animation: ph-fade-in 260ms var(--ease-out) 620ms both;
 }
 .ph-time-range__option {
   border: 0;
-  background: none;
+  background: transparent;
   cursor: pointer;
-  padding: 0;
-  font: 500 14px/20px "Inter", sans-serif;
-  color: rgba(255, 255, 255, 0.55);
-  transition: color var(--dur-fast) var(--ease-out);
+  padding: 8px 12px;
+  border-radius: 9999px;
+  font: 500 13px/16px "Inter", sans-serif;
+  color: #4B555B;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   white-space: nowrap;
 }
-.ph-time-range__option:hover { color: rgba(255, 255, 255, 0.85); }
+.ph-time-range__option:hover { color: #0a2a3a; }
 .ph-time-range__option[aria-pressed="true"] {
   background: var(--teal-500);
   color: #fff;
   font-weight: 600;
-  padding: 8px 18px;
-  border-radius: 9999px;
 }
 
 /* ── Reduced motion ──────────────────────────────────────── */

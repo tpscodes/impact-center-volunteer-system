@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
-import Sidebar from "../components/Sidebar";
+import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import "./ManagerDeliveryRoutes.css";
@@ -537,7 +537,7 @@ export default function ManagerDeliveryRoutes() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]"
+    <div className="min-h-screen bg-[#D3EDE9]"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -677,7 +677,7 @@ export default function ManagerDeliveryRoutes() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="hidden lg:flex min-h-screen">
 
-        <Sidebar mode="delivery" activePath="/manager-delivery-routes" />
+        <SidebarLiquid mode="delivery" />
 
         <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col" style={{ height: "100vh" }}>
 
@@ -778,7 +778,7 @@ export default function ManagerDeliveryRoutes() {
 
             {/* ── Right: detail panel ── */}
             <div
-              className="flex-1 overflow-y-auto bg-[#f5f5f5]"
+              className="flex-1 overflow-y-auto bg-white"
             >
               {!selectedTemplate ? (
                 <div className="flex flex-col items-center justify-center h-full py-20">
@@ -796,64 +796,71 @@ export default function ManagerDeliveryRoutes() {
                   tabIndex={0}
                   className="route-detail-animate flex flex-col outline-none"
                 >
-                  {/* Route info header */}
-                  <div className="bg-white border-b border-[#e5e7eb] px-7 py-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-[10px]">
-                        <h2 className="text-[22px] font-semibold leading-[28px] tracking-[-0.01em] text-[#0a2a3a]">
-                          {selectedTemplate.name}
-                        </h2>
-                        <span className="bg-[#E6F5F3] text-[#09665e] text-[12px] font-semibold
-                          px-3 py-1 rounded-full capitalize leading-[16px]">
-                          {selectedTemplate.dayOfWeek}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setEditFields({
-                            name:          selectedTemplate.name          || "",
-                            source:        selectedTemplate.source        || "",
-                            destination:   selectedTemplate.destination   || "",
-                            departureTime: selectedTemplate.departureTime || "",
-                            arrivalTime:   selectedTemplate.arrivalTime   || "",
-                            vehicle:       selectedTemplate.vehicle       || "",
-                            driversNeeded: selectedTemplate.driversNeeded || 1,
-                          });
-                          setShowEditPopup(true);
-                        }}
-                        className="flex items-center gap-[6px] border-none bg-none cursor-pointer
-                          text-[14px] font-medium text-[#09665e] hover:opacity-70 transition-opacity">
-                        <Pencil size={14} />
-                        Edit
-                      </button>
-                    </div>
-
-                    {/* Info grid — 3 semantic groups */}
-                    <div className="grid grid-cols-3 gap-8 pb-0">
-                      {infoGroups.map(group => (
-                        <div key={group.label}>
-                          <p className="text-[11px] font-semibold text-[#6b7280] uppercase
-                            tracking-[.06em] mb-[14px]">
-                            {group.label}
-                          </p>
-                          {group.facts.map(f => (
-                            <div key={f.label} className="flex items-start gap-2 mb-[14px] last:mb-0">
-                              <f.icon size={15} className="text-[#6b7280] shrink-0 mt-[2px]" />
-                              <div>
-                                <p className="text-[13px] text-[#6b7280] leading-[18px]">{f.label}</p>
-                                <p className="text-[14px] font-semibold leading-[20px] text-[#0a2a3a] mt-[1px]">
-                                  {f.value}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                  {/* Route info header — gradient hero matching routes.html .hero-card */}
+                  <div className="p-5 pb-0">
+                    <div
+                      className="rounded-[25px] px-8 py-7"
+                      style={{ background: "linear-gradient(100deg, #0D9488 0.1%, #0A2A3A 99.8%)" }}
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-[10px]">
+                          <h2 className="text-[22px] font-bold leading-[28px] tracking-[-0.01em] text-white">
+                            {selectedTemplate.name}
+                          </h2>
+                          <span className="text-[12px] font-semibold px-3 py-1 rounded-full capitalize leading-[16px]"
+                            style={{ background: "rgba(255,255,255,.14)", color: "#fff" }}>
+                            {selectedTemplate.dayOfWeek}
+                          </span>
                         </div>
-                      ))}
+                        <button
+                          onClick={() => {
+                            setEditFields({
+                              name:          selectedTemplate.name          || "",
+                              source:        selectedTemplate.source        || "",
+                              destination:   selectedTemplate.destination   || "",
+                              departureTime: selectedTemplate.departureTime || "",
+                              arrivalTime:   selectedTemplate.arrivalTime   || "",
+                              vehicle:       selectedTemplate.vehicle       || "",
+                              driversNeeded: selectedTemplate.driversNeeded || 1,
+                            });
+                            setShowEditPopup(true);
+                          }}
+                          className="flex items-center gap-[6px] border-none bg-transparent cursor-pointer
+                            text-[14px] font-medium hover:opacity-100 transition-opacity"
+                          style={{ color: "rgba(255,255,255,.72)" }}
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                      </div>
+
+                      {/* Info grid — 3 semantic groups */}
+                      <div className="grid grid-cols-3 gap-8">
+                        {infoGroups.map(group => (
+                          <div key={group.label}>
+                            <p className="text-[11px] font-semibold uppercase tracking-[.06em] mb-[14px]"
+                              style={{ color: "rgba(255,255,255,.6)" }}>
+                              {group.label}
+                            </p>
+                            {group.facts.map(f => (
+                              <div key={f.label} className="flex items-start gap-2 mb-[14px] last:mb-0">
+                                <f.icon size={15} className="shrink-0 mt-[2px]" style={{ color: "rgba(255,255,255,.7)" }} />
+                                <div>
+                                  <p className="text-[13px] leading-[18px]" style={{ color: "rgba(255,255,255,.72)" }}>{f.label}</p>
+                                  <p className="text-[14px] font-semibold leading-[20px] text-white mt-[1px]">
+                                    {f.value}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   {/* Schedule section */}
-                  <div className="px-7 py-6">
+                  <div className="px-7 pt-6 pb-6">
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-[#0a2a3a] text-[17px] font-semibold leading-[22px]">Schedule</p>
                       <button onClick={handleAddOccurrence}

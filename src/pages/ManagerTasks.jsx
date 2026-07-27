@@ -3,10 +3,16 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
-import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil } from "lucide-react";
+import DashboardHeader from "../components/DashboardHeader";
+import HeroSummary from "../components/HeroSummary";
+import VolunteerListItem from "../components/VolunteerListItem";
+import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil, Trash2 } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
+import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useAuth } from "../contexts/AuthContext";
 import TaskTable from "../components/TaskTable";
+import { db } from "../firebase";
+import { ref, onValue, off } from "firebase/database";
 
 const GRAY = { dark: "#1F2937", mid: "#374151", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#F9FAFB" };
 
@@ -213,6 +219,18 @@ export default function ManagerTasks() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [editingTask, setEditingTask] = useState(null)  // task object being edited
   const [editForm, setEditForm] = useState({})
+  const [volunteers, setVolunteers] = useState([])
+
+  // Load volunteers for the tablet Active Volunteers card
+  useEffect(() => {
+    const volRef = ref(db, "volunteers");
+    const handle = onValue(volRef, snap => {
+      const val = snap.val();
+      if (!val) { setVolunteers([]); return; }
+      setVolunteers(Object.entries(val).map(([id, v]) => ({ id, ...v })));
+    });
+    return () => off(volRef, "value", handle);
+  }, []);
 
   function openEdit(task) {
     setEditingTask(task)
@@ -257,6 +275,11 @@ export default function ManagerTasks() {
     t.completedAtMs && new Date(t.completedAtMs).toISOString().slice(0, 10) === todayIso
   ).length
 
+  const unclaimed = tasks.filter(t => !t.assignedTo && t.status !== 'complete').length
+  const urgent = tasks.filter(t => t.priority?.toLowerCase() === 'urgent' && t.status !== 'complete').length
+  const experiencedVols = volunteers.filter(v => !v.isNew).length
+  const newVols = volunteers.filter(v => v.isNew).length
+
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 
   const activeTasks_ = tasks.filter(t => t.status !== 'complete')
@@ -290,7 +313,7 @@ export default function ManagerTasks() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#f5f5f5]">
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9]">
 
         {/* Mobile top bar */}
         <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
@@ -523,14 +546,113 @@ export default function ManagerTasks() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT
+          TABLET LAYOUT (lg–xl: 1024–1280 px)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]">
+      <div className="hidden lg:flex xl:hidden min-h-screen bg-[#D3EDE9]">
+
+        <Sidebar mode="pantry" activePath="/manager-tasks" />
+
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+
+          {/* Pill header — avatar + "Tasks" label + Create Task button */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Tasks"
+              action={{ label: "+ Create Task", onClick: () => navigate("/manager/create-task") }}
+            />
+          </div>
+
+          {/* Single Active Tasks card */}
+          <div className="px-6 pb-8">
+            <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-6 flex flex-col gap-4"
+                 style={{ boxShadow: "0 8px 20px rgba(10,42,58,.05)" }}>
+
+              {/* Card header: title + search */}
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="m-0 text-[21px] font-semibold text-[#0a2a3a] leading-7">Active Tasks</h2>
+                <div className="flex items-center gap-2 h-9 px-3 rounded-full border border-[#e5e7eb] bg-white"
+                     style={{ width: 200, flexShrink: 0 }}>
+                  <Search size={14} className="text-[#6b7280] shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="flex-1 min-w-0 border-0 outline-none bg-transparent text-[14px] font-medium text-[#0a2a3a] placeholder:text-[#6b7280]"
+                  />
+                </div>
+              </div>
+
+              {/* Filter chips — All / Warehouse / Kitchen / Clothing / Urgent */}
+              <div className="flex flex-wrap gap-2">
+                {['All', 'Warehouse', 'Kitchen', 'Clothing', 'Urgent'].map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setActiveFilter(f)}
+                    className={`h-9 px-4 rounded-full border text-[13px] font-medium cursor-pointer transition-colors
+                      ${activeFilter === f
+                        ? 'bg-[#0a2a3a] text-white border-[#0a2a3a] font-semibold'
+                        : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f9fafb]'
+                      }`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              {/* Column header */}
+              <div className="bg-[#f9fafb] rounded-lg px-6 py-3">
+                <span className="text-[12px] font-semibold tracking-wide text-[#6b7280] uppercase">Task Name</span>
+              </div>
+
+              {/* Task rows */}
+              <div className="flex flex-col">
+                {filteredTasks.map((task, i) => (
+                  <div key={task.id}
+                    className={`flex items-center gap-4 px-3 py-3.5 rounded-[15px] ${i % 2 === 0 ? 'bg-[#D3EDE9]' : ''}`}>
+                    <div className="w-10 h-10 rounded-lg bg-[#0f7a70] flex items-center justify-center shrink-0 text-white">
+                      <ClipboardList size={18} />
+                    </div>
+                    <p className="flex-1 min-w-0 text-[12px] font-medium leading-5 text-[#0a2a3a] m-0">
+                      {task.name || task.item}
+                    </p>
+                    {task.destination && (
+                      <span className="text-[12px] text-[#0a2a3a] shrink-0">{task.destination}</span>
+                    )}
+                    <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-[12px] font-semibold shrink-0 ${getStatusStyle(task.status)}`}>
+                      {getStatusLabel(task.status)}
+                    </span>
+                    <div className="flex gap-2 shrink-0">
+                      <button type="button" aria-label="Edit task"
+                        className="w-7 h-7 rounded-lg bg-[#E6F5F3] flex items-center justify-center border-0 cursor-pointer hover:bg-[#D3EDE9] transition-colors">
+                        <Pencil size={14} color="#0a2a3a" />
+                      </button>
+                      <button type="button" aria-label="Delete task"
+                        className="w-7 h-7 rounded-lg bg-[#E6F5F3] flex items-center justify-center border-0 cursor-pointer hover:bg-[#D3EDE9] transition-colors">
+                        <Trash2 size={14} color="#0a2a3a" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <p className="text-center text-[13px] text-[#9ca3af] py-8 m-0">No tasks found</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT (xl+: 1280 px and up)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden xl:flex min-h-screen bg-[#D3EDE9]">
 
         <Sidebar mode="pantry" activePath="/manager-tasks" />
 
         {/* ── Main content ── */}
-        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+        <div className="xl:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
           {/* Pill header */}
           <div className="px-6 pt-5 pb-3">
@@ -542,6 +664,26 @@ export default function ManagerTasks() {
                 onClick: () => navigate("/manager/create-task"),
               }}
             />
+          </div>
+
+          {/* Hero stat summary */}
+          <div className="px-6 pb-4">
+            {(() => {
+              const sparkline = computeSparkline(completedTasks);
+              const yday = sparkline[sparkline.length - 2];
+              const tod  = sparkline[sparkline.length - 1];
+              const diff = tod - yday;
+              const deltaText = diff === 0 ? "— same as yesterday"
+                : diff > 0 ? `▲ ${diff} more than yesterday`
+                : `▼ ${Math.abs(diff)} fewer than yesterday`;
+              return (
+                <DashboardHero sections={[
+                  { label: "Active Tasks",    value: activeTasks,     delta: "tasks in queue",  chipTone: "brand",    bars: [11,18,14,25,21,32] },
+                  { label: "In Progress",     value: inProgressTasks, delta: "being worked on", chipTone: "progress", bars: [11,18,14,25,21,32] },
+                  { label: "Completed Today", value: completedToday,  delta: deltaText,          chipTone: "complete", bars: sparkline },
+                ]} />
+              );
+            })()}
           </div>
 
           {/* Task planning table */}

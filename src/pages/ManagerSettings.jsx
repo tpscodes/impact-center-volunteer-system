@@ -226,13 +226,13 @@ export default function ManagerSettings() {
   // ── Shared card class ──────────────────────────────────────────────────────
   const card = "bg-white rounded-[20px] border border-[#e5e7eb] p-6";
   const inputCls = `w-full border border-[#e5e7eb] rounded-[10px] px-4 py-2.5 text-[14px]
-    text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-[#09665e]`;
+    text-[#0a2a3a] placeholder-[#b3b3b3] outline-none focus:border-2 focus:border-[#09665e]`;
   const labelCls = "text-[#6b7280] text-[13px] font-medium mb-1.5 block";
   const saveBtnCls = `w-full bg-[#09665e] hover:bg-[#0f7a70] text-white px-4 h-[48px]
     rounded-full text-[14px] font-semibold mt-4 border-none cursor-pointer transition-colors`;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]"
+    <div className="min-h-screen bg-[#D3EDE9]"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* ════════════════════════════════════════════════════════════════════

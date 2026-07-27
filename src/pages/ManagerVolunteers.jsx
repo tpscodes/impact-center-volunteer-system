@@ -9,7 +9,8 @@ import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
 import { useAuth } from "../contexts/AuthContext";
 import VolunteerTable from "../components/VolunteerTable";
-import "../components/StatCards.css";
+import VolunteerListItem from "../components/VolunteerListItem";
+import DashboardHero from "../components/DashboardHero";
 
 const VOL_STAT_ACCENTS = [
   { chipBg: "#E6F5F3", chipFg: "#09665E", valueFg: "#09665E" }, // Total
@@ -321,7 +322,7 @@ export default function ManagerVolunteers() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT  (below lg breakpoint)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col pb-24"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col pb-24"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* ── Mobile header ── */}
@@ -547,15 +548,66 @@ export default function ManagerVolunteers() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT  (lg and above)
+          TABLET LAYOUT (lg–xl: 1024–1280 px)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen bg-[#f5f5f5]"
+      <div className="hidden lg:flex xl:hidden min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
+        <Sidebar mode="pantry" activePath="/manager-volunteers" />
+
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+
+          {/* Pill header — Add Volunteer button only */}
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Volunteers"
+              action={{
+                label: "Add Volunteer",
+                icon: <UserPlus size={16}/>,
+                onClick: () => setShowAddModal(true),
+              }}
+            />
+          </div>
+
+          {/* Single card — no search, no filter chips */}
+          <div className="px-6 pb-8">
+            <div className="bg-white border border-[#e5e7eb] rounded-[20px] p-6 flex flex-col gap-4"
+                 style={{ boxShadow: "0 8px 20px rgba(10,42,58,.05)" }}>
+              <h2 className="m-0 text-[21px] font-semibold text-[#0a2a3a] leading-7">
+                Experienced Volunteers
+              </h2>
+              <div className="flex flex-col">
+                {filteredAndSorted.length === 0 ? (
+                  <p className="text-center text-[13px] text-[#9ca3af] py-8 m-0">No volunteers found</p>
+                ) : (
+                  filteredAndSorted.map((v, i) => (
+                    <VolunteerListItem
+                      key={v.id}
+                      volunteer={v}
+                      tint={i % 2 === 0}
+                      index={i}
+                      onEdit={() => handleEditOpen(v)}
+                      onDelete={() => handleRemoveVolunteer(v.id)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT  (xl and above)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden xl:flex min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         <Sidebar mode="pantry" activePath="/manager-volunteers" />
 
         {/* ── Main content ── */}
-        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+        <div className="xl:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
           {/* Pill header */}
           <div className="px-6 pt-5 pb-3">
@@ -573,35 +625,12 @@ export default function ManagerVolunteers() {
           {/* Page content */}
           <div className="p-6 flex flex-col gap-5">
 
-            {/* Stats row */}
-            {(() => {
-              const stats = [
-                { label: "Total Volunteers",    value: volunteers.length,                       chip: "Total"   },
-                { label: "Active This Session", value: volunteers.filter(v => v.active).length, chip: "Session" },
-                { label: "New Volunteers Today",value: 0,                                       chip: "Today"   },
-              ];
-              return (
-                <div className="sc-row">
-                  {stats.map((s, i) => (
-                    <div
-                      key={s.label}
-                      className="sc-card"
-                      style={{
-                        "--chip-bg":  VOL_STAT_ACCENTS[i].chipBg,
-                        "--chip-fg":  VOL_STAT_ACCENTS[i].chipFg,
-                        "--value-fg": VOL_STAT_ACCENTS[i].valueFg,
-                      }}
-                    >
-                      <div className="sc-top">
-                        <span className="sc-chip">{s.chip}</span>
-                      </div>
-                      <p className="sc-value">{s.value}</p>
-                      <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
+            {/* Hero stat summary */}
+            <DashboardHero sections={[
+              { label: "Total Volunteers",     value: volunteers.length,                        delta: "in roster",            chipTone: "brand"    },
+              { label: "Active This Session",  value: volunteers.filter(v => v.active).length,  delta: "currently checked in", chipTone: "progress" },
+              { label: "New Volunteers Today", value: 0,                                        delta: "no new signups yet",   chipTone: "complete" },
+            ]} />
 
             {/* Volunteer list */}
             <VolunteerTable
