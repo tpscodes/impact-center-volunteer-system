@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SidebarLiquid from "../components/SidebarLiquid";
+import MobileNav from "../components/MobileNav";
 import PageHeader from "../components/PageHeader";
 import { ChevronLeft, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -535,17 +536,9 @@ export default function CreateTask({ onBack, onPublish, onPublishAll }) {
         className="lg:hidden min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
       >
-        {/* Mobile top bar */}
-        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-          <button
-            onClick={() => onBack ? onBack() : navigate("/manager/dashboard")}
-            className="text-white bg-transparent border-none cursor-pointer p-0">
-            <ChevronLeft size={20} />
-          </button>
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Create Tasks</p>
-          </div>
+        {/* Mobile nav */}
+        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px', marginBottom: 16 }}>
+          <MobileNav mode="pantry" />
         </div>
 
         {/* Scrollable table on mobile */}

@@ -10,7 +10,8 @@ import { useNavigate } from "react-router-dom";
 import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import DeliveryHero from "../components/DeliveryHero";
-import { Search, Clock, MapPin, Truck, Calendar, X, Menu } from "lucide-react";
+import { Search, Clock, MapPin, Truck, Calendar, X } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -208,8 +209,6 @@ export default function ManagerDeliveryHistory() {
   const [searchQuery,    setSearchQuery]    = useState("");
   const [fromDate,       setFromDate]       = useState("");
   const [toDate,         setToDate]         = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   useEffect(() => {
     return onValue(ref(db, `pantries/${pantryId}/routeHistory`), snap => {
       const data = snap.val();
@@ -333,32 +332,10 @@ export default function ManagerDeliveryHistory() {
         <div style={{
           background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
           borderRadius: '0 0 28px 28px',
-          padding: '20px 20px 24px',
-          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+          color: '#fff',
         }}>
-          {/* Topbar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              style={{
-                width: 40, height: 40, borderRadius: 12, border: 'none', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-              <Menu size={18} color="#fff" />
-            </button>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '20px', color: '#fff' }}>History</p>
-              <p style={{ margin: 0, fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
-            </div>
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{initials}</span>
-            </button>
-          </div>
-
+          <MobileNav mode="delivery" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Dual stats */}
           <div style={{ display: 'flex', gap: 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -376,6 +353,7 @@ export default function ManagerDeliveryHistory() {
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Total Sessions</p>
             </div>
           </div>
+          </div>{/* /inner padding */}
         </div>
 
         {/* ── History card ──────────────────────────────────────────────────── */}
@@ -439,71 +417,6 @@ export default function ManagerDeliveryHistory() {
           </div>
         </div>
 
-        {/* ── Left-side slide-in drawer ─────────────────────────────────────── */}
-        {mobileMenuOpen && (
-          <>
-            <div
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,.45)' }}
-            />
-            <div style={{
-              position: 'fixed', top: 0, left: 0, bottom: 0, width: 300, maxWidth: '82vw',
-              background: '#09665E', borderRadius: '0 27px 27px 0', zIndex: 50,
-              display: 'flex', flexDirection: 'column', padding: '20px 0 24px',
-            }}>
-              {/* X close */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 16px' }}>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <X size={16} color="#fff" />
-                </button>
-              </div>
-              {/* Profile block */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,.12)' }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1B4256', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{initials}</span>
-                </div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#fff' }}>{displayName}</p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,.6)' }}>Operations Manager</p>
-                </div>
-              </div>
-              {/* Mode toggle */}
-              <div style={{ display: 'flex', gap: 4, margin: '16px 20px', padding: 4, background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager/dashboard'); }}
-                  style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'transparent', color: 'rgba(255,255,255,.66)' }}>
-                  Pantry
-                </button>
-                <button style={{ flex: 1, height: 36, borderRadius: 18, border: 'none', cursor: 'default', fontSize: 13, fontWeight: 600, background: '#0A2A3A', color: '#fff' }}>
-                  Delivery
-                </button>
-              </div>
-              {/* Nav list */}
-              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 8px', flex: 1 }}>
-                {[
-                  { label: 'Overview', path: '/manager-delivery',            active: false },
-                  { label: 'Routes',   path: '/manager-delivery-routes',     active: false },
-                  { label: 'Drivers',  path: '/manager-delivery-volunteers', active: false },
-                  { label: 'History',  path: '/manager-delivery-history',    active: true  },
-                  { label: 'Settings', path: '/manager-settings',            active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', width: '100%', height: 49,
-                      padding: '0 16px', borderRadius: 26, border: 'none', cursor: 'pointer',
-                      fontSize: 15, textAlign: 'left',
-                      background: item.active ? '#fff' : 'transparent',
-                      color: item.active ? '#0A2A3A' : 'rgba(255,255,255,.82)',
-                      fontWeight: item.active ? 600 : 500,
-                    }}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </>
-        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

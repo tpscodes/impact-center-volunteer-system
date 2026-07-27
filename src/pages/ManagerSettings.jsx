@@ -1,7 +1,8 @@
 // ManagerSettings.jsx — Operations Manager settings screen
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { X, Menu, AlertTriangle, Check } from "lucide-react";
+import { X, AlertTriangle, Check } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, get, set, remove, update } from "firebase/database";
 import Sidebar from "../components/Sidebar";
@@ -62,8 +63,6 @@ export default function ManagerSettings() {
   // ── Toast ──────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
 
-  // ── Mobile menu ────────────────────────────────────────────────────────────
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function showToast(message) {
     setToast(message);
@@ -235,86 +234,9 @@ export default function ManagerSettings() {
       ════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen flex flex-col pb-10">
 
-        {/* Mobile top bar */}
-        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{authInitials}</span>
-            </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{authDisplayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
-            </div>
-          </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
-          </button>
-        </div>
-
-        {/* Hamburger overlay */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              {pantryId !== 'amber' && (
-                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                    Delivery
-                  </button>
-                </div>
-              )}
-              <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#9ca3af] border-l-[3px] border-transparent"
-                    }`}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{authInitials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{authDisplayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Mobile page title */}
-        <div className="lg:hidden px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Settings</h1>
+        {/* Mobile nav */}
+        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px', marginBottom: 20 }}>
+          <MobileNav />
         </div>
 
         <div className="px-4 pt-2">

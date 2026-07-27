@@ -2,11 +2,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import MobileNav from "../components/MobileNav";
 import PageHeader from "../components/PageHeader";
 import DashboardHeader from "../components/DashboardHeader";
 import HeroSummary from "../components/HeroSummary";
 import VolunteerListItem from "../components/VolunteerListItem";
-import { Plus, Menu, X, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil, Trash2 } from "lucide-react";
+import { Plus, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil, Trash2 } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useAuth } from "../contexts/AuthContext";
@@ -215,7 +216,6 @@ export default function ManagerTasks() {
   const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(activePantryId, { modifiedBy })
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState('All')
   const [editingTask, setEditingTask] = useState(null)  // task object being edited
   const [editForm, setEditForm] = useState({})
@@ -315,234 +315,105 @@ export default function ManagerTasks() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen bg-[#D3EDE9]">
 
-        {/* Mobile top bar */}
-        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{initials}</span>
+        {/* Gradient hero */}
+        <div style={{
+          background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
+          borderRadius: '0 0 28px 28px',
+          color: '#fff',
+        }}>
+          <MobileNav mode="pantry" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Stat row: Tasks tag + big number + signal bars */}
+            <div className="flex items-end justify-between">
+              <div className="flex flex-col gap-3">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                  style={{ background: '#E6F5F3', color: '#09665E' }}>Tasks</span>
+                <p className="m-0 text-[64px] leading-[64px]" style={{ fontWeight: 800 }}>{activeTasks}</p>
+              </div>
+              <div className="flex items-end gap-[3px]" style={{ height: 32 }}>
+                {[10, 16, 22, 32].map((h, i) => (
+                  <span key={i} style={{ width: 6, height: h, borderRadius: 2, background: '#0D9488', display: 'block' }} />
+                ))}
+              </div>
             </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{displayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
-            </div>
+
+            {/* Caption */}
+            <p className="m-0 text-[12px]" style={{ color: '#D1D6DB' }}>
+              {volunteersActive} volunteers active
+            </p>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(true); }}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
+        </div>
+
+        {/* Create Task button */}
+        <div className="px-5 pt-[15px]">
+          <button onClick={() => navigate('/manager/create-task')}
+            className="w-full h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer"
+            style={{ background: '#0F7A70' }}>
+            + Create Task
           </button>
         </div>
 
-        {/* Hamburger overlay */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              {role !== 'superadmin' && activePantryId !== 'amber' && (
-                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                    Delivery
-                  </button>
-                </div>
-              )}
-              <nav className="flex flex-col py-2">
-                {[
-                  { label: "Dashboard", path: "/manager/dashboard",  active: false },
-                  { label: "Tasks",     path: "/manager-tasks",       active: true  },
-                  { label: "Volunteers",path: "/manager-volunteers",  active: false },
-                  { label: "History",   path: "/manager-history",     active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#9ca3af] border-l-[3px] border-transparent"
-                    }`}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Mobile page title */}
-        <div className="lg:hidden px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Tasks</h1>
-        </div>
-
-        {/* Mobile content */}
-        <div className="px-4 pb-4">
-
-          {/* Stats 2×2 grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            {STATS.map(stat => (
-              <div key={stat.label} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 h-[72px] flex flex-col justify-center">
-                <p className="text-[#6b7280] text-[11px] mb-1">{stat.label}</p>
-                <p className="text-[24px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</p>
-              </div>
-            ))}
+        {/* Active Tasks card */}
+        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
+          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+          <div className="flex items-center justify-between">
+            <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Tasks</h2>
+            <span className="text-[12px] font-medium text-[#565E6C]">View all</span>
           </div>
 
-          {/* Action button */}
-          <div className="flex gap-3 mb-4">
-            <button onClick={() => navigate('/manager/create-task')}
-              className="flex-1 bg-[#09665e] text-white rounded-xl py-2.5 text-[13px] font-medium
-                flex items-center justify-center gap-2 border-none cursor-pointer">
-              <Plus size={15} />
-              Create Task
-            </button>
-          </div>
-
-          {/* Search bar */}
-          <div className="relative mb-3">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#e5e7eb] rounded-xl pl-9 pr-4 py-2.5
-                text-[13px] text-[#0a2a3a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]
-                placeholder:text-[#9ca3af]"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0">
-                <X size={14} className="text-[#9ca3af]" />
-              </button>
-            )}
-          </div>
-
-          {/* Tag filter pills */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {MOBILE_TAGS.map(tag => (
+          {/* Filter chips — 4 per Figma */}
+          <div className="flex flex-wrap gap-2">
+            {['All', 'Warehouse', 'Kitchen', 'Clothing'].map(tag => (
               <button key={tag} onClick={() => setActiveFilter(tag)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium
-                  transition-colors cursor-pointer
-                  ${activeFilter === tag
-                    ? 'bg-[#0d9488] text-white border-none'
-                    : 'bg-white border border-[#e5e7eb] text-[#6b7280]'
-                  }`}>
+                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
+                style={activeFilter === tag
+                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
+                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
                 {tag}
               </button>
             ))}
           </div>
 
-          {/* Task cards */}
-          <div className="space-y-3">
-            {filteredTasks.map(task => (
-              <div key={task.id} className="bg-white border border-[#e5e7eb] rounded-xl p-4">
-
-                {/* Name + priority */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-[#0a2a3a] text-[14px] font-semibold leading-snug flex-1">
-                    {task.name || task.item}
-                    {task.modifiedBy === 'steve' && (
-                      <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
-                    )}
-                  </p>
-                  {task.priority && (
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${getPriorityStyle(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  )}
-                </div>
-
-                {/* Source → Destination */}
-                {(task.source || task.destination) && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <MapPin size={12} className="text-[#6b7280] flex-shrink-0" />
-                    <p className="text-[#6b7280] text-[12px]">
-                      {task.source}{task.destination ? ` → ${task.destination}` : ''}
-                    </p>
-                  </div>
-                )}
-
-                {/* Tags */}
-                {task.tags?.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap mb-3">
-                    {task.tags.map(tag => (
-                      <span key={tag} className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Status + actions */}
-                <div className="flex items-center justify-between border-t border-[#f3f4f6] pt-3 mt-1">
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${getStatusStyle(task.status)}`}>
-                    {getStatusLabel(task.status)}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    {task.status === 'in-progress' && (
-                      <button onClick={() => markTaskIncomplete(task.id)}
-                        className="text-[#ff9500] text-[12px] bg-transparent border-none cursor-pointer p-0">
-                        Mark Incomplete
-                      </button>
-                    )}
-                    {task.status !== 'complete' && (
-                      <button onClick={() => openEdit(task)}
-                        className="text-[#0d9488] bg-transparent border-none cursor-pointer p-0">
-                        <Pencil size={14} />
-                      </button>
-                    )}
-                    {task.status !== 'complete' && (
-                      <button onClick={() => deleteTask(task.id)}
-                        className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer p-0">
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
+          {/* Task rows */}
+          <div className="flex flex-col">
+            {filteredTasks.length === 0 && (
+              <div className="text-center py-8">
+                <ClipboardList size={36} className="text-[#ccedeb] mx-auto mb-2" />
+                <p className="m-0 text-[#0a2a3a] text-[14px] font-semibold">No tasks found</p>
               </div>
-            ))}
+            )}
+            {filteredTasks.map((task, i) => {
+              const sp = task.status === 'in-progress'
+                ? { bg: '#FFF3E0', fg: '#9A5000', label: 'In Progress' }
+                : task.status === 'incomplete'
+                ? { bg: '#FFF0F0', fg: '#DC2626', label: 'Incomplete' }
+                : { bg: '#F3F4F6', fg: '#6B7280', label: 'Available' };
+              return (
+                <div key={task.id}
+                  className="flex items-center gap-4 py-3.5 pl-3.5 pr-5 rounded-[15px]"
+                  style={i % 2 === 0 ? { background: '#D3EDE9' } : {}}>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: '#0F7A70' }}>
+                    <ClipboardList size={18} color="#fff" />
+                  </div>
+                  <p className="flex-1 min-w-0 m-0 text-[12px] font-medium text-[#0A2A3A] truncate">
+                    {task.name || task.item}
+                  </p>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[12px] font-semibold px-3 py-0.5 rounded-full"
+                      style={{ background: sp.bg, color: sp.fg }}>
+                      {sp.label}
+                    </span>
+                    <span className="text-[12px] text-[#0A2A3A]">
+                      {task.destination || task.source || '—'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Empty state */}
-          {filteredTasks.length === 0 && (
-            <div className="text-center mt-16">
-              <ClipboardList size={40} className="text-[#ccedeb] mx-auto" />
-              <p className="text-[#0a2a3a] text-[15px] font-semibold mt-3">No tasks found</p>
-              <p className="text-[#6b7280] text-[13px] mt-1">
-                {searchQuery || activeFilter !== 'All' ? 'Try a different search or filter' : 'Create a task to get started'}
-              </p>
-            </div>
-          )}
         </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -977,8 +848,6 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
   const [publishing, setPublishing] = useState(false);
   const [done, setDone] = useState(false);
   const [generalNotes, setGeneralNotes] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   function updateRow(id, field, value) {
     setRows(rows => rows.map(r => r.id === id ? { ...r, [field]: value } : r));
   }
@@ -1048,59 +917,9 @@ export function CreateTaskScreen({ onPublishAll, onBack }) {
     <div className="lg:hidden min-h-screen bg-[#f5f5f5] flex flex-col">
 
       {/* Header */}
-      <div className="bg-[#0a2a3a] px-5 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-          <p className="text-white text-[20px] font-semibold mt-0.5">Create Tasks</p>
-        </div>
-        <button onClick={e => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
-          className="text-white bg-transparent border-none cursor-pointer p-1">
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+      <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px', marginBottom: 8 }}>
+        <MobileNav mode="pantry" />
       </div>
-
-      {/* Mobile nav overlay */}
-      {mobileMenuOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]" style={{ animation: "slideDown 0.25s ease-out forwards" }}>
-            {/* Top bar */}
-            <div className="px-6 py-5 flex items-center justify-between">
-              <div>
-                <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-                <p className="text-white text-[18px] font-semibold mt-0.5">Create Tasks</p>
-              </div>
-              <button onClick={e => { e.stopPropagation(); setMobileMenuOpen(false); }}
-                className="text-white bg-transparent border-none cursor-pointer p-1">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="w-10 h-0.5 bg-[#0d9488] mx-6 mb-2" />
-            {/* Nav items */}
-            <nav className="flex flex-col py-2">
-              {[
-                { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
-                { label: "Tasks",     active: true,  action: () => navigate("/manager-tasks") },
-                { label: "Volunteers",active: false, action: () => {} },
-                { label: "History",   active: false, action: () => navigate("/manager-history") },
-              ].map(item => (
-                <button key={item.label}
-                  onClick={() => { item.action(); setMobileMenuOpen(false); }}
-                  className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${
-                    item.active ? "text-[#0d9488] border-l-[3px] border-[#0d9488]" : "text-[#757575] border-l-[3px] border-transparent"
-                  }`}>
-                  {item.label}
-                </button>
-              ))}
-              <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
-              <button onClick={() => { setMobileMenuOpen(false); navigate("/"); }}
-                className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer">
-                Logout
-              </button>
-            </nav>
-          </div>
-        </>
-      )}
 
       {/* Instruction */}
       <p className="text-[#6b7280] text-[13px] px-5 py-3 bg-white border-b border-[#e5e7eb]">

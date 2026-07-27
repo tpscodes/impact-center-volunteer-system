@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Menu, X, Plus, MapPin, Clock, Truck, Users, Pencil, MoreHorizontal, Trash2, ChevronDown,
+  X, Plus, MapPin, Clock, Truck, Users, Pencil, MoreHorizontal, Trash2, ChevronDown,
 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
@@ -10,6 +10,7 @@ import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import "./ManagerDeliveryRoutes.css";
+import MobileNav from "../components/MobileNav";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DAY_ORDER = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
@@ -239,7 +240,6 @@ export default function ManagerDeliveryRoutes() {
   const [occurrences, setOccurrences]  = useState([]);
   const [volunteers,  setVolunteers]   = useState([]);
   const [selectedId,  _setSelectedId]  = useState(_persistedSelectedId);
-  const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
   const [mobileFilter, setMobileFilter] = useState('All');
   const [showEditPopup,   setShowEditPopup]   = useState(false);
   const [editFields,      setEditFields]      = useState({});
@@ -551,27 +551,10 @@ export default function ManagerDeliveryRoutes() {
         <div style={{
           background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
           borderRadius: '0 0 28px 28px',
-          padding: '20px 20px 24px',
-          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+          color: '#fff',
         }}>
-          {/* Topbar */}
-          <div className="flex items-center">
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              className="w-10 h-10 flex items-center justify-center border-none cursor-pointer shrink-0"
-              style={{ borderRadius: 12, background: 'rgba(255,255,255,.14)' }}>
-              <Menu size={20} color="#fff" />
-            </button>
-            <div className="flex-1 ml-3">
-              <p className="m-0 text-white text-[15px] font-semibold leading-[18px]">Routes</p>
-              <p className="m-0 text-[12px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
-            </div>
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer p-0 shrink-0"
-              style={{ background: '#1B4256' }}>
-              <span className="text-white text-[14px] font-semibold">{initials}</span>
-            </button>
-          </div>
-
+          <MobileNav mode="delivery" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Stat row: Routes tag + big number + signal bars */}
           <div className="flex items-end justify-between">
             <div className="flex flex-col gap-3">
@@ -589,6 +572,7 @@ export default function ManagerDeliveryRoutes() {
           <p className="m-0 text-[12px]" style={{ color: '#D1D6DB' }}>
             {drivers.length} drivers active
           </p>
+          </div>{/* /inner padding */}
         </div>
 
         {/* Create Route button */}
@@ -676,61 +660,6 @@ export default function ManagerDeliveryRoutes() {
           </div>
         </div>
 
-        {/* Left-side slide-in drawer */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 z-40"
-              style={{ background: 'rgba(10,42,58,.45)' }}
-              onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 bottom-0 z-50 flex flex-col gap-6 overflow-y-auto"
-              style={{ width: 300, maxWidth: '82vw', background: '#09665E', borderRadius: '0 27px 27px 0', padding: '24px 16px' }}>
-              <button onClick={() => setMobileMenuOpen(false)}
-                className="absolute top-5 right-4 w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer"
-                style={{ background: 'rgba(255,255,255,.12)' }}>
-                <X size={14} color="#fff" />
-              </button>
-              <div className="flex items-center gap-3 px-2 pt-2">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: '#1B4256' }}>
-                  <span className="text-white text-[14px] font-semibold">{initials}</span>
-                </div>
-                <div>
-                  <p className="m-0 text-white text-[14px] font-semibold">{displayName}</p>
-                  <p className="m-0 text-[12px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
-                </div>
-              </div>
-              <div className="flex gap-1 p-1" style={{ background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager/dashboard'); }}
-                  className="flex-1 h-11 text-[13px] font-medium border-none cursor-pointer"
-                  style={{ background: 'transparent', color: 'rgba(255,255,255,.66)', borderRadius: 18 }}>
-                  Pantry
-                </button>
-                <button className="flex-1 h-11 text-[13px] font-semibold border-none cursor-pointer"
-                  style={{ background: '#0A2A3A', color: '#fff', borderRadius: 18 }}>
-                  Delivery
-                </button>
-              </div>
-              <nav className="flex flex-col gap-1">
-                {[
-                  { label: 'Overview', path: '/manager-delivery',            active: false },
-                  { label: 'Routes',   path: '/manager-delivery-routes',     active: true  },
-                  { label: 'Drivers',  path: '/manager-delivery-volunteers', active: false },
-                  { label: 'History',  path: '/manager-delivery-history',    active: false },
-                  { label: 'Settings', path: '/manager-settings',            active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
-                    className="flex items-center h-[49px] px-4 rounded-[26px] text-[15px] text-left w-full border-none cursor-pointer"
-                    style={item.active
-                      ? { background: '#fff', color: '#0A2A3A', fontWeight: 600 }
-                      : { background: 'transparent', color: 'rgba(255,255,255,.82)', fontWeight: 500 }}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </>
-        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

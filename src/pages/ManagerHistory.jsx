@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
-import { Search, Clock, MapPin, X, Menu, ClipboardList } from "lucide-react";
+import { Search, Clock, MapPin, X, ClipboardList } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import HistoryTable from "../components/HistoryTable";
 import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useSharedTasks } from "../hooks/useSharedTasks";
@@ -64,7 +65,6 @@ export default function ManagerHistory() {
 
   const [searchQuery,    setSearchQuery]    = useState("");
   const [dateFilter,     setDateFilter]     = useState("Today");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Sorting + filtering ────────────────────────────────────────────────────
   const sorted = [...completedTasks].sort((a, b) => (b.completedAtMs || 0) - (a.completedAtMs || 0));
@@ -133,46 +133,24 @@ export default function ManagerHistory() {
         <div style={{
           background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
           borderRadius: '0 0 28px 28px',
-          padding: '20px 20px 24px',
-          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+          color: '#fff',
         }}>
-          {/* Topbar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setMobileMenuOpen(o => !o)}
-                className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer"
-                style={{ background: 'rgba(10,42,58,.55)' }}>
-                <Menu size={18} color="#fff" />
-              </button>
-              <div className="w-10 h-10 rounded-full bg-[#1B4256] flex items-center justify-center shrink-0">
-                <span className="text-white text-[14px] font-semibold">{initials}</span>
+          <MobileNav mode="pantry" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Dual stats */}
+            <div className="flex gap-8">
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                  style={{ background: '#E6F5F3', color: '#09665E' }}>Task</span>
+                <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{completedTasks.length}</p>
+                <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total task completed</p>
               </div>
-              <div>
-                <p className="m-0 text-white text-[14px] font-semibold leading-[18px]">History</p>
-                <p className="m-0 text-[12px] leading-[16px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                  style={{ background: '#E6F5F3', color: '#09665E' }}>Sessions</span>
+                <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{uniqueSessions}</p>
+                <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total Sessions</p>
               </div>
-            </div>
-            <button className="w-9 h-9 rounded-[18px] flex items-center justify-center border-none cursor-pointer"
-              style={{ background: '#0A2A3A' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* Dual stats */}
-          <div className="flex gap-8">
-            <div className="flex flex-col gap-2.5">
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
-                style={{ background: '#E6F5F3', color: '#09665E' }}>Task</span>
-              <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{completedTasks.length}</p>
-              <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total task completed</p>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
-                style={{ background: '#E6F5F3', color: '#09665E' }}>Sessions</span>
-              <p className="m-0 text-[44px] leading-[44px]" style={{ fontWeight: 600 }}>{uniqueSessions}</p>
-              <p className="m-0 text-[12px]" style={{ color: '#D1D5DB' }}>Total Sessions</p>
             </div>
           </div>
         </div>
@@ -217,49 +195,6 @@ export default function ManagerHistory() {
           </div>
         </div>
 
-        {/* Teal rounded drawer */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 z-40"
-              style={{ background: 'rgba(10,42,58,.4)' }}
-              onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed left-5 right-5 overflow-hidden"
-              style={{ top: 63, background: 'rgba(13,148,136,.97)', borderRadius: 27, zIndex: 41 }}>
-              <nav className="flex flex-col p-2">
-                {[
-                  { label: 'Overview',   path: '/manager/dashboard', active: false },
-                  { label: 'Tasks',      path: '/manager-tasks',      active: false },
-                  { label: 'Volunteers', path: '/manager-volunteers', active: false },
-                  { label: 'History',    path: '/manager-history',    active: true  },
-                  { label: 'Settings',   path: '/manager-settings',   active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
-                    className="flex items-center w-full h-[49px] px-4 rounded-[26px] text-[15px] text-left border-none cursor-pointer"
-                    style={item.active
-                      ? { background: '#fff', color: '#0A2A3A', fontWeight: 600 }
-                      : { background: 'transparent', color: 'rgba(255,255,255,.82)', fontWeight: 500 }}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              {role !== 'superadmin' && activePantryId !== 'amber' && (
-                <div className="flex gap-1 mx-2 mb-2 p-1"
-                  style={{ background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
-                  <button className="flex-1 h-9 text-[13px] font-semibold border-none cursor-pointer"
-                    style={{ background: '#0A2A3A', color: '#fff', borderRadius: 18 }}>
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 h-9 text-[13px] font-semibold border-none cursor-pointer"
-                    style={{ background: 'transparent', color: 'rgba(255,255,255,.66)', borderRadius: 18 }}>
-                    Delivery
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

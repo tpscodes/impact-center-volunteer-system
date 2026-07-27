@@ -1,0 +1,277 @@
+/* MobileNav.css — glassmorphism inline-accordion nav for mobile (< lg) */
+
+:root {
+  /* --ease-spring already in index.css: cubic-bezier(0.16, 1, 0.3, 1) */
+}
+
+/* ── Shell ─────────────────────────────────────────────────────────────────── */
+.mn-shell {
+  margin: 12px 12px 0;
+  border-radius: 27px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 8px 32px rgba(10,42,58,0.28), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* ── Toggle bar (always visible) ───────────────────────────────────────────── */
+.mn-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 61px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.mn-toggle:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+.mn-profile-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mn-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(27,66,86,0.75);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.mn-profile-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.mn-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.mn-role {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+}
+
+.mn-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mn-mode-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(10,42,58,0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.mn-toggle:active .mn-mode-indicator {
+  transform: scale(0.92);
+}
+
+.mn-chevron {
+  color: rgba(255,255,255,0.75);
+  transition: transform 0.4s var(--ease-spring);
+  flex-shrink: 0;
+}
+
+.mn-toggle[aria-expanded="true"] .mn-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Collapsible body — smooth height via grid-rows trick ──────────────────── */
+.mn-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-spring);
+}
+
+.mn-collapsible.mn-open {
+  grid-template-rows: 1fr;
+}
+
+.mn-collapsible-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Nav list ──────────────────────────────────────────────────────────────── */
+.mn-list-wrap {
+  position: relative;
+}
+
+.mn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 12px;
+}
+
+.mn-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 49px;
+  padding: 0 16px;
+  border-radius: 26px;
+  color: rgba(255,255,255,0.82);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    background 0.2s var(--ease-spring),
+    color 0.2s var(--ease-spring);
+}
+
+/* Staggered fade+slide-in re-triggered every open via .mn-animate-in */
+.mn-list.mn-animate-in .mn-item {
+  animation: mn-item-in 0.38s var(--ease-spring) both;
+}
+
+.mn-list.mn-animate-in .mn-item:nth-child(1) { animation-delay: 0.04s; }
+.mn-list.mn-animate-in .mn-item:nth-child(2) { animation-delay: 0.09s; }
+.mn-list.mn-animate-in .mn-item:nth-child(3) { animation-delay: 0.14s; }
+.mn-list.mn-animate-in .mn-item:nth-child(4) { animation-delay: 0.19s; }
+.mn-list.mn-animate-in .mn-item:nth-child(5) { animation-delay: 0.24s; }
+
+@keyframes mn-item-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mn-item:hover:not(.mn-active) {
+  background: rgba(255,255,255,0.1);
+}
+
+.mn-item.mn-active {
+  background: rgba(255,255,255,0.95);
+  color: #0A2A3A;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(10,42,58,0.15);
+}
+
+/* ── Mode toggle ───────────────────────────────────────────────────────────── */
+.mn-mode-toggle {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 8px 12px 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 22px;
+}
+
+.mn-mode-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  height: 44px;
+  width: calc(50% - 6px);
+  background: #0A2A3A;
+  border-radius: 18px;
+  transition: transform 0.38s var(--ease-spring);
+  box-shadow: 0 4px 12px rgba(10,42,58,0.35);
+}
+
+.mn-mode-toggle[data-mode="delivery"] .mn-mode-slider {
+  transform: translateX(calc(100% + 4px));
+}
+
+.mn-mode-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  border-radius: 18px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,0.62);
+  font-weight: 500;
+  transition: color 0.3s var(--ease-spring);
+}
+
+.mn-mode-btn.mn-mode-active {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Menu crossfade (fires when mode switch is tapped) ─────────────────────── */
+.mn-menu-fade-out {
+  animation: mn-menu-out 0.18s var(--ease-spring) both;
+}
+
+.mn-menu-fade-in {
+  animation: mn-menu-in 0.3s var(--ease-spring) both;
+}
+
+@keyframes mn-menu-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes mn-menu-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .mn-shell *, .mn-shell *::before, .mn-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  /* Ensure items are visible even when animation is skipped */
+  .mn-item {
+    opacity: 1;
+    transform: none;
+  }
+}

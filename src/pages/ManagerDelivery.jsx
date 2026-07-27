@@ -2,7 +2,8 @@
 // Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Clock, Truck } from "lucide-react";
+import { X, Clock, Truck } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import SidebarLiquid from "../components/SidebarLiquid";
@@ -99,7 +100,6 @@ export default function ManagerDelivery() {
   const navigate = useNavigate();
   const { pantryId, displayName, initials, logout } = useAuth();
   const hasSeeded = useRef(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTodayFilter, setMobileTodayFilter] = useState('All');
   const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
   const [templates,   setTemplates]   = useState({});
@@ -323,27 +323,10 @@ export default function ManagerDelivery() {
         <div style={{
           background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
           borderRadius: '0 0 28px 28px',
-          padding: '20px 20px 24px',
-          display: 'flex', flexDirection: 'column', gap: 20, color: '#fff',
+          color: '#fff',
         }}>
-          {/* Topbar */}
-          <div className="flex items-center">
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              className="w-10 h-10 flex items-center justify-center border-none cursor-pointer shrink-0"
-              style={{ borderRadius: 12, background: 'rgba(255,255,255,.14)' }}>
-              <Menu size={20} color="#fff" />
-            </button>
-            <div className="flex-1 ml-3">
-              <p className="m-0 text-white text-[15px] font-semibold leading-[18px]">Overview</p>
-              <p className="m-0 text-[12px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
-            </div>
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer p-0 shrink-0"
-              style={{ background: '#1B4256' }}>
-              <span className="text-white text-[14px] font-semibold">{initials}</span>
-            </button>
-          </div>
-
+          <MobileNav mode="delivery" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Pill row */}
           <div className="flex items-center justify-between">
             <span className="text-[13px] font-semibold px-3.5 py-1.5 rounded-full"
@@ -377,6 +360,7 @@ export default function ManagerDelivery() {
               <p className="m-0 text-[12.5px]" style={{ color: 'rgba(255,255,255,.72)' }}>Unclaimed</p>
             </div>
           </div>
+          </div>{/* /inner padding */}
         </div>
 
         {/* Action buttons */}
@@ -460,61 +444,6 @@ export default function ManagerDelivery() {
           </div>
         </div>
 
-        {/* Left-side slide-in drawer */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 z-40"
-              style={{ background: 'rgba(10,42,58,.45)' }}
-              onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 bottom-0 z-50 flex flex-col gap-6 overflow-y-auto"
-              style={{ width: 300, maxWidth: '82vw', background: '#09665E', borderRadius: '0 27px 27px 0', padding: '24px 16px' }}>
-              <button onClick={() => setMobileMenuOpen(false)}
-                className="absolute top-5 right-4 w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer"
-                style={{ background: 'rgba(255,255,255,.12)' }}>
-                <X size={14} color="#fff" />
-              </button>
-              <div className="flex items-center gap-3 px-2 pt-2">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: '#1B4256' }}>
-                  <span className="text-white text-[14px] font-semibold">{initials}</span>
-                </div>
-                <div>
-                  <p className="m-0 text-white text-[14px] font-semibold">{displayName}</p>
-                  <p className="m-0 text-[12px]" style={{ color: 'rgba(255,255,255,.66)' }}>Operations Manager</p>
-                </div>
-              </div>
-              <div className="flex gap-1 p-1" style={{ background: 'rgba(255,255,255,.12)', borderRadius: 22 }}>
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/manager/dashboard'); }}
-                  className="flex-1 h-11 text-[13px] font-medium border-none cursor-pointer"
-                  style={{ background: 'transparent', color: 'rgba(255,255,255,.66)', borderRadius: 18 }}>
-                  Pantry
-                </button>
-                <button className="flex-1 h-11 text-[13px] font-semibold border-none cursor-pointer"
-                  style={{ background: '#0A2A3A', color: '#fff', borderRadius: 18 }}>
-                  Delivery
-                </button>
-              </div>
-              <nav className="flex flex-col gap-1">
-                {[
-                  { label: 'Overview', path: '/manager-delivery',            active: true  },
-                  { label: 'Routes',   path: '/manager-delivery-routes',     active: false },
-                  { label: 'Drivers',  path: '/manager-delivery-volunteers', active: false },
-                  { label: 'History',  path: '/manager-delivery-history',    active: false },
-                  { label: 'Settings', path: '/manager-settings',            active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); if (!item.active) navigate(item.path); }}
-                    className="flex items-center h-[49px] px-4 rounded-[26px] text-[15px] text-left w-full border-none cursor-pointer"
-                    style={item.active
-                      ? { background: '#fff', color: '#0A2A3A', fontWeight: 600 }
-                      : { background: 'transparent', color: 'rgba(255,255,255,.82)', fontWeight: 500 }}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </>
-        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
