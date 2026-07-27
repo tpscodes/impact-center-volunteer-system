@@ -1,1 +1,18 @@
-{"version":"0.0.1","configurations":[{"name":"dev","runtimeExecutable":"D:/node/npm.cmd","runtimeArgs":["run","dev"],"port":5174,"autoPort":true}]}
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "D:/node/npm.cmd",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5174,
+      "autoPort": true
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "D:/node/npm.cmd",
+      "runtimeArgs": ["run", "preview", "--", "--port", "4173"],
+      "port": 4173
+    }
+  ]
+}
