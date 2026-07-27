@@ -10,7 +10,8 @@ import { useNavigate } from "react-router-dom";
 import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import DeliveryHero from "../components/DeliveryHero";
-import { Search, Clock, MapPin, Truck, Calendar, X, Menu } from "lucide-react";
+import { Search, Clock, MapPin, Truck, Calendar, X } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -208,8 +209,6 @@ export default function ManagerDeliveryHistory() {
   const [searchQuery,    setSearchQuery]    = useState("");
   const [fromDate,       setFromDate]       = useState("");
   const [toDate,         setToDate]         = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   useEffect(() => {
     return onValue(ref(db, `pantries/${pantryId}/routeHistory`), snap => {
       const data = snap.val();
@@ -329,123 +328,95 @@ export default function ManagerDeliveryHistory() {
       <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-        <div className="bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{initials}</span>
+        {/* ── Gradient hero ─────────────────────────────────────────────────── */}
+        <div style={{
+          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
+          borderRadius: '0 0 28px 28px',
+          color: '#fff',
+        }}>
+          <MobileNav mode="delivery" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Dual stats */}
+          <div style={{ display: 'flex', gap: 32 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, width: 'fit-content', background: '#E6F5F3', color: '#09665E' }}>
+                Routes
+              </span>
+              <p style={{ margin: 0, fontSize: 44, fontWeight: 600, lineHeight: '44px', color: '#fff' }}>{completed.length}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Total routes completed</p>
             </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{displayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, width: 'fit-content', background: '#E6F5F3', color: '#09665E' }}>
+                Sessions
+              </span>
+              <p style={{ margin: 0, fontSize: 44, fontWeight: 600, lineHeight: '44px', color: '#fff' }}>{groups.length}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Total Sessions</p>
             </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
-          </button>
+          </div>{/* /inner padding */}
         </div>
 
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280]
-                             hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                  Pantry
-                </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
-                  Delivery
-                </button>
-              </div>
-              <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold
-                                bg-transparent border-none cursor-pointer
-                                ${item.active
-                                  ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                                  : "text-[#9ca3af] border-l-[3px] border-transparent"}`}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        <div className="px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Delivery History</h1>
-        </div>
-
-        <div className="px-4 flex flex-col gap-4 pb-8">
-          {/* Mobile stat tiles */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Tasks Completed Today", value: completedToday,    color: "#15703c" },
-              { label: "Total Sessions",         value: completed.length,  color: "#09665e" },
-              { label: "Drivers Participated",   value: uniqueDriverCount, color: "#9a5000" },
-            ].map((s, i) => (
-              <div key={s.label}
-                className={`bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 ${i === 2 ? "col-span-2" : ""}`}>
-                <p className="text-[#6b7280] text-[11px] mb-1">{s.label}</p>
-                <p className="text-[28px] font-semibold leading-none" style={{ color: s.color }}>{s.value}</p>
-              </div>
-            ))}
+        {/* ── History card ──────────────────────────────────────────────────── */}
+        <div style={{
+          margin: '15px 20px 32px', background: '#fff', borderRadius: 20,
+          border: '1px solid #E5E7EB', padding: '20px 20px 12px',
+          boxShadow: '0 8px 20px rgba(10,42,58,.05)',
+        }}>
+          {/* Card header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: '#0A2A3A' }}>History</h2>
+            <button style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              height: 40, width: 109, padding: '0 14px',
+              border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'default',
+              fontSize: 14, color: '#0A2A3A',
+            }}>
+              <span>All Time</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
           </div>
 
-          <ControlsRow className="flex-col" />
-
-          {/* Mobile history — individual cards */}
-          {filtered.length === 0 ? (
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-16
-                            flex flex-col items-center text-center">
-              <Clock size={36} className="text-[#E6F5F3] mb-3" />
-              <p className="text-[#0a2a3a] text-[15px] font-semibold">No completed routes yet</p>
-              <p className="text-[#6b7280] text-[13px] mt-1">Completed delivery routes will appear here</p>
-            </div>
-          ) : (
-            groups.map(group => (
-              <div key={group.date}>
-                <p className="text-[#09665e] text-[11px] font-semibold uppercase tracking-[.04em] mb-2">
-                  {getDateGroupLabel(group.date)}
-                </p>
-                <div className="flex flex-col gap-3">
-                  {group.routes.map(route => <HistoryCard key={route.id} route={route} />)}
+          {/* Route rows */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {completed.length === 0 ? (
+              <p style={{ margin: 0, textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '24px 0' }}>
+                No completed routes
+              </p>
+            ) : (
+              completed.map((route, i) => (
+                <div key={route.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 15,
+                    background: i % 2 === 0 ? '#D3EDE9' : 'transparent',
+                  }}>
+                  {/* Custom truck icon */}
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: '#0F7A70', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="24" height="18" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 6H14V16H1.5V6Z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round"/>
+                      <path d="M14 9H18.5L22 12.5V16H14V9Z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round"/>
+                      <circle cx="6.5" cy="18" r="1.9" fill="#0F7A70" stroke="white" strokeWidth="1.2"/>
+                      <circle cx="17.5" cy="18" r="1.9" fill="#0F7A70" stroke="white" strokeWidth="1.2"/>
+                    </svg>
+                  </div>
+                  {/* Route name */}
+                  <p style={{ flex: 1, margin: 0, fontSize: 12, fontWeight: 500, color: '#0A2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {templates[route.templateId]?.name || route.name || '—'}
+                  </p>
+                  {/* Date */}
+                  <span style={{ fontSize: 13, color: '#0A2A3A', flexShrink: 0 }}>
+                    {route.date
+                      ? new Date(route.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                      : '—'}
+                  </span>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

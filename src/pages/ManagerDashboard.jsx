@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import MobileNav from "../components/MobileNav";
 import DashboardHeader from "../components/DashboardHeader";
 import HeroSummary from "../components/HeroSummary";
 import LeftoverBanner from "../components/LeftoverBanner";
@@ -9,7 +10,7 @@ import TaskTable from "../components/TaskTable";
 import VolunteerListItem from "../components/VolunteerListItem";
 import { db } from "../firebase";
 import { ref, get, onValue, off } from "firebase/database";
-import { Plus, Menu, X, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 function fmtTime(ms) {
@@ -84,16 +85,6 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
 
-  // Mobile nav menu
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleClickOutside = () => setMobileMenuOpen(false);
-    if (mobileMenuOpen) {
-      document.addEventListener("click", handleClickOutside);
-    }
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [mobileMenuOpen]);
 
   // Load volunteers from Firebase
   useEffect(() => {
@@ -189,247 +180,129 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
       ══════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen bg-[#D3EDE9]">
 
-        {/* Mobile top bar */}
-        <div className="bg-[#0a2a3a] px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-              <span className="text-white text-sm font-semibold">{initials}</span>
-            </div>
+        {/* Gradient hero */}
+        <div style={{
+          background: 'linear-gradient(136deg, #0f7a70 14%, #0a2a3a 86%)',
+          borderRadius: '0 0 28px 28px',
+          color: '#fff',
+        }}>
+          <MobileNav mode="pantry" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Pill + volunteers active */}
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-semibold px-3.5 py-1.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,.9)', color: '#09665E' }}>
+              Active Tasks
+            </span>
+            <span className="text-[14px]" style={{ color: 'rgba(255,255,255,.72)' }}>
+              {volunteersActive} volunteers active
+            </span>
+          </div>
+
+          {/* Big number + signal bars */}
+          <div className="flex items-end justify-between">
             <div>
-              <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">{displayName}</p>
-              <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
+              <p className="m-0 text-[64px] leading-[64px]" style={{ fontWeight: 800 }}>{active.length}</p>
+              <p className="m-0 mt-0.5 text-[14px]" style={{ color: 'rgba(255,255,255,.72)' }}>Tasks</p>
             </div>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
-            className="text-white p-1"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile nav overlay */}
-        {mobileMenuOpen && (
-          <>
-            {/* Dim background — 40% black */}
-            <div
-              className="fixed inset-0 bg-black/40 z-40"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-
-            {/* Slide-down menu panel */}
-            <div
-              className="fixed top-0 left-0 right-0 z-50 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.25s ease-out forwards" }}
-            >
-              {/* Top bar */}
-              <div className="px-8 py-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-sm font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[16px] font-semibold leading-tight">{displayName}</p>
-                    <p className="text-[#757575] text-[14px] leading-tight">Operations Manager</p>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
-                  className="text-white p-1"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Teal divider */}
-              <div className="w-10 h-0.5 bg-[#0d9488] mx-8 mb-2" />
-
-              {/* Mode toggle — hidden for Amber and superadmin */}
-              {role !== 'superadmin' && activePantryId !== 'amber' && (
-                <div className="flex mx-4 mb-4 bg-[#0d2233] rounded-lg p-0.5">
-                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
-                    Delivery
-                  </button>
-                </div>
-              )}
-
-              {/* Nav items */}
-              <nav className="flex flex-col py-2">
-                {(role === 'superadmin' ? [
-                  { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
-                  { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
-                  { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
-                  { label: "Volunteers",  active: false,                      action: () => navigate("/manager-volunteers") },
-                ] : [
-                  { label: "Dashboard", active: true,  action: () => {} },
-                  { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
-                  { label: "Volunteers",active: false, action: () => navigate("/manager-volunteers") },
-                  { label: "History",   active: false, action: () => navigate("/manager-history") },
-                ]).map(item => (
-                  <button
-                    key={item.label}
-                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
-                    className={`w-full text-left px-8 py-4 text-[16px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#757575] border-l-[3px] border-transparent"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-
-                {/* Divider */}
-                <div className="mx-8 my-3 h-px bg-[#1e3a4a]" />
-
-                {/* Logout */}
-                <button
-                  onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="w-full text-left px-8 py-4 text-[16px] font-semibold text-[#dc2626] border-l-[3px] border-transparent bg-transparent border-none cursor-pointer"
-                >
-                  Logout
-                </button>
-              </nav>
-            </div>
-          </>
-        )}
-
-        {/* Pantry/Delivery toggle — superadmin Food Pantry only */}
-        {role === 'superadmin' && activePantryId === 'jason' && (
-          <div className="lg:hidden flex mx-4 mt-3 bg-[#0d2233] rounded-lg p-0.5">
-            <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-              Pantry
-            </button>
-            <button onClick={() => navigate('/manager-delivery')}
-              className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-              Delivery
-            </button>
-          </div>
-        )}
-
-        {/* Scrollable content */}
-        <div className="px-4 py-5 flex flex-col gap-4">
-
-          {/* Greeting + session status */}
-          <div className="flex items-start justify-between">
-            <h1 className="text-[22px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
-              Good Morning,<br />Operations Manager
-            </h1>
-            {isSessionActive ? (
-              <span className="bg-[#dcfce7] text-[#16a34a] text-[12px] font-semibold px-3 py-1.5 rounded-full shrink-0">
-                ● Active
-              </span>
-            ) : (
-              <span className="bg-[#f3f4f6] text-[#6b7280] text-[12px] font-semibold px-3 py-1.5 rounded-full shrink-0">
-                ○ No Session
-              </span>
-            )}
-          </div>
-
-          {/* Metrics — 2×2 grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Active Tasks",      value: active.length,      color: "#0d9488" },
-              { label: "In Progress",       value: inProgress.length,  color: "#bf6a02" },
-              { label: "Completed Today",   value: completed.length,   color: "#0d9488" },
-              { label: "Volunteers Active", value: volunteersActive,   color: "#1e1e1e" },
-            ].map(m => (
-              <div key={m.label} className="bg-white border border-[#e5e7ea] rounded-lg h-[90px] flex flex-col items-center justify-center gap-1">
-                <p className="text-[#6b7280] text-[12px] font-semibold text-center px-2">{m.label}</p>
-                <p className="text-[24px] font-semibold tracking-tight" style={{ color: m.color }}>{m.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-3">
-            {isSessionActive ? (
-              <button onClick={() => setShowEndConfirm(true)}
-                className="flex-1 border border-[#900b09] bg-[#fdd3d0] text-[#900b09] py-3 rounded-lg text-[15px] font-semibold cursor-pointer">
-                End Session
-              </button>
-            ) : (
-              <button onClick={() => { setModalType("open"); setShowModal(true); }}
-                className="flex-1 border border-[#16a34a] bg-[#dcfce7] text-[#16a34a] py-3 rounded-lg text-[15px] font-semibold cursor-pointer">
-                ▶ Start Session
-              </button>
-            )}
-            <button onClick={() => navigate("/manager-tasks")}
-              className="flex-1 bg-[#09665e] text-[#f0fafa] py-3 rounded-lg text-[15px] font-semibold flex items-center justify-center gap-2 cursor-pointer">
-              Create Task <Plus size={16} />
-            </button>
-          </div>
-
-          {/* Active Tasks section */}
-          <div className="bg-white rounded-lg overflow-hidden border border-[#e5e7ea]">
-            {/* Header */}
-            <div className="px-4 pt-4 pb-2">
-              <p className="text-[16px] font-semibold text-[#1e1e1e] mb-3">Active Tasks</p>
-              {/* Tag filters */}
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {TAG_FILTERS.map(tag => (
-                  <button key={tag} onClick={() => setActiveTag(tag)}
-                    className={`px-3 py-1.5 rounded-lg text-[13px] font-semibold shrink-0 cursor-pointer border-none ${
-                      activeTag === tag ? "bg-[#09665e] text-[#f0fafa]" : "bg-[#f0fafa] text-[#09665e]"
-                    }`}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Task cards */}
-            <div className="flex flex-col gap-3 px-3 pb-4 pt-2">
-              {filtered.filter(t => t.status !== "complete").length === 0 && (
-                <p className="text-center text-[#9ca3af] text-[14px] py-6">No active tasks</p>
-              )}
-              {filtered.filter(t => t.status !== "complete").map(task => (
-                <div key={task.id} className="bg-[#f0fafa] border border-[#d1d5db] rounded-lg p-3">
-                  {/* Row 1: name + steve badge + status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-[#0a2a3a] text-[15px] font-medium flex-1">
-                      {task.name || task.item}
-                      {task.modifiedBy === 'steve' && (
-                        <span className="ml-1.5 bg-[#0d9488] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle">Steve</span>
-                      )}
-                    </p>
-                    <span className={`px-2 py-0.5 rounded-lg text-[12px] font-semibold shrink-0 ${
-                      task.status === "in-progress" ? "bg-orange-100 text-[#ff9500]" :
-                      task.status === "incomplete"  ? "bg-red-100 text-[#dc2626]" :
-                      "bg-[#e6e6e6] text-[#757575]"
-                    }`}>
-                      {task.status === "in-progress" ? "In Progress" :
-                       task.status === "incomplete"  ? "Incomplete"  : "Available"}
-                    </span>
-                  </div>
-                  {/* Row 2: location */}
-                  <p className="text-[#6b7280] text-[12px] mt-1">{task.source || task.destination || "—"}</p>
-                  {/* Row 3: assigned + actions */}
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-[#0a2a3a] text-[12px]">
-                      {task.claimedByName || task.assignedName || "Unassigned"}
-                    </p>
-                    <div className="flex gap-3">
-                      <button onClick={() => onCompleteTask(task.id, "Manager")}
-                        className="text-[#303030] text-[12px] font-semibold bg-transparent border-none cursor-pointer">
-                        Mark Complete
-                      </button>
-                      <button onClick={() => onDeleteTask(task.id)}
-                        className="text-[#900b09] text-[12px] bg-transparent border-none cursor-pointer">
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-end gap-[3px]" style={{ height: 32 }}>
+              {[10, 16, 22, 32].map((h, i) => (
+                <span key={i} style={{ width: 6, height: h, borderRadius: 2, background: '#0D9488', display: 'block' }} />
               ))}
             </div>
           </div>
 
+          {/* Divider + stats */}
+          <div style={{ height: 1, background: 'rgba(255,255,255,.18)' }} />
+          <div className="flex gap-4">
+            <div>
+              <p className="m-0 text-[26px] font-bold leading-[26px]">{tasks.length}</p>
+              <p className="m-0 mt-1 text-[12.5px]" style={{ color: 'rgba(255,255,255,.72)' }}>Tasks</p>
+            </div>
+            <div style={{ borderLeft: '1px solid rgba(255,255,255,.18)', paddingLeft: 16 }}>
+              <p className="m-0 text-[26px] font-bold leading-[26px]">{unclaimed}</p>
+              <p className="m-0 mt-1 text-[12.5px]" style={{ color: 'rgba(255,255,255,.72)' }}>Unclaimed</p>
+            </div>
+          </div>
+          </div>{/* /stats inner */}
         </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-[9px] px-5 pt-[15px]">
+          <button
+            onClick={isSessionActive
+              ? () => setShowEndConfirm(true)
+              : () => { setModalType("open"); setShowModal(true); }}
+            className="flex-1 h-12 rounded-full text-[14px] font-semibold border-none cursor-pointer"
+            style={{ background: 'transparent', border: '1.5px solid #0D9488', color: '#0D9488' }}>
+            {isSessionActive ? 'End Session' : 'Start Session'}
+          </button>
+          <button onClick={() => navigate('/manager-tasks')}
+            className="flex-1 h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer"
+            style={{ background: '#0F7A70' }}>
+            + Create Task
+          </button>
+        </div>
+
+        {/* Active Tasks card */}
+        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
+          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+          <div className="flex items-center justify-between">
+            <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Tasks</h2>
+            <span className="text-[12px] font-medium text-[#565E6C]">View all</span>
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex flex-wrap gap-2">
+            {TAG_FILTERS.map(tag => (
+              <button key={tag} onClick={() => setActiveTag(tag)}
+                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
+                style={activeTag === tag
+                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
+                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {/* Task rows */}
+          <div className="flex flex-col">
+            {filtered.filter(t => t.status !== 'complete').length === 0 && (
+              <p className="m-0 text-center text-[#9ca3af] text-[14px] py-6">No active tasks</p>
+            )}
+            {filtered.filter(t => t.status !== 'complete').map((task, i) => {
+              const sp = task.status === 'in-progress'
+                ? { bg: '#FFF3E0', fg: '#9A5000', label: 'In Progress' }
+                : task.status === 'incomplete'
+                ? { bg: '#FFF0F0', fg: '#DC2626', label: 'Incomplete' }
+                : { bg: '#F3F4F6', fg: '#6B7280', label: 'Available' };
+              return (
+                <div key={task.id}
+                  className="flex items-center gap-4 py-3.5 pl-3.5 pr-5 rounded-[15px]"
+                  style={i % 2 === 0 ? { background: '#D3EDE9' } : {}}>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: '#0F7A70' }}>
+                    <ClipboardList size={18} color="#fff" />
+                  </div>
+                  <p className="flex-1 min-w-0 m-0 text-[12px] font-medium text-[#0A2A3A] truncate">
+                    {task.name || task.item}
+                  </p>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[12px] font-semibold px-3 py-0.5 rounded-full"
+                      style={{ background: sp.bg, color: sp.fg }}>
+                      {sp.label}
+                    </span>
+                    <span className="text-[12px] text-[#0A2A3A]">
+                      {task.destination || task.source || '—'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

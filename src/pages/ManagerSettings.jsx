@@ -1,7 +1,8 @@
 // ManagerSettings.jsx — Operations Manager settings screen
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { X, Menu, AlertTriangle, Check } from "lucide-react";
+import { X, AlertTriangle, Check } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, get, set, remove, update } from "firebase/database";
 import Sidebar from "../components/Sidebar";
@@ -62,8 +63,6 @@ export default function ManagerSettings() {
   // ── Toast ──────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
 
-  // ── Mobile menu ────────────────────────────────────────────────────────────
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function showToast(message) {
     setToast(message);
@@ -156,6 +155,27 @@ export default function ManagerSettings() {
     showToast("Settings saved");
   }
 
+  // Mobile: combined save for Profile + App Settings in one card
+  async function handleSaveAll() {
+    setProfileError("");
+    if (currentPw || newPw || confirmPw) {
+      if (currentPw !== storedPassword) { setProfileError("Current password is incorrect."); return; }
+      if (newPw.length < 4) { setProfileError("New password must be at least 4 characters."); return; }
+      if (newPw !== confirmPw) { setProfileError("New passwords do not match."); return; }
+      await set(ref(db, `pantries/${accountId}/appSettings/auth/password`), newPw);
+      setStoredPassword(newPw);
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    }
+    const derived = deriveInitials(displayName);
+    await Promise.all([
+      set(ref(db, `pantries/${accountId}/appSettings/profile`), { displayName, initials: derived }),
+      update(ref(db, `pantries/${accountId}/appSettings/auth`), { displayName, initials: derived }),
+      set(ref(db, `pantries/${accountId}/appSettings/app`), { orgName, location: appLocation, deliveryDays }),
+    ]);
+    updateProfile({ displayName, initials: derived });
+    showToast("Settings saved");
+  }
+
   async function handleReset(scope) {
     try {
       if (scope === "pantry" || scope === "all") {
@@ -240,104 +260,93 @@ export default function ManagerSettings() {
       ════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden min-h-screen flex flex-col pb-10">
 
-        {/* Mobile top bar */}
-        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{authInitials}</span>
+        {/* Mobile nav */}
+        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px' }}>
+          <MobileNav />
+        </div>
+
+        {/* Mobile settings cards — matches delivery-settings-mobile.html reference */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '24px 12px 32px' }}>
+
+          {/* Combined Profile + App Settings card */}
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>Profile</p>
+
+            {/* Horizontal avatar row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(10,42,58,0.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>
+                {initials}
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>{displayName}</p>
+                <p style={{ fontSize: 12, color: '#565E6C', margin: 0 }}>Operations Manager</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white text-[13px] font-medium">{authDisplayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+
+            {/* Display Name */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Display Name</label>
+              <input type="text" value={displayName}
+                onChange={e => handleDisplayNameChange(e.target.value)}
+                className={inputCls} />
             </div>
+
+            {/* Password fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Current Password</label>
+              <input type="password" placeholder="Enter current password"
+                value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>New Password</label>
+              <input type="password" placeholder="Enter new password"
+                value={newPw} onChange={e => setNewPw(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Confirm New Password</label>
+              <input type="password" placeholder="Confirm new password"
+                value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            {profileError && (
+              <p style={{ color: '#DC2626', fontSize: 11, margin: 0 }}>{profileError}</p>
+            )}
+
+            {/* App Settings sub-section */}
+            <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: '8px 0 0' }}>App Settings</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Organization Name</label>
+              <input type="text" value={orgName}
+                onChange={e => setOrgName(e.target.value)}
+                className={inputCls} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#6B7280' }}>Location</label>
+              <input type="text" value={appLocation}
+                onChange={e => setAppLocation(e.target.value)}
+                className={inputCls} />
+            </div>
+
+            <button onClick={handleSaveAll} className={saveBtnCls}>
+              Save Settings
+            </button>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
-          </button>
-        </div>
 
-        {/* Hamburger overlay */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              {role !== 'superadmin' && pantryId !== 'amber' && (
-                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none cursor-pointer">
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                    Delivery
-                  </button>
-                </div>
-              )}
-              <nav className="flex flex-col py-2">
-                {MOBILE_NAV.map(item => (
-                  <button key={item.label}
-                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#9ca3af] border-l-[3px] border-transparent"
-                    }`}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{authInitials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{authDisplayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
+          {/* Reset System card */}
+          {pantryId !== 'amber' && (
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <p style={{ fontSize: 17, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>Reset System</p>
+              <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Permanently delete data from the system. This cannot be undone.</p>
+              <button onClick={() => setShowResetModal(true)}
+                style={{ width: '100%', height: 48, borderRadius: 9999, border: '1px solid #DC2626', background: '#FFF0F0', color: '#DC2626', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>
+                Reset System Data
+              </button>
             </div>
-          </>
-        )}
-
-        {/* Mobile page title */}
-        <div className="lg:hidden px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Settings</h1>
-        </div>
-
-        <div className="px-4 pt-2">
-          <SettingsContent
-            card={card} inputCls={inputCls} labelCls={labelCls} saveBtnCls={saveBtnCls}
-            pantryId={pantryId}
-            displayName={displayName} initials={initials}
-            onDisplayNameChange={handleDisplayNameChange}
-            currentPw={currentPw} setCurrentPw={setCurrentPw}
-            newPw={newPw} setNewPw={setNewPw}
-            confirmPw={confirmPw} setConfirmPw={setConfirmPw}
-            profileError={profileError} onSaveProfile={handleSaveProfile}
-            orgName={orgName} setOrgName={setOrgName}
-            appLocation={appLocation} setAppLocation={setAppLocation}
-            deliveryDays={deliveryDays} onToggleDay={toggleDay}
-            onSaveApp={handleSaveApp}
-            onOpenReset={() => setShowResetModal(true)}
-          />
+          )}
         </div>
       </div>
 

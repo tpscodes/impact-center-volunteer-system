@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, push } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -69,7 +70,6 @@ function Card({ title, children }) {
 export default function CreateDeliveryRoute() {
   const navigate = useNavigate();
   const { pantryId } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -154,54 +154,10 @@ export default function CreateDeliveryRoute() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden flex flex-col min-h-screen">
 
-        {/* Mobile header */}
-        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Create Route</p>
-          </div>
-          <button onClick={() => setMobileMenuOpen(o => !o)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+        {/* Mobile nav */}
+        <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 28px 28px', marginBottom: 20 }}>
+          <MobileNav mode="delivery" />
         </div>
-
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
-                  Pantry
-                </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
-                  Delivery
-                </button>
-              </div>
-              <nav className="flex flex-col py-2">
-                {NAV_ITEMS.map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className="w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none text-[#9ca3af] border-l-[3px] border-transparent">
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </>
-        )}
 
         {/* Mobile form */}
         <div className="px-4 py-5 pb-8">

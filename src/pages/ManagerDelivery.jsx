@@ -2,7 +2,8 @@
 // Migrated to routeTemplates/ + routeOccurrences/ — deliveryRoutes/ deprecated
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, Clock, Truck } from "lucide-react";
+import { X, Clock, Truck } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import SidebarLiquid from "../components/SidebarLiquid";
@@ -99,7 +100,7 @@ export default function ManagerDelivery() {
   const navigate = useNavigate();
   const { pantryId, displayName, initials, logout } = useAuth();
   const hasSeeded = useRef(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileTodayFilter, setMobileTodayFilter] = useState('All');
   const [period, setPeriod] = useState("today"); // 'today' | 'week' | 'month'
   const [templates,   setTemplates]   = useState({});
   const [occurrences, setOccurrences] = useState([]);
@@ -315,103 +316,134 @@ export default function ManagerDelivery() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen flex flex-col">
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* Mobile top bar */}
-        <div className="lg:hidden bg-[#0a2a3a] px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center">
-              <span className="text-white text-[11px] font-semibold">{initials}</span>
-            </div>
+        {/* Gradient hero */}
+        <div style={{
+          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
+          borderRadius: '0 0 28px 28px',
+          color: '#fff',
+        }}>
+          <MobileNav mode="delivery" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Pill row */}
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-semibold px-3.5 py-1.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,.9)', color: '#09665E' }}>Active Routes</span>
+            <span className="text-[14px]" style={{ color: 'rgba(255,255,255,.72)' }}>{drivers.length} Drivers active</span>
+          </div>
+
+          {/* Big number + signal bars */}
+          <div className="flex items-end justify-between">
             <div>
-              <p className="text-white text-[13px] font-medium">{displayName}</p>
-              <p className="text-[#6b7280] text-[10px]">Operations Manager</p>
+              <p className="m-0 text-[56px] leading-[1]" style={{ fontWeight: 700 }}>{inProgress}</p>
+              <p className="m-0 text-[14px] mt-0.5" style={{ color: 'rgba(255,255,255,.72)' }}>Routes</p>
+            </div>
+            <div className="flex items-end gap-[3px]" style={{ height: 32 }}>
+              {[10, 16, 22, 32].map((h, i) => (
+                <span key={i} style={{ width: 6, height: h, borderRadius: 2, background: '#0D9488', display: 'block' }} />
+              ))}
             </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            <Menu size={22} />
+
+          <div style={{ height: 1, background: 'rgba(255,255,255,.18)' }} />
+
+          {/* Sub-stats */}
+          <div className="flex gap-4">
+            <div className="flex-1 flex flex-col gap-1.5 pr-4" style={{ borderRight: '1px solid rgba(255,255,255,.18)' }}>
+              <p className="m-0 text-[26px]" style={{ fontWeight: 700 }}>{totalRoutes}</p>
+              <p className="m-0 text-[12.5px]" style={{ color: 'rgba(255,255,255,.72)' }}>Total Routes</p>
+            </div>
+            <div className="flex-1 flex flex-col gap-1.5 pl-4">
+              <p className="m-0 text-[26px]" style={{ fontWeight: 700 }}>{unassigned}</p>
+              <p className="m-0 text-[12.5px]" style={{ color: 'rgba(255,255,255,.72)' }}>Unclaimed</p>
+            </div>
+          </div>
+          </div>{/* /inner padding */}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-[9px] px-3 mt-[15px]">
+          <button onClick={() => navigate('/manager-delivery-routes')}
+            className="flex-1 h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer flex items-center justify-center"
+            style={{ background: '#0F7A70' }}>
+            + Create Route
+          </button>
+          <button
+            className="flex-1 h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer flex items-center justify-center"
+            style={{ background: '#0D9488' }}>
+            Start Session
           </button>
         </div>
 
-        {/* Mobile nav overlay */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                <button onClick={() => { setMobileMenuOpen(false); navigate("/manager/dashboard"); }}
-                  className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3] bg-transparent border-none cursor-pointer">
-                  Pantry
-                </button>
-                <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white border-none">
-                  Delivery
-                </button>
-              </div>
-              <nav className="flex flex-col py-2">
-                {[
-                  { label: "Dashboard", path: "/manager-delivery",            active: true  },
-                  { label: "Routes",    path: "/manager-delivery-routes",     active: false },
-                  { label: "Drivers",   path: "/manager-delivery-volunteers", active: false },
-                  { label: "History",   path: "/manager-delivery-history",    active: false },
-                ].map(item => (
-                  <button key={item.label}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#9ca3af] border-l-[3px] border-transparent"
-                    }`}>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Mobile page title */}
-        <div className="lg:hidden px-4 pt-5 pb-3">
-          <p className="text-[#0d9488] text-[10px] uppercase tracking-widest mb-0.5">Operations Manager</p>
-          <h1 className="text-[22px] font-semibold text-[#0a2a3a] tracking-tight">Delivery Dashboard</h1>
-        </div>
-
-        {/* Mobile content */}
-        <div className="px-4 py-4 flex flex-col gap-4">
+        {/* Active Routes card */}
+        <div className="mx-3 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
+          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
           <div className="flex items-center justify-between">
-            <p className="text-[#0a2a3a] text-[14px] font-semibold">{todayStr}</p>
-            <PeriodToggle />
+            <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Routes</h2>
+            <button onClick={() => navigate('/manager-delivery-routes')}
+              className="text-[12px] font-medium text-[#565E6C] bg-transparent border-none cursor-pointer p-0">
+              View all
+            </button>
           </div>
-          <StatCards cards={deliveryCards} cols={4} />
-          <RouteOverview />
-          <DriversSection />
+
+          <div className="flex flex-wrap gap-2">
+            {['All', 'Morning', 'Afternoon'].map(f => (
+              <button key={f} onClick={() => setMobileTodayFilter(f)}
+                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
+                style={mobileTodayFilter === f
+                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
+                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col">
+            {(() => {
+              const filtered = sortedRoutes.filter(r => {
+                if (mobileTodayFilter === 'All') return true;
+                const t = r.departureTime || '';
+                const m = t.match(/(\d+)(?::(\d+))?\s*(am|pm)/i);
+                if (!m) return false;
+                let h = +m[1];
+                if (/pm/i.test(m[3]) && h < 12) h += 12;
+                if (/am/i.test(m[3]) && h === 12) h = 0;
+                return (h < 12 ? 'Morning' : 'Afternoon') === mobileTodayFilter;
+              });
+              if (filtered.length === 0) return (
+                <p className="m-0 text-center text-[#9ca3af] text-[14px] py-6">No routes for this filter</p>
+              );
+              return filtered.map((r, i) => (
+                <div key={r.id}
+                  className="flex items-center gap-4 py-3.5 pl-3.5 pr-5 rounded-[15px]"
+                  style={i % 2 === 0 ? { background: '#D3EDE9' } : {}}>
+                  <div className="flex items-center justify-center shrink-0"
+                    style={{ width: 40, height: 41, borderRadius: 8, background: '#0F7A70' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M1.5 6H14V16H1.5V6Z" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+                      <path d="M14 9H18.5L22 12.5V16H14V9Z" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+                      <circle cx="6.5" cy="18" r="1.9" stroke="white" strokeWidth="1.6"/>
+                      <circle cx="17.5" cy="18" r="1.9" stroke="white" strokeWidth="1.6"/>
+                    </svg>
+                  </div>
+                  <p className="flex-1 min-w-0 m-0 text-[12px] font-medium text-[#0A2A3A] truncate">{r.name}</p>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[12px] font-semibold px-3 py-0.5 rounded-full"
+                      style={r.status === 'inProgress'
+                        ? { background: '#FFF3E0', color: '#9A5000' }
+                        : { background: '#E6E6E6', color: '#4B5563' }}>
+                      {r.status === 'inProgress' ? 'In Progress' : 'Available'}
+                    </span>
+                    <span className="text-[12px] text-[#0A2A3A]">{r.departureTime || ''}</span>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
         </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
-import { Search, UserPlus, X, Menu, Check, Pencil } from "lucide-react";
+import { Search, UserPlus, X, Check, Pencil, Trash2 } from "lucide-react";
+import MobileNav from "../components/MobileNav";
 import { db } from "../firebase";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
@@ -197,7 +198,6 @@ export default function ManagerVolunteers() {
   const [volunteers, setVolunteers] = useState(SEED_VOLUNTEERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -322,229 +322,117 @@ export default function ManagerVolunteers() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT  (below lg breakpoint)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col pb-24"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* ── Mobile header ── */}
-        <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-[#0d9488] text-[10px] uppercase tracking-widest">Operations Manager</p>
-            <p className="text-white text-[18px] font-semibold leading-tight">Volunteers</p>
-          </div>
-          <button onClick={() => setMobileMenuOpen(o => !o)}
-            className="text-white bg-transparent border-none cursor-pointer p-1">
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-
-        {/* ── Hamburger slide-down overlay ── */}
-        {mobileMenuOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/40 z-30"
-              onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed top-0 left-0 right-0 z-40 bg-[#0a2a3a]"
-              style={{ animation: "slideDown 0.22s ease" }}>
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1a3a4a]">
-                <div>
-                  <p className="text-white text-[14px] font-semibold tracking-wide">IMPACT CENTER</p>
-                  <p className="text-[#0d9488] text-[10px]">Volunteer Task Management</p>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)}
-                  className="text-white bg-transparent border-none cursor-pointer p-1">
-                  <X size={20} />
-                </button>
+        {/* Gradient hero */}
+        <div style={{
+          background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
+          borderRadius: '0 0 28px 28px',
+          color: '#fff',
+        }}>
+          <MobileNav mode="pantry" />
+          <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Stat row: Volunteers tag + big number + signal bars */}
+            <div className="flex items-end justify-between">
+              <div className="flex flex-col gap-3">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full w-fit"
+                  style={{ background: '#E6F5F3', color: '#09665E' }}>Volunteers</span>
+                <p className="m-0 text-[64px] leading-[64px]" style={{ fontWeight: 800 }}>{volunteers.length}</p>
               </div>
-              {/* Mode toggle — hidden for Amber and superadmin */}
-              {role !== 'superadmin' && pantryId !== 'amber' && (
-                <div className="flex mx-4 my-3 bg-[#0d2233] rounded-lg p-0.5">
-                  <button className="flex-1 py-1.5 rounded-md text-[12px] font-medium bg-[#09665e] text-white">
-                    Pantry
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/manager-delivery'); }}
-                    className="flex-1 py-1.5 rounded-md text-[12px] font-medium text-[#6b7280] hover:text-[#b3b3b3]">
-                    Delivery
-                  </button>
-                </div>
-              )}
-
-              <nav className="flex flex-col py-2">
-                {(role === 'superadmin' ? [
-                  { label: "Overview",    active: false,                      action: () => navigate("/steve-overview") },
-                  { label: "Food Pantry", active: activePantryId === "jason", action: () => { switchPantry("jason"); navigate("/manager-tasks"); } },
-                  { label: "Clothing",    active: activePantryId === "amber", action: () => { switchPantry("amber"); navigate("/manager-tasks"); } },
-                  { label: "Volunteers",  active: true,                       action: () => {} },
-                ] : [
-                  { label: "Dashboard", active: false, action: () => navigate("/manager/dashboard") },
-                  { label: "Tasks",     active: false, action: () => navigate("/manager-tasks") },
-                  { label: "Volunteers",active: true,  action: () => {} },
-                  { label: "History",   active: false, action: () => navigate("/manager-history") },
-                ]).map(item => (
-                  <button key={item.label}
-                    onClick={() => { item.action(); setMobileMenuOpen(false); }}
-                    className={`w-full text-left px-5 py-3.5 text-[15px] font-semibold bg-transparent border-none cursor-pointer ${
-                      item.active
-                        ? "text-[#0d9488] border-l-[3px] border-[#0d9488]"
-                        : "text-[#9ca3af] border-l-[3px] border-transparent"
-                    }`}>
-                    {item.label}
-                  </button>
+              <div className="flex items-end gap-[3px]" style={{ height: 32 }}>
+                {[10, 16, 22, 32].map((h, i) => (
+                  <span key={i} style={{ width: 6, height: h, borderRadius: 2, background: '#0D9488', display: 'block' }} />
                 ))}
-              </nav>
-              <div className="px-5 py-4 border-t border-[#1a3a4a] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
-                    <span className="text-white text-[12px] font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="text-[#b3b3b3] text-[13px] font-semibold">{displayName}</p>
-                    <p className="text-[#757575] text-[11px]">Operations Manager</p>
-                  </div>
-                </div>
-                <button onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="text-[#dc2626] text-[12px] bg-transparent border-none cursor-pointer">
-                  Logout
-                </button>
               </div>
             </div>
-          </>
-        )}
 
-        {/* ── Stats grid ── */}
-        <div className="px-4 pt-4 grid grid-cols-2 gap-3">
-          <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3">
-            <p className="text-[#6b7280] text-[11px] mb-1">Total Volunteers</p>
-            <p className="text-[28px] font-semibold leading-none text-[#0d9488]">{volunteers.length}</p>
-          </div>
-          <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3">
-            <p className="text-[#6b7280] text-[11px] mb-1">Active This Session</p>
-            <p className="text-[28px] font-semibold leading-none text-[#ff9500]">{volunteers.filter(v => v.active).length}</p>
-          </div>
-          <div className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3 col-span-2">
-            <p className="text-[#6b7280] text-[11px] mb-1">New Volunteers Today</p>
-            <p className="text-[28px] font-semibold leading-none text-[#34c759]">0</p>
-          </div>
-        </div>
-
-        {/* ── Search ── */}
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-2 border border-[#e5e7eb] rounded-lg px-3 py-2.5 bg-white">
-            <Search size={14} className="text-[#b3b3b3] shrink-0" />
-            <input type="text" placeholder="Search by name or ID..."
-              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 text-[13px] text-[#0a2a3a] placeholder-[#b3b3b3] outline-none bg-transparent" />
-          </div>
-        </div>
-
-        {/* ── Controls row (mobile) ── */}
-        <div className="px-4 pt-4 flex flex-col gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-              className="border border-[#e5e7eb] rounded-lg px-3 py-1.5 text-[13px] text-[#0a2a3a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]">
-              <option value="name-asc">Name A → Z</option>
-              <option value="name-desc">Name Z → A</option>
-              <option value="id-asc">ID Ascending</option>
-              <option value="recent">Most Recently Active</option>
-            </select>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {["all", "active", "inactive"].map(s => (
-              <button key={s} onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors capitalize ${
-                  statusFilter === s ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
-                }`}>
-                {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "all",      label: "All Roles"   },
-              { value: "pantry",   label: "Pantry Only" },
-              { value: "driver",   label: "Driver"      },
-              { value: "clothing", label: "Clothing"    },
-              { value: "both",     label: "Both"        },
-            ].map(r => (
-              <button key={r.value} onClick={() => setRoleFilter(r.value)}
-                className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
-                  roleFilter === r.value ? "bg-[#0d9488] text-white" : "bg-white border border-[#e5e7eb] text-[#6b7280]"
-                }`}>
-                {r.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center">
-            <p className="text-[#6b7280] text-[12px]">
-              Showing {filteredAndSorted.length} of {volunteers.length} volunteers
+            {/* Caption */}
+            <p className="m-0 text-[12px]" style={{ color: '#D1D6DB' }}>
+              {volunteers.filter(v => v.active).length} volunteers active
             </p>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-[#0d9488] text-[12px] underline ml-auto bg-transparent border-none cursor-pointer">
-                Clear filters
-              </button>
-            )}
           </div>
         </div>
 
-        {/* ── Section header ── */}
-        <div className="px-4 pt-3 pb-2">
-          <p className="text-[#0a2a3a] text-[15px] font-semibold">Experienced Volunteers</p>
-        </div>
-
-        {/* ── Volunteer cards ── */}
-        <div className="px-4 flex flex-col gap-3">
-          {filteredAndSorted.length === 0 ? (
-            <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-10 text-center">
-              <p className="text-[#6b7280] text-[14px]">No volunteers found.</p>
-            </div>
-          ) : (
-            filteredAndSorted.map(vol => (
-              <div key={vol.id} className="bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5 flex items-center gap-3">
-                {/* ID pill */}
-                <span className="bg-[#ccedeb] text-[#09665e] text-[12px] font-medium px-2.5 py-1 rounded-lg shrink-0">
-                  {vol.id}
-                </span>
-                {/* Name + last active + role pills */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[#0a2a3a] text-[14px] font-semibold truncate">{vol.name}</p>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    <span className="bg-[#ccedeb] text-[#09665e] text-[11px] px-2 py-0.5 rounded-full">Pantry</span>
-                    {vol.isDriver && (
-                      <span className="bg-[#fff3e0] text-[#ff9500] text-[11px] px-2 py-0.5 rounded-full">Driver</span>
-                    )}
-                    {vol.isClothing && (
-                      <span className="bg-[#f3e8ff] text-[#7c3aed] text-[11px] px-2 py-0.5 rounded-full">Clothing</span>
-                    )}
-                  </div>
-                  <p className="text-[#6b7280] text-[11px] mt-0.5">{vol.lastActive || "Never active"}</p>
-                </div>
-                {/* Status badge */}
-                <span className={`text-[11px] font-medium px-2.5 py-1 rounded-lg shrink-0 ${
-                  vol.active ? "bg-[#f0fff4] text-[#34c759]" : "bg-[#e6e6e6] text-[#6b7280]"
-                }`}>
-                  {vol.active ? "Active" : "Inactive"}
-                </span>
-                {/* Edit */}
-                <button onClick={() => handleEditOpen(vol)}
-                  className="text-[#0d9488] hover:text-[#09665e] shrink-0 bg-transparent border-none cursor-pointer">
-                  <Pencil size={14} />
-                </button>
-                {/* Remove */}
-                <button onClick={() => handleRemoveVolunteer(vol.id)}
-                  className="text-[#dc2626] text-[12px] shrink-0 bg-transparent border-none cursor-pointer">
-                  Remove
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* ── Fixed bottom Add button ── */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white border-t border-[#e5e7eb] z-20">
+        {/* Add Volunteer button */}
+        <div className="px-5 pt-[15px]">
           <button onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 bg-[#09665e] text-white py-3 rounded-xl text-[15px] font-semibold border-none cursor-pointer active:opacity-80">
+            className="w-full h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer flex items-center justify-center gap-2"
+            style={{ background: '#0F7A70' }}>
             <UserPlus size={16} />
             Add Volunteer
           </button>
         </div>
+
+        {/* Experienced Volunteers card */}
+        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-4"
+          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+          <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Experienced Volunteers</h2>
+
+          {/* Search */}
+          <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-lg px-3 py-2.5 bg-white">
+            <Search size={14} className="text-[#b3b3b3] shrink-0" />
+            <input type="text" placeholder="Search by name or ID..."
+              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 text-[13px] text-[#0A2A3A] placeholder-[#b3b3b3] outline-none bg-transparent" />
+          </div>
+
+          {/* Role filter chips — 3 per Figma */}
+          <div className="flex gap-2">
+            {[
+              { value: 'all',    label: 'All Roles'   },
+              { value: 'pantry', label: 'Pantry Only' },
+              { value: 'driver', label: 'Driver'      },
+            ].map(r => (
+              <button key={r.value} onClick={() => setRoleFilter(r.value)}
+                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
+                style={roleFilter === r.value
+                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
+                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Volunteer rows */}
+          <div className="flex flex-col">
+            {filteredAndSorted.length === 0 ? (
+              <p className="m-0 text-center text-[#6b7280] text-[14px] py-6">No volunteers found.</p>
+            ) : (
+              filteredAndSorted.map(vol => (
+                <div key={vol.id}
+                  className="flex items-center gap-3 py-3 border-b border-[#F3F4F6] last:border-0">
+                  <span className="text-[12px] font-medium px-2.5 py-1 rounded-lg shrink-0"
+                    style={{ background: '#E6F5F3', color: '#09665E' }}>
+                    {vol.id}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="m-0 text-[14px] font-semibold text-[#0A2A3A] truncate">{vol.name}</p>
+                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full"
+                        style={{ background: '#E6F5F3', color: '#09665E' }}>Pantry</span>
+                      {vol.isDriver && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{ background: '#FFF3E0', color: '#9A5000' }}>Driver</span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => handleEditOpen(vol)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border-none cursor-pointer"
+                    style={{ background: '#E6F5F3' }}>
+                    <Pencil size={13} color="#09665E" />
+                  </button>
+                  <button onClick={() => handleRemoveVolunteer(vol.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border-none cursor-pointer"
+                    style={{ background: '#E6F5F3' }}>
+                    <Trash2 size={13} color="#09665E" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
