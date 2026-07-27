@@ -95,8 +95,9 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
         <table className="tt-table">
           <thead>
             <tr>
-              <th>Tasks</th>
-              <th>Locations</th>
+              <th>Task</th>
+              <th>Location</th>
+              {planning && <th>Picked Up By</th>}
               <th>Priority</th>
               {!planning && <th>Assigned To</th>}
               {!planning && <th>Status</th>}
@@ -127,6 +128,9 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
                     ))}
                   </td>
                   <td className="tt-muted">{location || "—"}</td>
+                  {planning && (
+                    <td className="tt-muted">{assigned || "—"}</td>
+                  )}
                   <td>
                     {priVariant && (
                       <span className={`tt-pill tt-pill--${priVariant}`}>{task.priority}</span>

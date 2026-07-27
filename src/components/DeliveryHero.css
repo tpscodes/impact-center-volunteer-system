@@ -1,0 +1,99 @@
+/* DeliveryHero.css — gradient stat hero for the Delivery Dashboard */
+
+.dh-card {
+  background: linear-gradient(171deg, #0f7a70 14%, #0a2a3a 86%);
+  border-radius: 24px;
+  padding: 32px 40px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0;
+  animation: dh-in 480ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+
+@keyframes dh-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dh-divider {
+  width: 1px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+/* ── Stat section ── */
+.dh-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 32px;
+  opacity: 0;
+  animation: dh-section-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.dh-section:first-child { padding-left: 0; }
+.dh-section:last-child  { padding-right: 0; }
+
+@keyframes dh-section-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.dh-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Chip */
+.dh-chip {
+  font: 600 12px/16px 'Inter', sans-serif;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.dh-chip--brand    { background: #E6F5F3; color: #09665E; }
+.dh-chip--complete { background: #F0FFF4; color: #15703C; }
+.dh-chip--progress { background: #FFF3E0; color: #9A5000; }
+.dh-chip--available{ background: #E6E6E6; color: #4B5563; }
+
+/* Mini bar chart */
+.dh-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 32px;
+  width: 48px;
+}
+
+.dh-spark-bar {
+  width: 5px;
+  border-radius: 2px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  animation: dh-bar-grow 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dh-bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+.dh-value {
+  font: 600 34px/38px 'Inter', sans-serif;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.34px;
+}
+
+.dh-delta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 500 13px/18px 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+}

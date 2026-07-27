@@ -120,10 +120,19 @@ export default function SidebarLiquid({ mode: modeProp }) {
   const { pathname } = useLocation();
   const { activePantryId, role, displayName, initials, logout } = useAuth();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1280);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const leadRef = useRef(null);
   const trailRef = useRef(null);
+
+  // Auto-collapse below xl (1280 px), auto-expand at xl+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1280px)");
+    const handle = (e) => setCollapsed(!e.matches);
+    handle(mql);
+    mql.addEventListener("change", handle);
+    return () => mql.removeEventListener("change", handle);
+  }, []);
 
   // Derive mode: prop wins, then pathname heuristic
   const isDelivery =
@@ -132,11 +141,17 @@ export default function SidebarLiquid({ mode: modeProp }) {
   const mode = isDelivery ? "delivery" : "pantry";
   const nav = mode === "delivery" ? DELIVERY_NAV : PANTRY_NAV;
 
-  const activeIndex = Math.max(0, nav.findIndex((item) => pathname === item.path));
+  // Map child routes back to their parent nav path so the correct icon stays active
+  const CHILD_MAP = {
+    "/manager/create-task": "/manager-tasks",
+  };
+  const resolvedPath = CHILD_MAP[pathname] ?? pathname;
+  const activeIndex = Math.max(0, nav.findIndex((item) => resolvedPath === item.path));
 
   // Keep CSS variable in sync so pages can use ml-[var(--sidebar-w)]
   useEffect(() => {
-    document.documentElement.style.setProperty("--sidebar-w", collapsed ? "88px" : "264px");
+    // 16px left margin + sidebar width + 16px gap before content
+    document.documentElement.style.setProperty("--sidebar-w", collapsed ? "108px" : "296px");
     return () => document.documentElement.style.removeProperty("--sidebar-w");
   }, [collapsed]);
 
@@ -225,7 +240,7 @@ export default function SidebarLiquid({ mode: modeProp }) {
                   className="sl-mode"
                   type="button"
                   aria-pressed={mode === "pantry"}
-                  onClick={() => navigate("/manager/dashboard")}
+                  onClick={() => navigate(collapsed && mode === "pantry" ? "/manager-delivery" : "/manager/dashboard")}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" strokeWidth="2"
@@ -239,7 +254,7 @@ export default function SidebarLiquid({ mode: modeProp }) {
                   className="sl-mode"
                   type="button"
                   aria-pressed={mode === "delivery"}
-                  onClick={() => navigate("/manager-delivery")}
+                  onClick={() => navigate(collapsed && mode === "delivery" ? "/manager/dashboard" : "/manager-delivery")}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" strokeWidth="2"

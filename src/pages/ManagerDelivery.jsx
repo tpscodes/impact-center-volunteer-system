@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { Menu, X, Clock, Truck } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
-import Sidebar from "../components/Sidebar";
+import SidebarLiquid from "../components/SidebarLiquid";
+import DeliveryHero from "../components/DeliveryHero";
 import PageHeader from "../components/PageHeader";
 import StatCards from "../components/StatCards";
 import seedRouteTemplates from "../utils/seedRouteTemplates";
@@ -171,7 +172,15 @@ export default function ManagerDelivery() {
     { label: "Total Routes", value: totalRoutes, accent: "brand",    chart: null, delta: null },
     { label: "Completed",    value: completed,   accent: "complete", chart: null, delta: null },
     { label: "In Progress",  value: inProgress,  accent: "progress", chart: null, delta: null },
-    { label: "Unassigned",   value: unassigned,  accent: "danger",   chart: null, delta: null },
+    { label: "Unassigned",   value: unassigned,  accent: "neutral",  chart: null, delta: null },
+  ];
+
+  const BARS = [11, 18, 14, 25, 21, 32];
+  const heroSections = [
+    { label: "Total Routes", chipTone: "brand",     value: totalRoutes, delta: totalRoutes === 0 ? "no routes this period"  : undefined, bars: BARS },
+    { label: "Completed",    chipTone: "complete",   value: completed,   delta: completed   === 0 ? "no completions yet"      : undefined, bars: BARS },
+    { label: "In Progress",  chipTone: "progress",   value: inProgress,  delta: inProgress  === 0 ? "none active"             : undefined, bars: BARS },
+    { label: "Unassigned",   chipTone: "available",  value: unassigned,  delta: unassigned  === 0 ? "fully staffed"           : undefined, bars: BARS },
   ];
 
   // ── Driver route counts ───────────────────────────────────────────────────
@@ -209,7 +218,7 @@ export default function ManagerDelivery() {
 
       {sortedRoutes.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-1">
-          <Truck size={40} color="#E6F5F3" style={{ marginBottom: 12 }} />
+          <Truck size={40} color="#FF9500" style={{ marginBottom: 12 }} />
           <p className="text-[#0a2a3a] text-[15px] font-semibold">No routes for this period</p>
           <p className="text-[#6b7280] text-[14px]">Switch to Routes to add delivery routes</p>
         </div>
@@ -274,7 +283,7 @@ export default function ManagerDelivery() {
             const driverInitials = getInitials(driver.name);
             return (
               <div key={driver.id}
-                className={`flex items-center gap-3 py-[10px] rounded-[14px] transition-colors hover:bg-[#f5f5f5] ${
+                className={`flex items-center gap-3 py-[10px] rounded-[14px] transition-colors hover:bg-[#D3EDE9] ${
                   i < drivers.length - 1 ? "border-b border-[#f3f4f6]" : ""
                 }`}>
                 {/* 40px solid teal avatar — light-surface variant */}
@@ -300,7 +309,7 @@ export default function ManagerDelivery() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]"
+    <div className="min-h-screen bg-[#D3EDE9]"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -406,14 +415,50 @@ export default function ManagerDelivery() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
+          TABLET LAYOUT
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex xl:hidden min-h-screen">
+
+        <SidebarLiquid mode="delivery" />
+
+        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+          <div className="px-6 pt-5 pb-3">
+            <PageHeader
+              initials={initials}
+              label="Dashboard"
+              right={
+                <div className="ph-time-range">
+                  {[["today","Today"],["week","This Week"],["month","This Month"]].map(([val, lbl]) => (
+                    <button key={val} type="button"
+                      className="ph-time-range__option"
+                      aria-pressed={period === val}
+                      onClick={() => setPeriod(val)}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+          </div>
+          <div className="p-6 flex flex-col gap-5">
+            <DeliveryHero sections={heroSections} />
+            <div className="grid grid-cols-2 gap-5">
+              <RouteOverview />
+              <DriversSection />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
           DESKTOP LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex min-h-screen">
+      <div className="hidden xl:flex min-h-screen">
 
-        <Sidebar mode="delivery" activePath="/manager-delivery" />
+        <SidebarLiquid mode="delivery" />
 
         {/* Main content */}
-        <div className="lg:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
+        <div className="xl:ml-[var(--sidebar-w)] flex-1 flex flex-col min-h-screen">
 
           {/* Pill header */}
           <div className="px-6 pt-5 pb-3">
@@ -437,7 +482,7 @@ export default function ManagerDelivery() {
 
           {/* Page content */}
           <div className="p-6 flex flex-col gap-5">
-            <StatCards cards={deliveryCards} cols={4} />
+            <DeliveryHero sections={heroSections} />
             <div className="grid grid-cols-2 gap-5">
               <RouteOverview />
               <DriversSection />
