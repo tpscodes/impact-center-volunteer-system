@@ -16,7 +16,7 @@ function formatDisplayName(first, last) {
 // accidentally overwrite shiftLeader when claiming/completing tasks.
 export default function NewVolunteerTasks() {
   const navigate = useNavigate();
-  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader } = useSharedTasks(PANTRY_ID);
+  const { tasks, synced, error, session, claimTask, completeTask, shiftLeader, completedTasks } = useSharedTasks(PANTRY_ID);
 
   // ── Name entry state ─────────────────────────────────────────────────────────
   const savedName = (() => {
@@ -384,7 +384,7 @@ export default function NewVolunteerTasks() {
           {[
             [myTask ? availableTasks.length : openTasks.length, 'Available'],
             [allInProgressCount, 'In Progress'],
-            ['—', 'Completed Today'],
+            [(completedTasks || []).length, 'Completed Today'],
           ].map(([num, label], i, arr) => (
             <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, paddingRight: i < arr.length - 1 ? 12 : 0, borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.18)' : 'none' }}>
               <p style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1 }}>{num}</p>
