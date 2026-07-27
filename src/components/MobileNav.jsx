@@ -140,7 +140,7 @@ const CHILD_MAP = {
 export default function MobileNav({ mode: modeProp }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { role, activePantryId, displayName, initials } = useAuth();
+  const { role, activePantryId, displayName, initials, logout } = useAuth();
 
   const [open, setOpen]               = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -241,6 +241,19 @@ export default function MobileNav({ mode: modeProp }) {
                   {item.label}
                 </button>
               ))}
+              <button
+                className="mn-item"
+                type="button"
+                onClick={() => { close(); logout(); }}
+                style={{ color: 'rgba(255,120,120,0.9)', marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 12 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15 3H19C19.552 3 20 3.448 20 4V20C20 20.552 19.552 21 19 21H15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  <path d="M10 17L15 12L10 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 12H3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                Log out
+              </button>
             </div>
           </div>
 
