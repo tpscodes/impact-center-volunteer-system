@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
+import { useIsTablet } from "../hooks/useBreakpoint";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 
@@ -291,6 +292,201 @@ export function MyTask() {
     if (isShiftLeaderTask) await clearShiftLeader();
     showToastMsg('Task marked complete ✓');
     setTimeout(() => navigate(`/task-pool?pantry=${pantryId}`), 1200);
+  }
+
+  const isTablet = useIsTablet();
+
+  if (isTablet) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#D3EDE9', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, padding: '0 8px 0 24px', borderRadius: 9999, background: '#0A2A3A', boxShadow: '0 8px 20px rgba(10,42,58,0.18)', flexShrink: 0 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Experienced Volunteer</p>
+              <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0 }}>My Task</p>
+            </div>
+            <button
+              onClick={() => { sessionStorage.removeItem("volunteerId"); navigate("/"); }}
+              style={{ height: 44, padding: '0 20px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+              Exit
+            </button>
+          </div>
+
+          {!myTask ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>{completing ? "✅" : "📭"}</div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>
+                {completing ? "Task Complete!" : "No active task"}
+              </p>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>
+                {completing ? "Heading back to task pool…" : "Head back to pick a new one!"}
+              </p>
+              {!completing && (
+                <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                  style={{ padding: '12px 24px', background: '#09665e', color: '#fff', borderRadius: 9999, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  ← Back to Tasks
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Status banner */}
+              <div style={{ background: '#0A2A3A', borderRadius: 20, padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#FFA726', display: 'inline-block', animation: 'pulseOrange 2s infinite', flexShrink: 0 }} />
+                  In Progress
+                </p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>{myTask.name || myTask.item}</p>
+              </div>
+
+              {/* Shift leader badge */}
+              {(myTask.tags || []).includes("Shift Leader") && (
+                <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: 12, borderLeft: '4px solid #ff9500' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#ff9500', margin: 0 }}>🟠 You are the Shift Leader — new volunteers can find you for help</p>
+                </div>
+              )}
+
+              {/* Cards row */}
+              <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+
+                {/* Detail card */}
+                <div style={{ flex: 1.4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 28, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 20px', alignContent: 'start' }}>
+                  {[["Action", myTask.action], ["Item", myTask.item], ["Source", myTask.source], ["To", myTask.destination]].filter(([, v]) => v).map(([label, val]) => (
+                    <div key={label}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>{label}</label>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: '#0A2A3A' }}>{val}</div>
+                    </div>
+                  ))}
+                  {(myTask.specialInstructions || myTask.comments) && (
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #E5E7EB', paddingTop: 20 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Special Instructions</label>
+                      <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.5, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+                        {myTask.specialInstructions || myTask.comments}
+                      </p>
+                    </div>
+                  )}
+                  {myTask.tags && myTask.tags.length > 0 && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {myTask.tags.map(tag => (
+                        <span key={tag} style={{ background: '#E6F5F3', color: '#09665e', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8 }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Side panel */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0A2A3A' }}>Finished this task?</h4>
+                    <p style={{ margin: 0, fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>Mark it complete once done, or unclaim it to release it back to the pool.</p>
+                    <button
+                      onClick={() => setShowCompleteModal(true)}
+                      disabled={completing}
+                      style={{ height: 50, borderRadius: 9999, border: 'none', background: '#0D9488', color: '#fff', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: completing ? 0.5 : 1 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      {completing ? "Saving…" : "Mark Complete"}
+                    </button>
+                    <button
+                      onClick={() => setShowUnclaimModal(true)}
+                      disabled={completing}
+                      style={{ height: 50, borderRadius: 9999, border: '1px solid #DC2626', background: '#FFF0F0', color: '#DC2626', fontSize: 14, fontWeight: 600, cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: completing ? 0.5 : 1 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      Unclaim
+                    </button>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <button onClick={() => navigate(`/task-pool?pantry=${pantryId}`)}
+                      style={{ fontSize: 13, color: '#6B7280', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      ← Back to Task Pool
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shift Leader: new volunteer tasks panel (tablet — below cards row) */}
+              {isShiftLeader && (
+                <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, boxShadow: '0 8px 20px rgba(10,42,58,0.05)' }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#ff9500', margin: '0 0 16px' }}>
+                    🟠 New Volunteer Tasks ({newVolTasks.length})
+                  </p>
+                  {newVolTasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', margin: 0 }}>No new volunteers working right now</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {newVolTasks.map(t => {
+                        const isActive = t.status === "in-progress";
+                        const isIncomplete = t.status === "incomplete";
+                        return (
+                          <div key={t.id} style={{ borderRadius: 16, border: `1px solid ${isActive ? '#fed7aa' : isIncomplete ? '#fecaca' : '#E5E7EB'}`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: 0 }}>{t.name}</p>
+                                <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 9999, padding: '1px 8px', flexShrink: 0, background: isActive ? '#fff7ed' : isIncomplete ? '#fee2e2' : '#f0fdf4', color: isActive ? '#ff9500' : isIncomplete ? '#dc2626' : '#16a34a' }}>
+                                  {isActive ? "In Progress" : isIncomplete ? "Incomplete" : "Available"}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>📍 {t.destination}</p>
+                            </div>
+                            {isActive && (
+                              <button onClick={() => markTaskIncomplete(t.id)}
+                                style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: 12, fontFamily: 'inherit' }}>
+                                Mark Incomplete
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+
+        {/* Shared modals + toast — same as mobile */}
+        {showUnclaimModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+            onClick={e => { if (e.target === e.currentTarget) setShowUnclaimModal(false); }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Unclaim this task?</h4>
+              <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>It'll go back into the available pool for another volunteer to pick up.</p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button onClick={() => setShowUnclaimModal(false)}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>Cancel</button>
+                <button onClick={handleConfirmUnclaim}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#DC2626', color: '#fff' }}>Unclaim</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showCompleteModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,42,58,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 }}
+            onClick={e => { if (e.target === e.currentTarget) setShowCompleteModal(false); }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h4 style={{ margin: 0, fontSize: 17, color: '#0A2A3A' }}>Mark task complete?</h4>
+              <p style={{ margin: 0, fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>{myTask?.name || 'This task'} will be removed from your active tasks.</p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button onClick={() => setShowCompleteModal(false)}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#F3F5F6', color: '#0A2A3A' }}>Cancel</button>
+                <button onClick={handleConfirmComplete}
+                  style={{ flex: 1, height: 44, borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: '#0D9488', color: '#fff' }}>Mark Complete</button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: `translateX(-50%) translateY(${toast.show ? 0 : 20}px)`, background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, opacity: toast.show ? 1 : 0, pointerEvents: 'none', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 200 }}>
+          {toast.message}
+        </div>
+        <style>{`
+          @keyframes pulseOrange { 0% { box-shadow: 0 0 0 0 rgba(255,167,38,0.55); } 70% { box-shadow: 0 0 0 9px rgba(255,167,38,0); } 100% { box-shadow: 0 0 0 0 rgba(255,167,38,0); } }
+          @media (prefers-reduced-motion: reduce) { *, .pulse-dot { animation: none !important; transition: none !important; } }
+        `}</style>
+      </div>
+    );
   }
 
   const S = { fontFamily: "'Inter', sans-serif" };

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
+import { useIsTablet } from '../hooks/useBreakpoint'
 import TaskDetail from './TaskDetail'
 import { Search, MapPin, ArrowRight, Pin, ClipboardList } from 'lucide-react'
 
@@ -17,7 +18,8 @@ export default function TaskPool() {
   const navigate = useNavigate()
   const location = useLocation()
   const pantryId = new URLSearchParams(location.search).get('pantry') || 'jason'
-  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete } = useSharedTasks(pantryId)
+  const isTablet = useIsTablet()
+  const { tasks, synced, error, session, claimTask, setShiftLeader, markTaskIncomplete, completedTasks } = useSharedTasks(pantryId)
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState(pantryId === 'amber' ? 'Clothing' : 'All')
   const [pendingClaim, setPendingClaim] = useState(null)
@@ -128,6 +130,178 @@ export default function TaskPool() {
         />
         {pendingClaim && <ShiftLeaderModal slName={slName} setSlName={setSlName} onConfirm={handleSetShiftLeader} onSkip={() => { setPendingClaim(null); setSlName(''); navigate(`/experienced/mytask?pantry=${pantryId}`) }} />}
       </>
+    )
+  }
+
+  const allInProgress = tasks.filter(t => t.status === 'in-progress')
+  const completedTodayCount = (completedTasks || []).length
+
+  if (isTablet) {
+    const tabletInProgress = claimedByOthers.concat(myTask ? [myTask] : [])
+    return (
+      <div style={{ minHeight: '100vh', background: '#D3EDE9', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, padding: '0 8px 0 9px', borderRadius: 9999, background: '#0A2A3A', boxShadow: '0 8px 20px rgba(10,42,58,0.18)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 22, background: '#1B4256', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600, flexShrink: 0 }}>
+                {initials(volunteerName)}
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Welcome</p>
+                <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0 }}>{volunteerName}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { sessionStorage.removeItem('volunteerId'); sessionStorage.removeItem('volunteerName'); navigate('/') }}
+              style={{ height: 44, padding: '0 20px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+              Exit
+            </button>
+          </div>
+
+          {/* Hero */}
+          <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: 28, padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              {myTask ? (
+                <>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ADE80', display: 'inline-block', animation: 'pulseGreen 2s infinite', flexShrink: 0 }} />
+                      You're working on
+                    </p>
+                    <p style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '4px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myTask.name}</p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/experienced/mytask?pantry=${pantryId}`)}
+                    style={{ height: 44, padding: '0 22px', borderRadius: 9999, background: '#fff', color: '#0A2A3A', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, fontFamily: 'inherit' }}>
+                    View Task <ArrowRight size={13} />
+                  </button>
+                </>
+              ) : (
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'rgba(255,255,255,0.55)', margin: 0 }}>No active task</p>
+              )}
+            </div>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.18)' }} />
+            <div style={{ display: 'flex', gap: 40 }}>
+              {[
+                [available.length, 'Available'],
+                [allInProgress.length, 'In Progress'],
+                [completedTodayCount, 'Completed Today'],
+              ].map(([num, label], i, arr) => (
+                <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingRight: i < arr.length - 1 ? 40 : 0, borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.18)' : 'none' }}>
+                  <p style={{ fontSize: 32, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1 }}>{num}</p>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)', margin: 0 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div style={{ flex: 1, height: 50, border: '1px solid #E5E7EB', borderRadius: 9999, display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', background: '#fff' }}>
+              <Search size={16} color="#9CA3AF" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search Task"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ border: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 14, color: '#0A2A3A', width: '100%', background: 'transparent' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {TAG_FILTERS.map(tag => (
+                <button key={tag} onClick={() => setActiveTag(tag)}
+                  style={{
+                    height: 38, padding: '0 16px', borderRadius: 9999, fontSize: 13,
+                    fontWeight: activeTag === tag ? 600 : 500, cursor: 'pointer',
+                    border: activeTag === tag ? 'none' : '1px solid #E5E7EB',
+                    background: activeTag === tag ? '#0A2A3A' : '#fff',
+                    color: activeTag === tag ? '#fff' : '#6B7280',
+                    whiteSpace: 'nowrap', fontFamily: 'inherit',
+                  }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Two-column task layout */}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+            {/* Available column */}
+            <div style={{ flex: 1, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#6B7280', margin: 0 }}>Available Tasks</h3>
+                <span style={{ fontSize: 13, color: '#9CA3AF' }}>({available.length})</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 520, overflowY: 'auto', paddingRight: 4 }}>
+                {incompleteTasks.length > 0 && incompleteTasks.map(task => (
+                  <TaskCard key={task.id} task={task} statusLabel="Incomplete"
+                    statusBg="#FFF0F0" statusFg="#DC2626"
+                    onClaim={() => handleClaim(task)}
+                    ctaText="Tap to claim and finish" />
+                ))}
+                {available.length === 0 && incompleteTasks.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '40px 0' }}>
+                    {myTask ? 'Complete your current task first!' :
+                     (search || activeTag !== 'All') ? 'No tasks match your filters.' : 'No tasks available right now'}
+                  </p>
+                )}
+                {available.map(task => (
+                  <TaskCard key={task.id} task={task}
+                    statusLabel={task.priority || 'Normal'}
+                    statusBg={task.priority === 'Urgent' ? '#FFF0F0' : task.priority === 'High' ? '#FFF3E0' : '#F3F4F6'}
+                    statusFg={task.priority === 'Urgent' ? '#DC2626' : task.priority === 'High' ? '#9A5000' : '#6B7280'}
+                    onClaim={() => handleClaim(task)}
+                    ctaText="Tap to claim and finish" />
+                ))}
+              </div>
+            </div>
+
+            {/* In Progress column */}
+            <div style={{ flex: 1, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, boxShadow: '0 8px 20px rgba(10,42,58,0.05)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#6B7280', margin: 0 }}>In Progress</h3>
+                <span style={{ fontSize: 13, color: '#9CA3AF' }}>({tabletInProgress.length})</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 520, overflowY: 'auto', paddingRight: 4 }}>
+                {tabletInProgress.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '40px 0' }}>No tasks in progress</p>
+                )}
+                {tabletInProgress.map(t => (
+                  <InProgressCard key={t.id} task={t} isMine={t.assignedTo === volunteerId} />
+                ))}
+                {newVolInProgress.length > 0 && newVolInProgress.map(t => (
+                  <div key={t.id} style={{ background: '#FFFBF0', border: '1px solid #FCD34D', borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: '#0A2A3A', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                      <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>
+                        {t.claimedByName ? <>Claimed by <strong style={{ color: '#0A2A3A' }}>{t.claimedByName}</strong></> : 'Unassigned'}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 9999, background: '#FFF3E0', color: '#9A5000', whiteSpace: 'nowrap', flexShrink: 0 }}>New Vol</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {pendingClaim && (
+          <ShiftLeaderModal slName={slName} setSlName={setSlName} onConfirm={handleSetShiftLeader}
+            onSkip={() => { setPendingClaim(null); setSlName(''); navigate(`/experienced/mytask?pantry=${pantryId}`) }} />
+        )}
+
+        <style>{`
+          @keyframes pulseGreen {
+            0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.55); }
+            70%  { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+            100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+          }
+          @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+        `}</style>
+      </div>
     )
   }
 
