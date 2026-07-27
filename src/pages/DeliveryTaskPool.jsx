@@ -407,13 +407,14 @@ export default function DeliveryTaskPool() {
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Top bar */}
-      <div className="bg-[#0a2a3a] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 24px 24px' }}
+        className="px-4 py-4 flex items-center justify-between z-10">
         <button onClick={() => navigate("/volunteer-mode-select", { state: { volunteer } })}
           className="text-white bg-transparent border-none cursor-pointer p-1 -ml-1">
           <ChevronLeft size={22} />
         </button>
         <p className="text-white text-[16px] font-semibold">Delivery Routes</p>
-        <p className="text-[#0d9488] text-[11px]">{getTodayDisplay()}</p>
+        <p className="text-[#4ADE80] text-[11px] font-semibold">{getTodayDisplay()}</p>
       </div>
 
       {/* Stats pills */}
