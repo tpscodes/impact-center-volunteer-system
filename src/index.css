@@ -53,6 +53,16 @@
   --duration-fast: 120ms;
 }
 
+/* ─── Auth card animations ────────────────────────────────────────────────── */
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes auth-illus-in {
+  from { opacity: 0; transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 /* ─── Shared animation keyframes ─────────────────────────────────────────── */
 @keyframes sidebar-in {
   from { opacity: 0; transform: translateX(-8px); }

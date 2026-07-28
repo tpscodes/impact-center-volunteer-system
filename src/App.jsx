@@ -6,6 +6,10 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 // Pages
 import LandingPage from "./components/LandingPage";
 import ManagerLogin from "./pages/ManagerLogin";
+import WelcomeRoleSelect from "./pages/WelcomeRoleSelect";
+import LoginOperationsManager from "./pages/LoginOperationsManager";
+import LoginExperiencedVolunteer from "./pages/LoginExperiencedVolunteer";
+import LoginNewVolunteer from "./pages/LoginNewVolunteer";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import ManagerTasksPage from "./pages/ManagerTasks";
 import CreateTask from "./pages/CreateTask";
@@ -102,12 +106,15 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Landing */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Landing / role picker */}
+          <Route path="/"               element={<WelcomeRoleSelect />} />
+          <Route path="/old-landing"    element={<LandingPage />} />
 
-          {/* Login — available at both /login and legacy /manager/login */}
-          <Route path="/login"          element={<ManagerLogin />} />
-          <Route path="/manager/login"  element={<ManagerLogin />} />
+          {/* Login screens */}
+          <Route path="/login"          element={<LoginOperationsManager />} />
+          <Route path="/manager/login"  element={<LoginOperationsManager />} />
+          <Route path="/experienced"    element={<LoginExperiencedVolunteer />} />
+          <Route path="/new-login"      element={<LoginNewVolunteer />} />
 
           {/* Steve superadmin overview — superadmin only */}
           <Route path="/steve-overview" element={<RequireSuperAdmin><SteveOverview /></RequireSuperAdmin>} />
@@ -135,7 +142,6 @@ export default function App() {
 
           {/* Volunteer flows — no auth required */}
           <Route path="/volunteer-mode-select" element={<VolunteerModeSelect />} />
-          <Route path="/experienced"           element={<VolunteerIdEntry />} />
           <Route path="/experienced/tasks"     element={<TaskPool />} />
           <Route path="/task-pool"             element={<TaskPool />} />
           <Route path="/experienced/mytask"    element={<MyTaskWrapper />} />
