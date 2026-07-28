@@ -18,7 +18,7 @@ const inputStyle = {
   color: '#0A2A3A',
   border: '1px solid #E5E7EB',
   borderRadius: 10,
-  padding: '11px 14px',
+  padding: '13px 14px',
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
@@ -125,7 +125,7 @@ export default function LoginOperationsManager() {
           disabled={loading}
           style={{
             width: '100%',
-            padding: '12px 18px',
+            padding: '14px 18px',
             border: 'none',
             borderRadius: 9999,
             background: '#0D9488',

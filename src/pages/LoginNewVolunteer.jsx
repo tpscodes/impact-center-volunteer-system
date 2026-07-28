@@ -31,7 +31,7 @@ function AuthInput({ id, label, value, onChange, placeholder, autoComplete }) {
           color: '#0A2A3A',
           border: `1px solid ${focused ? '#0D9488' : '#E5E7EB'}`,
           borderRadius: 10,
-          padding: '11px 14px',
+          padding: '13px 14px',
           outline: 'none',
           width: '100%',
           boxSizing: 'border-box',
@@ -107,7 +107,7 @@ export default function LoginNewVolunteer() {
           disabled={!canSubmit}
           style={{
             width: '100%',
-            padding: '12px 18px',
+            padding: '14px 18px',
             border: 'none',
             borderRadius: 9999,
             background: canSubmit ? '#0D9488' : '#D1D5DB',
