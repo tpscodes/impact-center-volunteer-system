@@ -157,7 +157,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
   const activeVolIds = new Set(tasks.filter(t => t.assignedTo).map(t => t.assignedTo));
   const activeVolList = volunteers.filter(v => activeVolIds.has(v.id) || activeVolIds.has(v.name)).slice(0, 4);
 
-  const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing"];
+  const TAG_FILTERS = ["All", "Warehouse", "Kitchen"];
 
   let filtered = tasks.filter(t =>
     !search ||
@@ -250,7 +250,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
           style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Tasks</h2>
-            <span className="text-[12px] font-medium text-[#565E6C]">View all</span>
+            <span className="text-[12px] font-medium text-[#565E6C] cursor-pointer" onClick={() => navigate('/manager-tasks')}>View all</span>
           </div>
 
           {/* Filter chips */}
