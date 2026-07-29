@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import SidebarSteve from "./SidebarSteve";
@@ -122,8 +123,10 @@ export default function SidebarLiquid({ mode: modeProp }) {
 
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1280);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [popoverPos, setPopoverPos] = useState(null);
   const leadRef = useRef(null);
   const trailRef = useRef(null);
+  const profileRef = useRef(null);
 
   // Auto-collapse below xl (1280 px), auto-expand at xl+
   useEffect(() => {
@@ -292,38 +295,21 @@ export default function SidebarLiquid({ mode: modeProp }) {
 
           {/* Footer */}
           <div className="sl-rail-foot">
-            <div
-              className={`sl-popover${popoverOpen ? " sl-popover-open" : ""}`}
-              role="dialog"
-              aria-label="Account"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sl-popover-name">{displayName}</div>
-              <div className="sl-popover-role">Operations Manager</div>
-              <div className="sl-popover-div"/>
-              <button
-                className="sl-popover-link"
-                type="button"
-                onClick={() => { navigate("/manager-settings"); setPopoverOpen(false); }}
-              >
-                Account settings
-              </button>
-              <button
-                className="sl-popover-link"
-                type="button"
-                onClick={logout}
-              >
-                Sign out
-              </button>
-            </div>
-
             <button
+              ref={profileRef}
               className="sl-profile"
               type="button"
               aria-haspopup="dialog"
               aria-expanded={popoverOpen}
               aria-label={`${displayName}, Operations Manager. Open account menu`}
-              onClick={(e) => { e.stopPropagation(); setPopoverOpen((v) => !v); }}
+              onClick={(e) => {
+              e.stopPropagation();
+              if (!popoverOpen) {
+                const rect = profileRef.current?.getBoundingClientRect();
+                if (rect) setPopoverPos({ left: rect.left, bottom: window.innerHeight - rect.top + 8 });
+              }
+              setPopoverOpen((v) => !v);
+            }}
             >
               <span className="sl-avatar" aria-hidden="true">{initials}</span>
               <span className="sl-profile-text">
@@ -335,6 +321,37 @@ export default function SidebarLiquid({ mode: modeProp }) {
 
         </div>
       </div>
+
+      {/* Account popover — portalled to document.body so it escapes sl-ui overflow:hidden
+          and the sidebar's stacking context entirely, even when collapsed */}
+      {popoverOpen && popoverPos && createPortal(
+        <div
+          className="sl-popover sl-popover-open"
+          role="dialog"
+          aria-label="Account"
+          style={{ position: "fixed", left: popoverPos.left, bottom: popoverPos.bottom, zIndex: 200 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="sl-popover-name">{displayName}</div>
+          <div className="sl-popover-role">Operations Manager</div>
+          <div className="sl-popover-div"/>
+          <button
+            className="sl-popover-link"
+            type="button"
+            onClick={() => { navigate("/manager-settings"); setPopoverOpen(false); }}
+          >
+            Account settings
+          </button>
+          <button
+            className="sl-popover-link"
+            type="button"
+            onClick={logout}
+          >
+            Sign out
+          </button>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
