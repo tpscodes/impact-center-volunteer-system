@@ -1,5 +1,11 @@
 /* SidebarLiquid.css — liquid/goo sidebar design */
 
+/* Never render the sidebar at mobile — position:fixed means it escapes
+   parent display:none and would bleed over MobileNav at narrow viewports. */
+@media (max-width: 1023px) {
+  .sl-shell { display: none !important; }
+}
+
 .sl-shell {
   --teal-500: #0D9488;
   --teal-600: #0F7A70;
