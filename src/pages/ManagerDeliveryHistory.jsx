@@ -205,10 +205,12 @@ export default function ManagerDeliveryHistory() {
   const navigate = useNavigate();
   const { pantryId, displayName, initials, logout } = useAuth();
 
-  const [routes,         setRoutes]         = useState([]);
-  const [searchQuery,    setSearchQuery]    = useState("");
-  const [fromDate,       setFromDate]       = useState("");
-  const [toDate,         setToDate]         = useState("");
+  const [routes,           setRoutes]           = useState([]);
+  const [searchQuery,      setSearchQuery]      = useState("");
+  const [fromDate,         setFromDate]         = useState("");
+  const [toDate,           setToDate]           = useState("");
+  const [mobileDateFilter, setMobileDateFilter] = useState("All Time");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   useEffect(() => {
     return onValue(ref(db, `pantries/${pantryId}/routeHistory`), snap => {
       const data = snap.val();
@@ -224,6 +226,15 @@ export default function ManagerDeliveryHistory() {
   );
 
   const todayStr = getTodayStr();
+
+  // Mobile date filter applied to completed routes
+  const mobileFiltered = completed.filter(r => {
+    if (mobileDateFilter === "Today")      return r.date === todayStr;
+    if (mobileDateFilter === "This Week")  { const { start, end } = getWeekRange();  return r.date >= start && r.date <= end; }
+    if (mobileDateFilter === "This Month") { const { start, end } = getMonthRange(); return r.date >= start && r.date <= end; }
+    return true; // All Time
+  });
+
   const completedToday   = completed.filter(r => r.date === todayStr).length;
   const uniqueDriverCount = new Set(completed.flatMap(r => driverNames(r.drivers))).size;
 
@@ -365,27 +376,53 @@ export default function ManagerDeliveryHistory() {
           {/* Card header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: '#0A2A3A' }}>History</h2>
-            <button style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-              height: 40, width: 109, padding: '0 14px',
-              border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'default',
-              fontSize: 14, color: '#0A2A3A',
-            }}>
-              <span>All Time</span>
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M1 1l4 4 4-4"/>
-              </svg>
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMobileFilterOpen(o => !o)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                  height: 40, width: 120, padding: '0 14px',
+                  border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'pointer',
+                  fontSize: 14, color: '#0A2A3A', fontFamily: 'inherit',
+                }}
+              >
+                <span>{mobileDateFilter}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              {mobileFilterOpen && (
+                <div style={{
+                  position: 'absolute', top: 46, right: 0, zIndex: 50,
+                  background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(10,42,58,.12)', overflow: 'hidden', minWidth: 140,
+                }}>
+                  {["Today", "This Week", "This Month", "All Time"].map(opt => (
+                    <button key={opt}
+                      onClick={() => { setMobileDateFilter(opt); setMobileFilterOpen(false); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '11px 16px', border: 'none', cursor: 'pointer',
+                        fontSize: 14, fontFamily: 'inherit',
+                        background: mobileDateFilter === opt ? '#E6F5F3' : '#fff',
+                        color: mobileDateFilter === opt ? '#09665E' : '#0A2A3A',
+                        fontWeight: mobileDateFilter === opt ? 600 : 400,
+                      }}
+                    >{opt}</button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Route rows */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {completed.length === 0 ? (
+            {mobileFiltered.length === 0 ? (
               <p style={{ margin: 0, textAlign: 'center', color: '#9CA3AF', fontSize: 14, padding: '24px 0' }}>
                 No completed routes
               </p>
             ) : (
-              completed.map((route, i) => (
+              mobileFiltered.map((route, i) => (
                 <div key={route.id}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
