@@ -31,7 +31,7 @@ function AuthInput({ id, label, value, onChange, placeholder, autoComplete }) {
           color: '#0A2A3A',
           border: `1px solid ${focused ? '#0D9488' : '#E5E7EB'}`,
           borderRadius: 10,
-          padding: '11px 14px',
+          padding: '13px 14px',
           outline: 'none',
           width: '100%',
           boxSizing: 'border-box',
@@ -107,7 +107,7 @@ export default function LoginNewVolunteer() {
           disabled={!canSubmit}
           style={{
             width: '100%',
-            padding: '12px 18px',
+            padding: '14px 18px',
             border: 'none',
             borderRadius: 9999,
             background: canSubmit ? '#0D9488' : '#D1D5DB',
@@ -117,7 +117,7 @@ export default function LoginNewVolunteer() {
             fontWeight: 600,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             transition: `filter 0.15s ${EASE}, transform 0.12s ${EASE}, box-shadow 0.15s ${EASE}`,
-            transform: btnHover && canSubmit ? 'translateY(-1px)' : 'none',
+            transform: btnHover && canSubmit ? 'translateY(-1px)' : undefined,
             boxShadow: btnHover && canSubmit ? '0 6px 16px rgba(13,148,136,0.28)' : 'none',
           }}
           onMouseEnter={() => setBtnHover(true)}

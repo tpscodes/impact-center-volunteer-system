@@ -100,7 +100,7 @@ export default function LoginExperiencedVolunteer() {
               color: '#0A2A3A',
               border: `1px solid ${focused ? '#0D9488' : '#E5E7EB'}`,
               borderRadius: 10,
-              padding: '11px 14px',
+              padding: '13px 14px',
               outline: 'none',
               width: '100%',
               boxSizing: 'border-box',
@@ -122,7 +122,7 @@ export default function LoginExperiencedVolunteer() {
           disabled={loading}
           style={{
             width: '100%',
-            padding: '12px 18px',
+            padding: '14px 18px',
             border: 'none',
             borderRadius: 9999,
             background: '#0D9488',
@@ -133,7 +133,7 @@ export default function LoginExperiencedVolunteer() {
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
             transition: `filter 0.15s ${EASE}, transform 0.12s ${EASE}, box-shadow 0.15s ${EASE}`,
-            transform: btnHover && !loading ? 'translateY(-1px)' : 'none',
+            transform: btnHover && !loading ? 'translateY(-1px)' : undefined,
             boxShadow: btnHover && !loading ? '0 6px 16px rgba(13,148,136,0.28)' : 'none',
           }}
           onMouseEnter={() => setBtnHover(true)}
@@ -157,7 +157,11 @@ export default function LoginExperiencedVolunteer() {
           border: 'none',
           cursor: 'pointer',
           fontFamily: 'inherit',
-          padding: '4px 0',
+          padding: '12px 16px',
+          margin: '-8px 0',
+          minHeight: 44,
+          display: 'flex',
+          alignItems: 'center',
           transition: 'opacity 0.15s',
         }}
         onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; e.currentTarget.style.textDecoration = 'underline'; }}
