@@ -457,9 +457,8 @@ export default function ManagerDeliveryVolunteers() {
 
         {/* ── Experienced Drivers card ──────────────────────────────────────── */}
         <div style={{
-          margin: '15px 20px 32px', background: '#fff', borderRadius: 20,
-          border: '1px solid #E5E7EB', padding: '20px 20px 8px',
-          boxShadow: '0 8px 20px rgba(10,42,58,.05)',
+          marginTop: 15, background: '#fff', borderRadius: '20px 20px 0 0',
+          padding: '20px 20px 8px', flex: 1,
         }}>
           {/* Card header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

@@ -313,7 +313,7 @@ export default function ManagerTasks() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9]">
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col">
 
         {/* Gradient hero */}
         <div style={{
@@ -354,11 +354,21 @@ export default function ManagerTasks() {
         </div>
 
         {/* Active Tasks card */}
-        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
-          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+        <div className="mt-[15px] bg-white rounded-t-[20px] p-6 flex flex-col gap-5 flex-1">
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Tasks</h2>
-            <span className="text-[12px] font-medium text-[#565E6C]">View all</span>
+          </div>
+
+          {/* Search */}
+          <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-lg px-3 py-2.5 bg-white">
+            <Search size={14} className="text-[#b3b3b3] shrink-0" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 text-[13px] text-[#0A2A3A] placeholder-[#b3b3b3] outline-none bg-transparent"
+            />
           </div>
 
           {/* Filter chips — 4 per Figma */}

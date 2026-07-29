@@ -65,6 +65,7 @@ export default function ManagerHistory() {
 
   const [searchQuery,    setSearchQuery]    = useState("");
   const [dateFilter,     setDateFilter]     = useState("Today");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // ── Sorting + filtering ────────────────────────────────────────────────────
   const sorted = [...completedTasks].sort((a, b) => (b.completedAtMs || 0) - (a.completedAtMs || 0));
@@ -126,7 +127,7 @@ export default function ManagerHistory() {
       {/* ══════════════════════════════════════════
           MOBILE LAYOUT — screens under lg (1024px)
       ══════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
@@ -156,25 +157,50 @@ export default function ManagerHistory() {
         </div>
 
         {/* History card */}
-        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-4"
-          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+        <div className="mt-[15px] bg-white rounded-t-[20px] p-6 flex flex-col gap-4 flex-1">
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">History</h2>
-            <button className="flex items-center justify-between gap-2 border border-[#E5E7EB] rounded-[10px] px-3.5 bg-white cursor-pointer"
-              style={{ height: 40, width: 109 }}>
-              <span className="text-[14px] text-[#0A2A3A]">All Time</span>
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M1 1l4 4 4-4"/>
-              </svg>
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                className="flex items-center justify-between gap-2 border border-[#E5E7EB] rounded-[10px] px-3.5 bg-white cursor-pointer"
+                style={{ height: 40, width: 120 }}
+                onClick={() => setMobileFilterOpen(o => !o)}
+              >
+                <span className="text-[14px] text-[#0A2A3A]">{dateFilter}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              {mobileFilterOpen && (
+                <div style={{
+                  position: 'absolute', top: 46, right: 0, zIndex: 50,
+                  background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(10,42,58,.12)', overflow: 'hidden', minWidth: 140,
+                }}>
+                  {DATE_FILTER_OPTIONS.map(opt => (
+                    <button key={opt}
+                      onClick={() => { setDateFilter(opt); setMobileFilterOpen(false); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '11px 16px', border: 'none', cursor: 'pointer',
+                        fontSize: 14, fontFamily: 'inherit',
+                        background: dateFilter === opt ? '#E6F5F3' : '#fff',
+                        color: dateFilter === opt ? '#09665E' : '#0A2A3A',
+                        fontWeight: dateFilter === opt ? 600 : 400,
+                      }}
+                    >{opt}</button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Task rows */}
           <div className="flex flex-col">
-            {sorted.length === 0 && (
+            {filtered.length === 0 && (
               <p className="m-0 text-center text-[#9ca3af] text-[14px] py-6">No completed tasks</p>
             )}
-            {sorted.map((entry, i) => (
+            {filtered.map((entry, i) => (
               <div key={`${entry.id}-${entry.completedAtMs || i}`}
                 className="flex items-center gap-3 py-3.5 pl-3.5 pr-5 rounded-[15px]"
                 style={i % 2 === 0 ? { background: '#D3EDE9' } : {}}>
