@@ -360,6 +360,18 @@ export default function ManagerTasks() {
             <span className="text-[12px] font-medium text-[#565E6C]">View all</span>
           </div>
 
+          {/* Search */}
+          <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-lg px-3 py-2.5 bg-white">
+            <Search size={14} className="text-[#b3b3b3] shrink-0" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 text-[13px] text-[#0A2A3A] placeholder-[#b3b3b3] outline-none bg-transparent"
+            />
+          </div>
+
           {/* Filter chips — 4 per Figma */}
           <div className="flex flex-wrap gap-2">
             {['All', 'Warehouse', 'Kitchen', 'Clothing'].map(tag => (
