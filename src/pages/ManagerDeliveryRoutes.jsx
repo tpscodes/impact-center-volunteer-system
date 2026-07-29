@@ -544,7 +544,7 @@ export default function ManagerDeliveryRoutes() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
@@ -585,8 +585,7 @@ export default function ManagerDeliveryRoutes() {
         </div>
 
         {/* Active Routes card */}
-        <div className="mx-3 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-5"
-          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+        <div className="mt-[15px] bg-white rounded-t-[20px] p-6 flex flex-col gap-5 flex-1">
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Active Routes</h2>
             <button className="text-[12px] font-medium text-[#565E6C] bg-transparent border-none cursor-pointer p-0">
