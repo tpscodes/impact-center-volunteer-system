@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import DashboardHeader from "../components/DashboardHeader";
 import HeroSummary from "../components/HeroSummary";
 import VolunteerListItem from "../components/VolunteerListItem";
-import { Plus, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil, Trash2 } from "lucide-react";
+import { Plus, MapPin, ChevronRight, Clock, Search, ClipboardList, Pencil, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import DashboardHero, { computeSparkline } from "../components/DashboardHero";
 import { useAuth } from "../contexts/AuthContext";
@@ -185,6 +185,190 @@ function TagsCell({ tags, onChange }) {
   );
 }
 
+// ── Mobile Create Task Modal ──────────────────────────────────────────────────
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const MODAL_LABEL = {
+  font: "600 11px/16px 'Inter', sans-serif",
+  letterSpacing: '0.04em',
+  color: '#6B7280',
+  textTransform: 'uppercase',
+  display: 'block',
+  marginBottom: 6,
+};
+const MODAL_INPUT = {
+  width: '100%', height: 44, padding: '0 14px',
+  border: '1px solid #E5E7EB', borderRadius: 10,
+  font: "400 14px/20px 'Inter', sans-serif", color: '#0A2A3A',
+  outline: 'none', boxSizing: 'border-box', background: '#fff',
+  fontFamily: 'inherit', transition: 'border-color 120ms',
+};
+const MODAL_TEXTAREA = { ...MODAL_INPUT, height: 'auto', minHeight: 76, padding: '12px 14px', resize: 'vertical' };
+
+function emptyCreateForm() {
+  return { item: '', source: '', destination: '', action: '', specialInstructions: '', showInstructions: false, notes: '', priority: 'Normal' };
+}
+
+function CreateTaskModal({ onClose, onSave }) {
+  const [form, setForm] = useState(emptyCreateForm);
+  const [visible, setVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => { const raf = requestAnimationFrame(() => setVisible(true)); return () => cancelAnimationFrame(raf); }, []);
+
+  function set(field, value) { setForm(f => ({ ...f, [field]: value })); }
+
+  function handleItemSelect(name) {
+    const match = ITEM_SUGGESTIONS.find(s => s.item === name);
+    setForm(f => ({
+      ...f,
+      item: name,
+      source: f.source || match?.source || '',
+      destination: f.destination || match?.destination || '',
+      action: f.action || match?.action || '',
+    }));
+  }
+
+  async function handleSubmit() {
+    if (!form.item.trim()) return;
+    setSubmitting(true);
+    try {
+      await onSave({
+        item: form.item.trim(),
+        name: form.item.trim(),
+        action: form.action.trim(),
+        source: form.source.trim(),
+        destination: form.destination.trim(),
+        comments: form.specialInstructions.trim(),
+        priority: form.priority,
+      });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const tx = REDUCED_MOTION ? 'none' : 'opacity 0.22s cubic-bezier(0.16,1,0.3,1), transform 0.22s cubic-bezier(0.16,1,0.3,1)';
+  const PRIORITY_DOTS = { High: '#FF9500', Urgent: '#DC2626' };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 z-40"
+        style={{ opacity: visible ? 1 : 0, transition: REDUCED_MOTION ? 'none' : 'opacity 0.2s' }}
+        onClick={onClose}
+      />
+      {/* Card */}
+      <div
+        className="fixed top-1/2 left-1/2 z-50 bg-white w-[calc(100%-32px)]"
+        style={{
+          maxWidth: 440, borderRadius: 20,
+          boxShadow: '0 24px 60px rgba(10,42,58,0.28)',
+          maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+          transform: visible ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.94)',
+          opacity: visible ? 1 : 0,
+          transition: tx,
+        }}
+        role="dialog" aria-modal="true" aria-labelledby="ctm-title"
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '22px 22px 4px', flexShrink: 0 }}>
+          <h2 id="ctm-title" style={{ font: "700 19px/1.25 'Inter', sans-serif", margin: 0, color: '#0A2A3A' }}>Create Task</h2>
+          <button onClick={onClose} aria-label="Close"
+            style={{ minWidth: 44, minHeight: 44, width: 32, height: 32, borderRadius: 999, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6B7280', margin: '-6px -6px 0 0', flexShrink: 0 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ overflowY: 'auto', padding: '14px 22px 4px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Item */}
+          <div>
+            <label style={MODAL_LABEL}>Item</label>
+            <AutoInput value={form.item} onChange={v => set('item', v)} onSelect={handleItemSelect}
+              suggestions={ITEM_SUGGESTIONS.map(i => i.item)} placeholder="e.g. Canned Vegetables"
+              style={MODAL_INPUT} />
+          </div>
+
+          {/* Source + Destination */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={MODAL_LABEL}>Source</label>
+              <AutoInput value={form.source} onChange={v => set('source', v)} suggestions={SOURCE_SUGGESTIONS} placeholder="Where from" style={MODAL_INPUT} />
+            </div>
+            <div>
+              <label style={MODAL_LABEL}>Destination</label>
+              <AutoInput value={form.destination} onChange={v => set('destination', v)} suggestions={DEST_SUGGESTIONS} placeholder="Where to" style={MODAL_INPUT} />
+            </div>
+          </div>
+
+          {/* Action */}
+          <div>
+            <label style={MODAL_LABEL}>Action</label>
+            <AutoInput value={form.action} onChange={v => set('action', v)} suggestions={ACTION_SUGGESTIONS} placeholder="e.g. Fill, Front up" style={MODAL_INPUT} />
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label style={MODAL_LABEL}>Priority</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {PRIORITY_OPTIONS.map(p => (
+                <button key={p} type="button" onClick={() => set('priority', p)}
+                  style={{
+                    flex: 1, height: 44, borderRadius: 9999, fontFamily: 'inherit',
+                    border: form.priority === p ? 'none' : '1px solid #E5E7EB',
+                    background: form.priority === p ? '#09665E' : '#fff',
+                    color: form.priority === p ? '#fff' : '#6B7280',
+                    font: "500 13px/20px 'Inter', sans-serif",
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}>
+                  {PRIORITY_DOTS[p] && <span style={{ width: 7, height: 7, borderRadius: '50%', background: PRIORITY_DOTS[p], flexShrink: 0 }} />}
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Special instructions */}
+          <div>
+            <button type="button" onClick={() => set('showInstructions', !form.showInstructions)}
+              aria-expanded={form.showInstructions}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#0d9488', font: "500 13.5px/20px 'Inter', sans-serif", padding: '4px 0', fontFamily: 'inherit', minHeight: 44 }}>
+              {form.showInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {form.showInstructions ? 'Hide special instructions' : 'Add special instructions'}
+            </button>
+            {form.showInstructions && (
+              <textarea value={form.specialInstructions} onChange={e => set('specialInstructions', e.target.value)}
+                placeholder="Any special handling, access notes, or requests..."
+                style={{ ...MODAL_TEXTAREA, marginTop: 4 }} rows={3} />
+            )}
+          </div>
+
+          {/* General notes */}
+          <div style={{ paddingBottom: 4 }}>
+            <label style={MODAL_LABEL}>General notes (optional)</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+              placeholder="Any notes for this task..." style={MODAL_TEXTAREA} rows={2} />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: 12, padding: '16px 22px 22px', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, height: 48, padding: '0 20px', borderRadius: 9999, border: '1px solid #E5E7EB', background: '#fff', color: '#0A2A3A', font: "600 14px/20px 'Inter', sans-serif", cursor: 'pointer', fontFamily: 'inherit' }}>
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={submitting || !form.item.trim()}
+            style={{ flex: 1, height: 48, padding: '0 20px', borderRadius: 9999, border: 'none', background: '#09665E', color: '#fff', font: "600 14px/20px 'Inter', sans-serif", cursor: form.item.trim() ? 'pointer' : 'default', fontFamily: 'inherit', opacity: form.item.trim() ? 1 : 0.55 }}>
+            {submitting ? 'Saving…' : 'Add Task'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function getPriorityStyle(priority) {
   const p = priority?.toLowerCase();
   if (p === 'urgent') return 'bg-[#fff0f0] text-[#dc2626]';
@@ -213,10 +397,11 @@ export default function ManagerTasks() {
   const navigate = useNavigate()
   const { activePantryId, role, displayName, initials, logout } = useAuth()
   const modifiedBy = role === 'superadmin' ? 'steve' : undefined
-  const { tasks, completedTasks, session, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(activePantryId, { modifiedBy })
+  const { tasks, completedTasks, session, createTask, deleteTask, updateTask, markTaskIncomplete } = useSharedTasks(activePantryId, { modifiedBy })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)  // task object being edited
   const [editForm, setEditForm] = useState({})
   const [volunteers, setVolunteers] = useState([])
@@ -344,9 +529,9 @@ export default function ManagerTasks() {
           </div>
         </div>
 
-        {/* Create Task button */}
+        {/* Create Task button — opens modal on mobile */}
         <div className="px-5 pt-[15px]">
-          <button onClick={() => navigate('/manager/create-task')}
+          <button onClick={() => setCreateModalOpen(true)}
             className="w-full h-12 rounded-full text-[14px] font-semibold text-white border-none cursor-pointer"
             style={{ background: '#0F7A70' }}>
             + Create Task
@@ -423,6 +608,14 @@ export default function ManagerTasks() {
             })}
           </div>
         </div>
+
+        {/* Mobile Create Task Modal */}
+        {createModalOpen && (
+          <CreateTaskModal
+            onClose={() => setCreateModalOpen(false)}
+            onSave={data => createTask(data)}
+          />
+        )}
 
       </div>
 
