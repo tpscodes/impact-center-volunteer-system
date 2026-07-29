@@ -104,7 +104,6 @@ const PANTRY_NAV = [
   { label: "Tasks",      path: "/manager-tasks",          Icon: IconTasks },
   { label: "Volunteers", path: "/manager-volunteers",     Icon: IconVolunteers },
   { label: "History",    path: "/manager-history",        Icon: IconHistory },
-  { label: "Settings",   path: "/manager-settings",       Icon: IconSettings },
 ];
 
 const DELIVERY_NAV = [
@@ -112,7 +111,6 @@ const DELIVERY_NAV = [
   { label: "Routes",     path: "/manager-delivery-routes",       Icon: IconRoutes },
   { label: "Drivers",    path: "/manager-delivery-volunteers",   Icon: IconDrivers },
   { label: "History",    path: "/manager-delivery-history",      Icon: IconHistory },
-  { label: "Settings",   path: "/manager-settings",              Icon: IconSettings },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
