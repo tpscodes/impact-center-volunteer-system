@@ -1,14 +1,32 @@
 // AuthCardLayout — shared wrapper for all Volo auth screens.
 //
-// Breakpoints (match pixel-verified HTML prototypes):
-//   >900px   : desktop — illus left (560px), form right, full-bleed bg behind card
-//   480–900px: tablet  — stacked, illus = 180px top band, card max-width 480px
+// Breakpoints:
+//   >900px   : desktop  — illus left (560px), form right, full-bleed bg
+//   480–900px: tablet   — stacked, illus = 180px top band
 //   ≤480px   : small tablet — illus band 150px, tighter padding
-//   ≤600px   : phone  — Figma node 373:11502 — illustration is a SEPARATE full-bleed
-//              hero (37px top gap, 425px tall, cover), card floats up with -114px
-//              margin-top; full-bleed bg div is hidden entirely
+//   ≤600px   : phone    — Figma node 373:11502 — separate 425px hero
+//              (37px top gap, cover bg), card floats up with -114px
+//              margin-top; phone-specific entrance + touch animations
 
 const css = `
+  /* ─── Shared desktop/tablet keyframes (defined in index.css too) ─── */
+
+  /* ─── Phone-only keyframes ──────────────────────────────────────────
+     Named with "ph-" prefix so they never conflict with desktop ones.  */
+  @keyframes ph-illus-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes ph-card-in {
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  @keyframes ph-role-card-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ─── Base layout ───────────────────────────────────────────────── */
   .auth-bg {
     position: fixed;
     inset: 0;
@@ -82,7 +100,7 @@ const css = `
     margin: 0;
   }
 
-  /* ── Tablet (480px – 900px) ─────────────────────────────────── */
+  /* ── Tablet (480px – 900px) ─────────────────────────────────────── */
   @media (max-width: 900px) {
     .auth-card {
       flex-direction: column;
@@ -102,18 +120,19 @@ const css = `
     }
   }
 
-  /* ── Small tablet (≤480px) ──────────────────────────────────── */
+  /* ── Small tablet (≤480px) ──────────────────────────────────────── */
   @media (max-width: 480px) {
     .auth-page { padding: 20px 16px; }
     .auth-illus { height: 150px; min-height: 150px; }
     .auth-form-col { padding: 24px 20px 28px; gap: 18px; }
   }
 
-  /* ── Phone (≤600px) — Figma spec, must come AFTER 480px block ─
-     At ≤600px the full-bleed bg is hidden; illustration sits above
-     the card as a separate hero element; card floats up over it.    */
+  /* ── Phone (≤600px) — must come AFTER 480px block in source order ──
+     Full structural change: hero above card, card floats up -114px.
+     Entrance: hero fades in (ph-illus-in), card settles up from +24px
+     (ph-card-in). Role rows stagger in after card settles.             */
   @media (max-width: 600px) {
-    .auth-bg   { display: none; }
+    .auth-bg { display: none; }
     .auth-page {
       display: block;
       padding: 0;
@@ -136,11 +155,12 @@ const css = `
       overflow: visible;
       min-height: auto;
       align-items: stretch;
-      /* disable mount animation on phone */
+      /* disable desktop card animation; phone card handled on .auth-form-col */
       opacity: 1;
       transform: none;
       animation: none;
     }
+    /* Hero fades in immediately on mount */
     .auth-illus {
       width: 100%;
       max-width: 100%;
@@ -148,15 +168,15 @@ const css = `
       min-height: 425px;
       margin-top: 37px;
       border-radius: 0;
-      /* cover fills the hero panel fully */
       background-size: cover;
       background-position: center 15%;
-      opacity: 1;
+      /* entrance: fade in over 0.4s */
+      opacity: 0;
       transform: none;
-      animation: none;
+      animation: ph-illus-in 0.4s ease-out forwards;
     }
+    /* Card settles up from translateY(24px) — NOT a full-height slide */
     .auth-form-col {
-      /* pull card up 114px over the illustration bottom (99px visual overlap) */
       margin-top: -114px;
       position: relative;
       z-index: 2;
@@ -169,13 +189,45 @@ const css = `
       flex: none;
       align-items: center;
       justify-content: flex-start;
+      /* entrance: settle from 24px below, 0.5s, 0.1s delay after illus */
+      opacity: 0;
+      animation: ph-card-in 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+    }
+
+    /* ── Role card stagger ─────────────────────────────────────────
+       Card settles at 0.1s delay + 0.5s duration = 0.6s.
+       Start stagger at 0.55s so first row appears just as card lands.
+       40ms between rows; total stagger = 80ms (well under 250ms cap). */
+    .auth-role-card {
+      opacity: 0;
+      animation: ph-role-card-in 0.28s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .auth-role-card:nth-child(1) { animation-delay: 0.55s; }
+    .auth-role-card:nth-child(2) { animation-delay: 0.59s; }
+    .auth-role-card:nth-child(3) { animation-delay: 0.63s; }
+
+    /* ── Touch :active feedback ────────────────────────────────────
+       :hover does not fire reliably on touch; :active does.
+       Inline transform on buttons must be undefined (not 'none')
+       for CSS :active to take effect -- see page components.         */
+    .auth-form-col button[type="submit"]:active {
+      transform: scale(0.97) !important;
+      filter: brightness(0.93) !important;
+      transition: transform 0.1s, filter 0.1s !important;
+    }
+    .auth-role-card:active {
+      transform: scale(0.97) !important;
+      filter: brightness(0.95) !important;
+      transition: transform 0.1s, filter 0.1s !important;
     }
   }
 
-  /* ── Reduced motion ─────────────────────────────────────────── */
+  /* ── Reduced motion — skip to final state, zero animation ───────── */
   @media (prefers-reduced-motion: reduce) {
-    .auth-card  { animation: none !important; opacity: 1 !important; transform: none !important; }
-    .auth-illus { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .auth-card     { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .auth-illus    { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .auth-form-col { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .auth-role-card{ animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 `;
 

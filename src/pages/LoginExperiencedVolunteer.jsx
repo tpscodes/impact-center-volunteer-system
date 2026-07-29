@@ -133,7 +133,7 @@ export default function LoginExperiencedVolunteer() {
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
             transition: `filter 0.15s ${EASE}, transform 0.12s ${EASE}, box-shadow 0.15s ${EASE}`,
-            transform: btnHover && !loading ? 'translateY(-1px)' : 'none',
+            transform: btnHover && !loading ? 'translateY(-1px)' : undefined,
             boxShadow: btnHover && !loading ? '0 6px 16px rgba(13,148,136,0.28)' : 'none',
           }}
           onMouseEnter={() => setBtnHover(true)}

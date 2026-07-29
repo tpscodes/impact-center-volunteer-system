@@ -117,7 +117,7 @@ export default function LoginNewVolunteer() {
             fontWeight: 600,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             transition: `filter 0.15s ${EASE}, transform 0.12s ${EASE}, box-shadow 0.15s ${EASE}`,
-            transform: btnHover && canSubmit ? 'translateY(-1px)' : 'none',
+            transform: btnHover && canSubmit ? 'translateY(-1px)' : undefined,
             boxShadow: btnHover && canSubmit ? '0 6px 16px rgba(13,148,136,0.28)' : 'none',
           }}
           onMouseEnter={() => setBtnHover(true)}

@@ -14,6 +14,7 @@ function RoleCard({ icon, title, subtitle, primary, onClick }) {
   return (
     <button
       type="button"
+      className="auth-role-card"
       onClick={onClick}
       style={{
         display: 'flex',
