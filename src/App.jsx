@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { useSharedTasks } from "./hooks/useSharedTasks";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
+// Components
+import IntroOverlay from "./components/IntroOverlay";
+
 // Pages
 import LandingPage from "./components/LandingPage";
 import ManagerLogin from "./pages/ManagerLogin";
@@ -105,6 +108,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <IntroOverlay />
         <Routes>
           {/* Landing / role picker */}
           <Route path="/"               element={<WelcomeRoleSelect />} />
