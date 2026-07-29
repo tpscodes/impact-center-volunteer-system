@@ -329,7 +329,7 @@ export default function SidebarLiquid({ mode: modeProp }) {
           className="sl-popover sl-popover-open"
           role="dialog"
           aria-label="Account"
-          style={{ position: "fixed", left: popoverPos.left, bottom: popoverPos.bottom, zIndex: 200 }}
+          style={{ position: "fixed", left: popoverPos.left, bottom: popoverPos.bottom, zIndex: 200, background: "#ffffff", border: "1px solid #E5E7EB", borderRadius: 20, boxShadow: "0 12px 32px rgba(10,42,58,.28)" }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sl-popover-name">{displayName}</div>
