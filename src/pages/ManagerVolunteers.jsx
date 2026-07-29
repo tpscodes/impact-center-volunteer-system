@@ -322,7 +322,7 @@ export default function ManagerVolunteers() {
       {/* ══════════════════════════════════════════════════════════════════════
           MOBILE LAYOUT  (below lg breakpoint)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden min-h-screen bg-[#D3EDE9]"
+      <div className="lg:hidden min-h-screen bg-[#D3EDE9] flex flex-col"
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
@@ -365,8 +365,7 @@ export default function ManagerVolunteers() {
         </div>
 
         {/* Experienced Volunteers card */}
-        <div className="mx-5 mt-[15px] mb-6 bg-white border border-[#E5E7EB] rounded-[20px] p-6 flex flex-col gap-4"
-          style={{ boxShadow: '0 8px 20px rgba(10,42,58,.05)' }}>
+        <div className="mt-[15px] bg-white rounded-t-[20px] p-6 flex flex-col gap-4 flex-1">
           <h2 className="m-0 text-[21px] font-semibold text-[#0A2A3A]">Experienced Volunteers</h2>
 
           {/* Search */}
