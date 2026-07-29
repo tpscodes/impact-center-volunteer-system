@@ -403,7 +403,7 @@ export default function ManagerDeliveryHistory() {
                   </div>
                   {/* Route name */}
                   <p style={{ flex: 1, margin: 0, fontSize: 12, fontWeight: 500, color: '#0A2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {templates[route.templateId]?.name || route.name || '—'}
+                    {route.name || '—'}
                   </p>
                   {/* Date */}
                   <span style={{ fontSize: 13, color: '#0A2A3A', flexShrink: 0 }}>
