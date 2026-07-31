@@ -12,6 +12,7 @@ import PageHeader from "../components/PageHeader";
 import DeliveryHero from "../components/DeliveryHero";
 import { Search, Clock, MapPin, Truck, Calendar, X } from "lucide-react";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -340,11 +341,7 @@ export default function ManagerDeliveryHistory() {
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
         {/* ── Gradient hero ─────────────────────────────────────────────────── */}
-        <div style={{
-          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="delivery" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Dual stats */}
@@ -365,7 +362,7 @@ export default function ManagerDeliveryHistory() {
             </div>
           </div>
           </div>{/* /inner padding */}
-        </div>
+        </MobileHeroShell>
 
         {/* ── History card ──────────────────────────────────────────────────── */}
         <div style={{

@@ -5,6 +5,7 @@ import { VOLUNTEER_PROFILES, useSharedTasks } from "../hooks/useSharedTasks";
 import { useIsTablet } from "../hooks/useBreakpoint";
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
+import MobileHeroShell from "../components/MobileHeroShell";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -495,7 +496,7 @@ export function MyTask() {
     <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', ...S }}>
 
       {/* ── Gradient hero ───────────────────────────────────────────────────── */}
-      <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <MobileHeroShell as="header" style={{ padding: '20px 20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Experienced Volunteer</p>
           <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>My Task</p>
@@ -505,7 +506,7 @@ export function MyTask() {
           style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
           Exit
         </button>
-      </header>
+      </MobileHeroShell>
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>

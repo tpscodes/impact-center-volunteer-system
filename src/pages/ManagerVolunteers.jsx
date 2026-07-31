@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
 import { Search, UserPlus, X, Check, Pencil, Trash2 } from "lucide-react";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
@@ -363,11 +364,7 @@ export default function ManagerVolunteers() {
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
-        <div style={{
-          background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="pantry" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Stat row: Volunteers tag + big number + signal bars */}
@@ -389,7 +386,7 @@ export default function ManagerVolunteers() {
               {volunteers.filter(v => v.active).length} volunteers active
             </p>
           </div>
-        </div>
+        </MobileHeroShell>
 
         {/* Add Volunteer button */}
         <div className="px-5 pt-[15px]">

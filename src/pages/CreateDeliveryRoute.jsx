@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { X } from "lucide-react";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, push } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
@@ -155,9 +156,9 @@ export default function CreateDeliveryRoute() {
       <div className="lg:hidden flex flex-col min-h-screen">
 
         {/* Mobile nav */}
-        <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 28px 28px', marginBottom: 20 }}>
+        <MobileHeroShell style={{ marginBottom: 20 }}>
           <MobileNav mode="delivery" />
-        </div>
+        </MobileHeroShell>
 
         {/* Mobile form */}
         <div className="px-4 py-5 pb-8">

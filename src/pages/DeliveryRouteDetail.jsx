@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, MapPin, Clock, Truck, Package } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, set } from "firebase/database";
+import MobileHeroShell from "../components/MobileHeroShell";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -182,15 +183,14 @@ export default function DeliveryRouteDetail() {
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Top bar */}
-      <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 24px 24px' }}
-        className="px-4 py-4 flex items-center justify-between z-10">
+      <MobileHeroShell className="px-4 py-4 flex items-center justify-between z-10">
         <button onClick={goBack}
           className="text-white bg-transparent border-none cursor-pointer p-1 -ml-1">
           <ChevronLeft size={22} />
         </button>
         <p className="text-white text-[16px] font-semibold">Route Details</p>
         <div className="w-8" />
-      </div>
+      </MobileHeroShell>
 
       {/* Detail card */}
       <div className="bg-white rounded-2xl border border-[#e5e7eb] mx-4 mt-4 p-5">

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
+import MobileHeroShell from "../components/MobileHeroShell";
 import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
@@ -549,11 +550,7 @@ export default function ManagerDeliveryRoutes() {
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
-        <div style={{
-          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="delivery" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Stat row: Routes tag + big number + signal bars */}
@@ -574,7 +571,7 @@ export default function ManagerDeliveryRoutes() {
             {drivers.length} drivers active
           </p>
           </div>{/* /inner padding */}
-        </div>
+        </MobileHeroShell>
 
         {/* Create Route button */}
         <div className="px-3 pt-[15px]">

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { X, AlertTriangle, Check } from "lucide-react";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, get, set, remove, update } from "firebase/database";
 import Sidebar from "../components/Sidebar";
@@ -261,9 +262,9 @@ export default function ManagerSettings() {
       <div className="lg:hidden min-h-screen flex flex-col pb-10">
 
         {/* Mobile nav */}
-        <div style={{ background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)', borderRadius: '0 0 28px 28px' }}>
+        <MobileHeroShell>
           <MobileNav />
-        </div>
+        </MobileHeroShell>
 
         {/* Mobile settings cards — matches delivery-settings-mobile.html reference */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '24px 12px 32px' }}>

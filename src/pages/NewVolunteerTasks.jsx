@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSharedTasks } from "../hooks/useSharedTasks";
 import { MapPin, ChevronRight, ClipboardList } from "lucide-react";
 import { PANTRY_ID } from "../config";
+import MobileHeroShell from "../components/MobileHeroShell";
 
 const GRAY = { dark: "#1e1e1e", mid: "#09665e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB", bg: "#f5f5f5" };
 
@@ -113,13 +114,13 @@ export default function NewVolunteerTasks() {
   if (session !== null && session !== undefined && !isSessionActive) {
     return (
       <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
-        <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <MobileHeroShell as="header" style={{ padding: '20px 20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Welcome</p>
             <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>New Volunteer</p>
           </div>
           <button onClick={() => navigate("/")} style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>Exit</button>
-        </header>
+        </MobileHeroShell>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
           <p style={{ fontSize: 20, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>No active session right now</p>
@@ -229,7 +230,7 @@ export default function NewVolunteerTasks() {
       <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
 
         {/* Gradient hero */}
-        <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '16px 20px 22px', borderRadius: '0 0 24px 24px', display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
+        <MobileHeroShell as="header" style={{ padding: '16px 20px 22px', display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
           <button
             onClick={() => setDetailTask(null)}
             style={{ alignSelf: 'flex-start', height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -242,7 +243,7 @@ export default function NewVolunteerTasks() {
             </p>
             <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: '4px 0 0', lineHeight: 1.3 }}>{activeTaskForDetail.name}</p>
           </div>
-        </header>
+        </MobileHeroShell>
 
         {/* Content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, padding: 16, paddingBottom: 88 }}>
@@ -341,7 +342,7 @@ export default function NewVolunteerTasks() {
     <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── Gradient hero ─────────────────────────────────────────────────── */}
-      <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
+      <MobileHeroShell as="header" style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
 
         {/* Name + exit */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -392,7 +393,7 @@ export default function NewVolunteerTasks() {
             </div>
           ))}
         </div>
-      </header>
+      </MobileHeroShell>
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>

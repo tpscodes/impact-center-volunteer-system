@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, MapPin, Clock, Truck, Search, SlidersHorizontal, X, Calendar } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, set } from "firebase/database";
+import MobileHeroShell from "../components/MobileHeroShell";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -407,15 +408,14 @@ export default function DeliveryTaskPool() {
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Top bar */}
-      <div style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', borderRadius: '0 0 24px 24px' }}
-        className="px-4 py-4 flex items-center justify-between z-10">
+      <MobileHeroShell className="px-4 py-4 flex items-center justify-between z-10">
         <button onClick={() => navigate("/volunteer-mode-select", { state: { volunteer } })}
           className="text-white bg-transparent border-none cursor-pointer p-1 -ml-1">
           <ChevronLeft size={22} />
         </button>
         <p className="text-white text-[16px] font-semibold">Delivery Routes</p>
         <p className="text-[#4ADE80] text-[11px] font-semibold">{getTodayDisplay()}</p>
-      </div>
+      </MobileHeroShell>
 
       {/* Stats pills */}
       <div className="bg-white border-b border-[#e5e7eb] px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">

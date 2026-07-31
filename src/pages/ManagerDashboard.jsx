@@ -8,6 +8,7 @@ import HeroSummary from "../components/HeroSummary";
 import LeftoverBanner from "../components/LeftoverBanner";
 import TaskTable from "../components/TaskTable";
 import VolunteerListItem from "../components/VolunteerListItem";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, get, onValue, off } from "firebase/database";
 import { Plus, ClipboardList } from "lucide-react";
@@ -181,11 +182,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
       <div className="lg:hidden min-h-screen bg-[#D3EDE9]">
 
         {/* Gradient hero */}
-        <div style={{
-          background: 'linear-gradient(136deg, #0f7a70 14%, #0a2a3a 86%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="pantry" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -226,7 +223,7 @@ export default function ManagerDashboard({ tasks, completedTasks = [], onDeleteT
             </div>
           </div>
           </div>{/* /stats inner */}
-        </div>
+        </MobileHeroShell>
 
         {/* Action buttons */}
         <div className="flex gap-[9px] px-5 pt-[15px]">

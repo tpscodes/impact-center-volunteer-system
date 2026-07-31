@@ -5,6 +5,7 @@ import { useSharedTasks, VOLUNTEER_PROFILES } from '../hooks/useSharedTasks'
 import { useIsTablet } from '../hooks/useBreakpoint'
 import TaskDetail from './TaskDetail'
 import { Search, MapPin, ArrowRight, Pin, ClipboardList } from 'lucide-react'
+import MobileHeroShell from '../components/MobileHeroShell'
 
 const TAG_FILTERS = ["All", "Warehouse", "Kitchen", "Clothing", "Freezer", "Sorting", "Produce"]
 const GRAY = { dark: "#1e1e1e", soft: "#6B7280", light: "#9CA3AF", border: "#E5E7EB" }
@@ -95,7 +96,7 @@ export default function TaskPool() {
   if (session !== null && session !== undefined && !isSessionActive) {
     return (
       <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
-        <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <MobileHeroShell as="header" style={{ padding: '20px 20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Welcome</p>
             <p style={{ fontSize: 19, fontWeight: 700, color: '#fff', margin: 0 }}>{volunteerName}</p>
@@ -104,7 +105,7 @@ export default function TaskPool() {
             style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
             Exit
           </button>
-        </header>
+        </MobileHeroShell>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
           <p style={{ fontSize: 20, fontWeight: 700, color: '#0A2A3A', margin: '0 0 8px' }}>No active session right now</p>
@@ -309,7 +310,7 @@ export default function TaskPool() {
     <div style={{ minHeight: '100vh', background: '#F3F5F6', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <header style={{ background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)', padding: '20px 20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
+      <MobileHeroShell as="header" style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', margin: '0 0 2px' }}>Welcome</p>
@@ -350,7 +351,7 @@ export default function TaskPool() {
             </button>
           </div>
         )}
-      </header>
+      </MobileHeroShell>
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>

@@ -21,6 +21,7 @@ import { db } from "../firebase";
 import { ref, onValue, set, remove } from "firebase/database";
 import { useAuth } from "../contexts/AuthContext";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getInitials(name) {
@@ -192,7 +193,7 @@ function DriverCard({ vol, weekCount, onRemoveTag, onRemove }) {
       </div>
       <div className="flex items-center gap-2">
         <button onClick={() => onRemoveTag(vol)}
-          className="text-[#ff9500] text-[12px] border border-[#ff9500] rounded-lg px-3 py-1
+          className="text-[#9A5000] text-[12px] border border-[#9A5000] rounded-lg px-3 py-1
                      hover:bg-[#fff3e0] bg-transparent cursor-pointer">
           Remove Driver Tag
         </button>
@@ -416,11 +417,7 @@ export default function ManagerDeliveryVolunteers() {
         style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
         {/* ── Gradient hero ─────────────────────────────────────────────────── */}
-        <div style={{
-          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="delivery" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Stats row */}
@@ -440,7 +437,7 @@ export default function ManagerDeliveryVolunteers() {
             </div>
           </div>
           </div>{/* /inner padding */}
-        </div>
+        </MobileHeroShell>
 
         {/* ── Add Driver button ─────────────────────────────────────────────── */}
         <div style={{ padding: '16px 20px 0' }}>
