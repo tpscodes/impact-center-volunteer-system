@@ -269,7 +269,7 @@ export default function MobileNav({ mode: modeProp }) {
                 className={`mn-mode-btn${mode === "pantry" ? " mn-mode-active" : ""}`}
                 type="button"
                 role="tab"
-                aria-selected={mode === "pantry"}
+                aria-pressed={mode === "pantry"}
                 onClick={() => switchMode("pantry")}
               >
                 <IconPantryMode /> Pantry

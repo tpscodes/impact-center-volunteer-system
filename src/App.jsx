@@ -8,7 +8,6 @@ import IntroOverlay from "./components/IntroOverlay";
 
 // Pages
 import LandingPage from "./components/LandingPage";
-import ManagerLogin from "./pages/ManagerLogin";
 import WelcomeRoleSelect from "./pages/WelcomeRoleSelect";
 import LoginOperationsManager from "./pages/LoginOperationsManager";
 import LoginExperiencedVolunteer from "./pages/LoginExperiencedVolunteer";
@@ -20,7 +19,6 @@ import DigitalBoard from "./pages/DigitalBoard";
 import { VolunteerIdEntry, MyTask } from "./pages/ExperiencedVolunteer";
 import TaskPool from "./pages/TaskPool";
 import NewVolunteerTasks from "./pages/NewVolunteerTasks";
-import TaskHistory from "./pages/TaskHistory";
 import ManagerHistory from "./pages/ManagerHistory";
 import ManagerVolunteers from "./pages/ManagerVolunteers";
 import VolunteerModeSelect from "./pages/VolunteerModeSelect";
@@ -127,7 +125,7 @@ export default function App() {
           <Route path="/manager/dashboard"           element={<RequireAuth><ManagerDashboardWrapper /></RequireAuth>} />
           <Route path="/manager/tasks"               element={<Navigate to="/manager-tasks" replace />} />
           <Route path="/manager/create-task"         element={<RequireAuth><CreateTaskScreenWrapper /></RequireAuth>} />
-          <Route path="/manager/history"             element={<RequireAuth><TaskHistory /></RequireAuth>} />
+          <Route path="/manager/history"             element={<Navigate to="/manager-history" replace />} />
           <Route path="/manager-tasks"               element={<RequireAuth><ManagerTasksPage /></RequireAuth>} />
           <Route path="/manager-history"             element={<RequireAuth><ManagerHistory /></RequireAuth>} />
           <Route path="/manager-volunteers"          element={<RequireAuth><ManagerVolunteers /></RequireAuth>} />

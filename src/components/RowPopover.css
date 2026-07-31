@@ -43,3 +43,11 @@
 .rp__option:hover { opacity: 0.65; }
 
 .rp__option--danger { color: #DC2626; }
+
+.rp__header {
+  margin: 0;
+  font: 600 13px/18px "Inter", system-ui, sans-serif;
+  color: #6B7280;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #F3F4F6;
+}

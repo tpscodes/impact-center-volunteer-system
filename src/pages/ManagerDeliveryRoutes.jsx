@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onValue, update, push, set, remove } from "firebase/database";
+import MobileHeroShell from "../components/MobileHeroShell";
 import SidebarLiquid from "../components/SidebarLiquid";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
@@ -129,7 +130,7 @@ function VehicleDropdown({ value, onChange, hasError }) {
               className={`block w-full text-left border-0 rounded-[8px] px-[10px] py-[9px]
                 text-[14px] leading-[20px] cursor-pointer transition-colors
                 ${value === v
-                  ? "bg-[#E6F5F3] text-[#09665E] font-semibold"
+                  ? "bg-[#0A2A3A] text-white font-semibold"
                   : "bg-transparent text-[#0a2a3a] hover:bg-[#f5f5f5]"}`}
             >
               {v}
@@ -252,7 +253,8 @@ export default function ManagerDeliveryRoutes() {
   });
   const [addErrors,       setAddErrors]       = useState({});
   const [pendingSelectId, setPendingSelectId] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteConfirmId,           setDeleteConfirmId]           = useState(null);
+  const [occurrenceDeleteConfirmId, setOccurrenceDeleteConfirmId] = useState(null);
 
   // Floating popover state — tracks which kebab is open + fixed position
   const [popover, setPopover] = useState({ open: false, routeId: null, top: 0, left: 0 });
@@ -548,11 +550,7 @@ export default function ManagerDeliveryRoutes() {
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
-        <div style={{
-          background: 'linear-gradient(144.76deg, #0f7a70 14.286%, #0a2a3a 85.714%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="delivery" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Stat row: Routes tag + big number + signal bars */}
@@ -573,7 +571,7 @@ export default function ManagerDeliveryRoutes() {
             {drivers.length} drivers active
           </p>
           </div>{/* /inner padding */}
-        </div>
+        </MobileHeroShell>
 
         {/* Create Route button */}
         <div className="px-3 pt-[15px]">
@@ -909,7 +907,7 @@ export default function ManagerDeliveryRoutes() {
                                         {occ.specialNote || "Special day"}
                                       </td>
                                       <td className="py-1 text-right pr-1">
-                                        <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                        <button onClick={() => setOccurrenceDeleteConfirmId(occ.id)}
                                           className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                           <X size={13} />
                                         </button>
@@ -993,7 +991,7 @@ export default function ManagerDeliveryRoutes() {
                                     </td>
                                     <td className="text-[#6b7280] text-[12px]">{occ.notes || ""}</td>
                                     <td className="py-1 text-right pr-1">
-                                      <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                      <button onClick={() => setOccurrenceDeleteConfirmId(occ.id)}
                                         className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                         <X size={13} />
                                       </button>
@@ -1174,6 +1172,31 @@ export default function ManagerDeliveryRoutes() {
                 Cancel
               </button>
               <button onClick={() => handleDeleteRoute(deleteConfirmId)}
+                className="flex-1 h-[44px] rounded-full bg-[#dc2626] text-white text-[14px]
+                  font-semibold border-none cursor-pointer hover:bg-[#b91c1c] transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Occurrence Delete Confirmation ───────────────────────────────── */}
+      {occurrenceDeleteConfirmId && (
+        <div className="fixed inset-0 bg-black/[.45] z-50 flex items-center justify-center"
+          onClick={() => setOccurrenceDeleteConfirmId(null)}>
+          <div className="bg-white rounded-[20px] border border-[#e5e7eb] w-full max-w-[360px] mx-4 p-7"
+            onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-[20px] text-[#0a2a3a] m-0 leading-[28px]">
+              Remove this occurrence? This can't be undone.
+            </p>
+            <div className="flex gap-3 mt-7">
+              <button onClick={() => setOccurrenceDeleteConfirmId(null)}
+                className="flex-1 h-[44px] rounded-full bg-white border border-[#e5e7eb]
+                  text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => { handleDeleteOccurrence(occurrenceDeleteConfirmId); setOccurrenceDeleteConfirmId(null); }}
                 className="flex-1 h-[44px] rounded-full bg-[#dc2626] text-white text-[14px]
                   font-semibold border-none cursor-pointer hover:bg-[#b91c1c] transition-colors">
                 Delete

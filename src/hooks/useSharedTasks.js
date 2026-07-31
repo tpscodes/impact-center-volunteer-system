@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "../firebase";
-import { ref, onValue, set, remove, update } from "firebase/database";
+import { ref, onValue, set, remove, update, get, runTransaction } from "firebase/database";
 
 // ── Named volunteer profiles ──────────────────────────────────────────────────
 export const VOLUNTEER_PROFILES = [
@@ -161,6 +161,20 @@ export function useSharedTasks(pantryId, { modifiedBy } = {}) {
     };
   }, [pantryId]);
 
+  // Item 5 — Midnight reset: if sessionDate stored in Firebase differs from today,
+  // wipe completedTasks so "Completed Today" counter resets without manager action.
+  useEffect(() => {
+    if (!pantryId) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const dateRef = ref(db, `pantries/${pantryId}/sessionDate`);
+    get(dateRef).then((snap) => {
+      if (snap.val() !== today) {
+        remove(ref(db, `pantries/${pantryId}/completedTasks`));
+        set(dateRef, today);
+      }
+    }).catch((err) => console.error("sessionDate check error:", err));
+  }, [pantryId]);
+
   // Auto-end timed sessions when endTime is reached
   useEffect(() => {
     if (endTimerRef.current) { clearTimeout(endTimerRef.current); endTimerRef.current = null; }
@@ -222,15 +236,31 @@ export function useSharedTasks(pantryId, { modifiedBy } = {}) {
     return newTask;
   }, []);
 
-  // Claim a task — extraFields is optional { claimedByName, claimedByType, sessionToken }
+  // Claim a task — wrapped in runTransaction to prevent double-claim race conditions.
+  // Returns true if the claim succeeded, false if the task was already taken.
   const claimTask = useCallback(async (taskId, volunteerId, volunteerName, extraFields = {}) => {
-    const updated = tasksRef.current.map(t =>
-      t.id === taskId
-        ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now(), ...extraFields }
-        : t
-    );
-    updateTasks(updated);
-    await writeTasks(updated);
+    const taskNodeRef = ref(db, `pantries/${pantryIdRef.current}/tasks/${taskId}`);
+    const { committed } = await runTransaction(taskNodeRef, (currentData) => {
+      if (currentData === null) return; // abort — task was deleted
+      if (currentData.status !== "available") return; // abort — already claimed
+      return {
+        ...currentData,
+        status: "in-progress",
+        assignedTo: volunteerId,
+        assignedName: volunteerName,
+        claimedAt: Date.now(),
+        ...extraFields,
+      };
+    });
+    if (committed) {
+      const updated = tasksRef.current.map(t =>
+        t.id === taskId
+          ? { ...t, status: "in-progress", assignedTo: volunteerId, assignedName: volunteerName, claimedAt: Date.now(), ...extraFields }
+          : t
+      );
+      updateTasks(updated);
+    }
+    return committed;
   }, []);
 
   // Complete a task — removes it from tasks, writes entry to completedTasks/${taskId}

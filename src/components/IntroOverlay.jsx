@@ -17,14 +17,14 @@ export default function IntroOverlay() {
       return;
     }
 
-    const t1 = setTimeout(() => setPhase("wash"),    150);
-    const t2 = setTimeout(() => setPhase("logo"),    1200);
-    const t3 = setTimeout(() => setPhase("tagline"), 2400);
-    const t4 = setTimeout(() => setPhase("out"),     4200);
+    const t1 = setTimeout(() => setPhase("wash"),    300);
+    const t2 = setTimeout(() => setPhase("logo"),    1700);
+    const t3 = setTimeout(() => setPhase("tagline"), 3100);
+    const t4 = setTimeout(() => setPhase("out"),     5000);
     const t5 = setTimeout(() => {
       setVisible(false);
       try { localStorage.setItem(STORAGE_KEY, "1"); } catch (_) {}
-    }, 5300); // 4200 + 1100ms fade-out transition
+    }, 6100); // 5000 + 1100ms fade-out transition
 
     return () => [t1, t2, t3, t4, t5].forEach(clearTimeout);
   }, []);
@@ -57,7 +57,7 @@ export default function IntroOverlay() {
         viewBox="0 0 134 53"
         xmlns="http://www.w3.org/2000/svg"
         style={{
-          width: "clamp(102px, 24vw, 180px)",
+          width: "clamp(122px, 29vw, 216px)",
           height: "auto",
           opacity: showLogo ? 1 : 0,
           transform: showLogo ? "scale(1)" : "scale(0.92)",

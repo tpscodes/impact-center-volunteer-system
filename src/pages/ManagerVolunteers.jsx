@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import PageHeader from "../components/PageHeader";
 import { Search, UserPlus, X, Check, Pencil, Trash2 } from "lucide-react";
 import MobileNav from "../components/MobileNav";
+import MobileHeroShell from "../components/MobileHeroShell";
 import { db } from "../firebase";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { VOLUNTEER_PROFILES } from "../hooks/useSharedTasks";
@@ -55,6 +56,42 @@ const CHECK_ICON = (
 
 const CHIP_ON  = { background: "#E6F5F3", borderColor: "#E6F5F3", color: "#09665E", fontWeight: 600 };
 const CHIP_OFF = { background: "#FFFFFF", borderColor: "#E5E7EB", color: "#6B7280", fontWeight: 500 };
+
+function ConfirmRemoveModal({ volunteer, onConfirm, onCancel }) {
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onCancel} />
+      <div
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white w-[calc(100%-32px)]"
+        style={{ maxWidth: 360, borderRadius: 24, padding: "28px 28px 24px", boxShadow: "0 24px 60px rgba(10,42,58,0.28)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <p style={{ font: "700 20px/28px 'Inter', sans-serif", color: "#0A2A3A", margin: "0 0 28px" }}>
+          Remove {volunteer.name}?{" "}This can't be undone.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{ background: "none", border: "none", cursor: "pointer",
+                     font: "500 15px/22px 'Inter', sans-serif", color: "#6B7280", padding: 0 }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            style={{ flex: 1, height: 48, borderRadius: 9999, border: "none",
+                     background: "#DC2626", color: "#fff",
+                     font: "600 15px/22px 'Inter', sans-serif", cursor: "pointer" }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function AddVolunteerModal({ volunteers, onClose, onAdd }) {
   const firstNameRef = useRef(null);
@@ -201,6 +238,7 @@ export default function ManagerVolunteers() {
   const [sortBy, setSortBy] = useState("name-asc");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [confirmRemove, setConfirmRemove] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState(null);
   const [editName, setEditName] = useState("");
@@ -326,11 +364,7 @@ export default function ManagerVolunteers() {
         style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
 
         {/* Gradient hero */}
-        <div style={{
-          background: 'linear-gradient(143deg, #0f7a70 14%, #0a2a3a 86%)',
-          borderRadius: '0 0 28px 28px',
-          color: '#fff',
-        }}>
+        <MobileHeroShell>
           <MobileNav mode="pantry" />
           <div style={{ padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Stat row: Volunteers tag + big number + signal bars */}
@@ -352,7 +386,7 @@ export default function ManagerVolunteers() {
               {volunteers.filter(v => v.active).length} volunteers active
             </p>
           </div>
-        </div>
+        </MobileHeroShell>
 
         {/* Add Volunteer button */}
         <div className="px-5 pt-[15px]">
@@ -384,10 +418,12 @@ export default function ManagerVolunteers() {
               { value: 'driver', label: 'Driver'      },
             ].map(r => (
               <button key={r.value} onClick={() => setRoleFilter(r.value)}
-                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
-                style={roleFilter === r.value
-                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
-                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
+                aria-pressed={roleFilter === r.value}
+                className={`h-9 px-4 rounded-full text-[13px] cursor-pointer border-none ${
+                  roleFilter === r.value
+                    ? 'bg-[#0A2A3A] text-white font-semibold'
+                    : 'bg-white border border-[#E5E7EB] text-[#6B7280] font-medium'
+                }`}>
                 {r.label}
               </button>
             ))}
@@ -421,7 +457,7 @@ export default function ManagerVolunteers() {
                     style={{ background: '#E6F5F3' }}>
                     <Pencil size={13} color="#09665E" />
                   </button>
-                  <button onClick={() => handleRemoveVolunteer(vol.id)}
+                  <button onClick={() => setConfirmRemove(vol)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border-none cursor-pointer"
                     style={{ background: '#E6F5F3' }}>
                     <Trash2 size={13} color="#09665E" />
@@ -475,7 +511,7 @@ export default function ManagerVolunteers() {
                       tint={i % 2 === 0}
                       index={i}
                       onEdit={() => handleEditOpen(v)}
-                      onDelete={() => handleRemoveVolunteer(v.id)}
+                      onDelete={() => setConfirmRemove(v)}
                     />
                   ))
                 )}
@@ -523,11 +559,20 @@ export default function ManagerVolunteers() {
             <VolunteerTable
               volunteers={volunteers}
               onEdit={handleEditOpen}
-              onRemove={handleRemoveVolunteer}
+              onRemove={(id) => setConfirmRemove(volunteers.find(v => v.id === id))}
             />
           </div>
         </div>
       </div>
+
+      {/* ── Confirm Remove Modal ── */}
+      {confirmRemove && (
+        <ConfirmRemoveModal
+          volunteer={confirmRemove}
+          onCancel={() => setConfirmRemove(null)}
+          onConfirm={() => { handleRemoveVolunteer(confirmRemove.id); setConfirmRemove(null); }}
+        />
+      )}
 
       {/* ── Add Volunteer Modal (shared) ── */}
       {showAddModal && (

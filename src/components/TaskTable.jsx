@@ -20,9 +20,10 @@ function statusLabel(status) {
 
 export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIncomplete, onRemove, onEdit }) {
   const planning = mode === "planning";
-  const [search,   setSearch]   = useState("");
-  const [category, setCategory] = useState("All");
-  const [popover,  setPopover]  = useState(null); // { rect, taskId }
+  const [search,          setSearch]          = useState("");
+  const [category,        setCategory]        = useState("All");
+  const [popover,         setPopover]         = useState(null); // { rect, taskId }
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const handleKebab = useCallback((e, task) => {
     e.stopPropagation();
@@ -179,7 +180,20 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
       <RowPopover
         open={!!popover && !!activeTask}
         rect={popover?.rect}
-        options={planning
+        header={confirmDeleteId === popover?.taskId ? "Delete this task?" : undefined}
+        options={confirmDeleteId === popover?.taskId
+          ? [
+              {
+                label: "Cancel",
+                onClick: () => setConfirmDeleteId(null),
+              },
+              {
+                label: "Yes, delete",
+                danger: true,
+                onClick: () => { onRemove(popover.taskId); setPopover(null); setConfirmDeleteId(null); },
+              },
+            ]
+          : planning
           ? [
               {
                 label: "Edit task",
@@ -188,7 +202,8 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
               {
                 label: "Remove",
                 danger: true,
-                onClick: () => popover && onRemove(popover.taskId),
+                keepOpen: true,
+                onClick: () => setConfirmDeleteId(popover.taskId),
               },
             ]
           : [
@@ -203,11 +218,12 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
               {
                 label: "Remove",
                 danger: true,
-                onClick: () => popover && onRemove(popover.taskId),
+                keepOpen: true,
+                onClick: () => setConfirmDeleteId(popover.taskId),
               },
             ]
         }
-        onClose={() => setPopover(null)}
+        onClose={() => { setPopover(null); setConfirmDeleteId(null); }}
       />
     </div>
   );
