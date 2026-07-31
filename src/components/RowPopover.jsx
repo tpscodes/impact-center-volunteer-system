@@ -45,7 +45,7 @@ export default function RowPopover({ open, rect, options, onClose, header }) {
           key={i}
           role="menuitem"
           className={`rp__option${opt.danger ? " rp__option--danger" : ""}`}
-          onClick={() => { opt.onClick(); onClose(); }}
+          onClick={() => { opt.onClick(); if (!opt.keepOpen) onClose(); }}
         >
           {opt.label}
         </button>

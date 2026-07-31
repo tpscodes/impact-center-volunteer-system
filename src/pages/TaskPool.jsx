@@ -26,6 +26,7 @@ export default function TaskPool() {
   const [pendingClaim, setPendingClaim] = useState(null)
   const [slName, setSlName] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
+  const [claimRaceMsg, setClaimRaceMsg] = useState(null)
 
   const volunteerId = sessionStorage.getItem('volunteerId') || ''
   const volunteerName = sessionStorage.getItem('volunteerName') || `Vol #${volunteerId}`
@@ -73,7 +74,12 @@ export default function TaskPool() {
   }
 
   async function handleClaim(task) {
-    await claimTask(task.id, volunteerId, volunteerName)
+    const committed = await claimTask(task.id, volunteerId, volunteerName)
+    if (!committed) {
+      setClaimRaceMsg('That task was just claimed — please pick another.')
+      setTimeout(() => setClaimRaceMsg(null), 3000)
+      return
+    }
     if ((task.tags || []).includes('Shift Leader')) {
       setPendingClaim(task)
       setSelectedTask(null)
@@ -506,6 +512,11 @@ export default function TaskPool() {
           * { animation: none !important; transition: none !important; }
         }
       `}</style>
+      {claimRaceMsg && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#0A2A3A', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, zIndex: 300, whiteSpace: 'nowrap' }}>
+          {claimRaceMsg}
+        </div>
+      )}
     </div>
   )
 }

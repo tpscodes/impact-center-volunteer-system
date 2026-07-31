@@ -88,12 +88,18 @@ export default function NewVolunteerTasks() {
     setDetailTask(task);
     const displayName = nameSubmitted ? formatDisplayName(firstName, lastName) : "New Volunteer";
     const token = mySessionToken || crypto.randomUUID();
-    await claimTask(task.id, "new-" + token.slice(0, 8), displayName, {
+    const committed = await claimTask(task.id, "new-" + token.slice(0, 8), displayName, {
       claimedByName: displayName,
       claimedByType: "new",
       sessionToken: token,
     });
-    showToastMsg('Task claimed ✓');
+    if (committed) {
+      showToastMsg('Task claimed ✓');
+    } else {
+      setMyTaskId(null);
+      setDetailTask(null);
+      showToastMsg('That task was just claimed — please pick another.');
+    }
   }
 
   async function handleComplete() {

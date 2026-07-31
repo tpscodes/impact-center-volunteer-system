@@ -991,7 +991,7 @@ export default function ManagerDeliveryRoutes() {
                                     </td>
                                     <td className="text-[#6b7280] text-[12px]">{occ.notes || ""}</td>
                                     <td className="py-1 text-right pr-1">
-                                      <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                      <button onClick={() => setOccurrenceDeleteConfirmId(occ.id)}
                                         className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                         <X size={13} />
                                       </button>

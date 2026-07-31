@@ -202,6 +202,7 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
               {
                 label: "Remove",
                 danger: true,
+                keepOpen: true,
                 onClick: () => setConfirmDeleteId(popover.taskId),
               },
             ]
@@ -217,6 +218,7 @@ export default function TaskTable({ tasks, mode = "active", onComplete, onMarkIn
               {
                 label: "Remove",
                 danger: true,
+                keepOpen: true,
                 onClick: () => setConfirmDeleteId(popover.taskId),
               },
             ]
