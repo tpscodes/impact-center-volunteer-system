@@ -319,7 +319,7 @@ function CreateTaskModal({ onClose, onSave }) {
                   style={{
                     flex: 1, height: 44, borderRadius: 9999, fontFamily: 'inherit',
                     border: form.priority === p ? 'none' : '1px solid #E5E7EB',
-                    background: form.priority === p ? '#09665E' : '#fff',
+                    background: form.priority === p ? '#0A2A3A' : '#fff',
                     color: form.priority === p ? '#fff' : '#6B7280',
                     font: "500 13px/20px 'Inter', sans-serif",
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -908,9 +908,9 @@ export default function ManagerTasks() {
                         style={{
                           height: 32, padding: "0 14px", borderRadius: 9999, cursor: "pointer",
                           font: `${on ? 600 : 500} 13px/18px 'Inter', sans-serif`,
-                          border: `1px solid ${on ? "#E6F5F3" : "#E5E7EB"}`,
-                          background: on ? "#E6F5F3" : "#FFFFFF",
-                          color: on ? "#09665E" : "#6B7280",
+                          border: `1px solid ${on ? "#0A2A3A" : "#E5E7EB"}`,
+                          background: on ? "#0A2A3A" : "#FFFFFF",
+                          color: on ? "#FFFFFF" : "#6B7280",
                           transition: "background 120ms, color 120ms, border-color 120ms",
                         }}>
                         {tag}

@@ -421,10 +421,12 @@ export default function ManagerVolunteers() {
               { value: 'driver', label: 'Driver'      },
             ].map(r => (
               <button key={r.value} onClick={() => setRoleFilter(r.value)}
-                className="h-9 px-4 rounded-full text-[13px] cursor-pointer border-none"
-                style={roleFilter === r.value
-                  ? { background: '#0A2A3A', color: '#fff', fontWeight: 600 }
-                  : { background: '#fff', border: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 500 }}>
+                aria-pressed={roleFilter === r.value}
+                className={`h-9 px-4 rounded-full text-[13px] cursor-pointer border-none ${
+                  roleFilter === r.value
+                    ? 'bg-[#0A2A3A] text-white font-semibold'
+                    : 'bg-white border border-[#E5E7EB] text-[#6B7280] font-medium'
+                }`}>
                 {r.label}
               </button>
             ))}

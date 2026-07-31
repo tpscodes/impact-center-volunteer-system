@@ -129,7 +129,7 @@ function VehicleDropdown({ value, onChange, hasError }) {
               className={`block w-full text-left border-0 rounded-[8px] px-[10px] py-[9px]
                 text-[14px] leading-[20px] cursor-pointer transition-colors
                 ${value === v
-                  ? "bg-[#E6F5F3] text-[#09665E] font-semibold"
+                  ? "bg-[#0A2A3A] text-white font-semibold"
                   : "bg-transparent text-[#0a2a3a] hover:bg-[#f5f5f5]"}`}
             >
               {v}
