@@ -252,7 +252,8 @@ export default function ManagerDeliveryRoutes() {
   });
   const [addErrors,       setAddErrors]       = useState({});
   const [pendingSelectId, setPendingSelectId] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteConfirmId,           setDeleteConfirmId]           = useState(null);
+  const [occurrenceDeleteConfirmId, setOccurrenceDeleteConfirmId] = useState(null);
 
   // Floating popover state — tracks which kebab is open + fixed position
   const [popover, setPopover] = useState({ open: false, routeId: null, top: 0, left: 0 });
@@ -909,7 +910,7 @@ export default function ManagerDeliveryRoutes() {
                                         {occ.specialNote || "Special day"}
                                       </td>
                                       <td className="py-1 text-right pr-1">
-                                        <button onClick={() => handleDeleteOccurrence(occ.id)}
+                                        <button onClick={() => setOccurrenceDeleteConfirmId(occ.id)}
                                           className="text-[#d1d5db] hover:text-[#dc2626] transition-colors bg-transparent border-none cursor-pointer p-0.5 rounded">
                                           <X size={13} />
                                         </button>
@@ -1174,6 +1175,31 @@ export default function ManagerDeliveryRoutes() {
                 Cancel
               </button>
               <button onClick={() => handleDeleteRoute(deleteConfirmId)}
+                className="flex-1 h-[44px] rounded-full bg-[#dc2626] text-white text-[14px]
+                  font-semibold border-none cursor-pointer hover:bg-[#b91c1c] transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Occurrence Delete Confirmation ───────────────────────────────── */}
+      {occurrenceDeleteConfirmId && (
+        <div className="fixed inset-0 bg-black/[.45] z-50 flex items-center justify-center"
+          onClick={() => setOccurrenceDeleteConfirmId(null)}>
+          <div className="bg-white rounded-[20px] border border-[#e5e7eb] w-full max-w-[360px] mx-4 p-7"
+            onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-[20px] text-[#0a2a3a] m-0 leading-[28px]">
+              Remove this occurrence? This can't be undone.
+            </p>
+            <div className="flex gap-3 mt-7">
+              <button onClick={() => setOccurrenceDeleteConfirmId(null)}
+                className="flex-1 h-[44px] rounded-full bg-white border border-[#e5e7eb]
+                  text-[#0a2a3a] text-[14px] font-semibold cursor-pointer hover:bg-[#f5f5f5] transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => { handleDeleteOccurrence(occurrenceDeleteConfirmId); setOccurrenceDeleteConfirmId(null); }}
                 className="flex-1 h-[44px] rounded-full bg-[#dc2626] text-white text-[14px]
                   font-semibold border-none cursor-pointer hover:bg-[#b91c1c] transition-colors">
                 Delete

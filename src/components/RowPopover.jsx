@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./RowPopover.css";
 
-export default function RowPopover({ open, rect, options, onClose }) {
+export default function RowPopover({ open, rect, options, onClose, header }) {
   const el = useRef(null);
 
   useEffect(() => {
@@ -39,6 +39,7 @@ export default function RowPopover({ open, rect, options, onClose }) {
       role="menu"
       onClick={(e) => e.stopPropagation()}
     >
+      {header && <p className="rp__header">{header}</p>}
       {options.map((opt, i) => (
         <button
           key={i}
